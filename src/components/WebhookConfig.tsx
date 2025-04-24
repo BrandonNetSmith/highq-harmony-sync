@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
+import { saveApiKeys, getApiKeys } from '@/services/apiKeys';
 
 interface ApiConfigForm {
   ghlApiKey: string;
@@ -23,12 +24,27 @@ const WebhookConfig = () => {
   const { toast } = useToast();
   const form = useForm<ApiConfigForm>();
 
+  useEffect(() => {
+    const loadApiKeys = async () => {
+      try {
+        const keys = await getApiKeys();
+        if (keys) {
+          form.reset({
+            ghlApiKey: keys.ghl_key || '',
+            intakeqApiKey: keys.intakeq_key || ''
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load API keys:', error);
+      }
+    };
+
+    loadApiKeys();
+  }, [form]);
+
   const onSubmit = async (data: ApiConfigForm) => {
     try {
-      // This will be replaced with Supabase secret storage later
-      localStorage.setItem('ghlApiKey', data.ghlApiKey);
-      localStorage.setItem('intakeqApiKey', data.intakeqApiKey);
-      
+      await saveApiKeys(data.ghlApiKey, data.intakeqApiKey);
       toast({
         title: "Success",
         description: "API keys saved successfully",
