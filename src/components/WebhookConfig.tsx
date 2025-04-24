@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { saveApiKeys, getApiKeys } from '@/services/apiKeys';
+import { AlertCircle } from 'lucide-react';
 
 interface ApiConfigForm {
   ghlApiKey: string;
@@ -22,20 +23,30 @@ interface ApiConfigForm {
 
 const WebhookConfig = () => {
   const { toast } = useToast();
-  const form = useForm<ApiConfigForm>();
+  const form = useForm<ApiConfigForm>({
+    defaultValues: {
+      ghlApiKey: '',
+      intakeqApiKey: ''
+    }
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadApiKeys = async () => {
+      setIsLoading(true);
+      setConnectionError(null);
       try {
         const keys = await getApiKeys();
-        if (keys) {
-          form.reset({
-            ghlApiKey: keys.ghl_key || '',
-            intakeqApiKey: keys.intakeq_key || ''
-          });
-        }
+        form.reset({
+          ghlApiKey: keys.ghl_key || '',
+          intakeqApiKey: keys.intakeq_key || ''
+        });
       } catch (error) {
         console.error('Failed to load API keys:', error);
+        setConnectionError('Failed to connect to Supabase. Please verify your integration setup.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -43,6 +54,8 @@ const WebhookConfig = () => {
   }, [form]);
 
   const onSubmit = async (data: ApiConfigForm) => {
+    setIsLoading(true);
+    setConnectionError(null);
     try {
       await saveApiKeys(data.ghlApiKey, data.intakeqApiKey);
       toast({
@@ -50,16 +63,29 @@ const WebhookConfig = () => {
         description: "API keys saved successfully",
       });
     } catch (error) {
+      console.error('Error saving API keys:', error);
       toast({
         title: "Error",
-        description: "Failed to save API keys",
+        description: error instanceof Error ? error.message : "Failed to save API keys",
         variant: "destructive",
       });
+      if (error instanceof Error && error.message.includes('Supabase client is not initialized')) {
+        setConnectionError('Supabase connection is not available. Please check your integration setup.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
+      {connectionError && (
+        <div className="md:col-span-2 bg-destructive/15 p-4 rounded-md flex items-center gap-2">
+          <AlertCircle className="text-destructive h-5 w-5" />
+          <p className="text-destructive">{connectionError}</p>
+        </div>
+      )}
+      
       <Card>
         <CardHeader>
           <CardTitle>GoHighLevel API</CardTitle>
@@ -79,6 +105,7 @@ const WebhookConfig = () => {
                         type="password"
                         placeholder="Enter GoHighLevel API key"
                         {...field}
+                        disabled={isLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -109,6 +136,7 @@ const WebhookConfig = () => {
                         type="password"
                         placeholder="Enter IntakeQ API key"
                         {...field}
+                        disabled={isLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -121,7 +149,12 @@ const WebhookConfig = () => {
       </Card>
       
       <div className="md:col-span-2 flex justify-end">
-        <Button onClick={form.handleSubmit(onSubmit)}>Save API Configuration</Button>
+        <Button 
+          onClick={form.handleSubmit(onSubmit)} 
+          disabled={isLoading}
+        >
+          {isLoading ? 'Saving...' : 'Save API Configuration'}
+        </Button>
       </div>
     </div>
   );
