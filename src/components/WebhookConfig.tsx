@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,7 +43,7 @@ const WebhookConfig = () => {
         });
       } catch (error) {
         console.error('Failed to load API keys:', error);
-        setConnectionError('Failed to connect to Supabase. Please verify your integration setup.');
+        setConnectionError('Failed to connect to Supabase. Please check your database schema - you may need to create the api_keys table.');
       } finally {
         setIsLoading(false);
       }
@@ -69,9 +68,7 @@ const WebhookConfig = () => {
         description: error instanceof Error ? error.message : "Failed to save API keys",
         variant: "destructive",
       });
-      if (error instanceof Error && error.message.includes('Supabase client is not initialized')) {
-        setConnectionError('Supabase connection is not available. Please check your integration setup.');
-      }
+      setConnectionError('Failed to save to Supabase. Please check your database schema.');
     } finally {
       setIsLoading(false);
     }
