@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
@@ -33,6 +33,8 @@ interface FieldMappingProps {
 }
 
 export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: FieldMappingProps) => {
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+
   const handleFieldSyncChange = (dataType: string, field: string, checked: boolean) => {
     const newMapping = { ...fieldMapping };
     newMapping[dataType].fields[field].sync = checked;
@@ -42,6 +44,18 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
   const handleFieldDirectionChange = (dataType: string, field: string, direction: SyncDirection) => {
     const newMapping = { ...fieldMapping };
     newMapping[dataType].fields[field].direction = direction;
+    onChange(newMapping);
+  };
+
+  const handleCategorySyncChange = (dataType: string, checked: boolean) => {
+    const newMapping = { ...fieldMapping };
+    const fields = Object.keys(newMapping[dataType].fields);
+    
+    // Apply the sync setting to all fields in this category
+    fields.forEach(fieldName => {
+      newMapping[dataType].fields[fieldName].sync = checked;
+    });
+    
     onChange(newMapping);
   };
 
@@ -68,6 +82,13 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     // If all fields have the same direction, return that direction
     const firstDirection = fields[0].direction;
     return fields.every(field => field.direction === firstDirection) ? firstDirection : null;
+  };
+
+  const getCategorySyncStatus = (dataType: string): boolean => {
+    const fields = Object.values(fieldMapping[dataType].fields);
+    
+    // If any fields are synced, consider the category synced
+    return fields.some(field => field.sync);
   };
 
   const getDirectionIcon = (direction: SyncDirection) => {
@@ -117,49 +138,67 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
         <Accordion type="multiple" className="w-full">
           {dataTypes.map(dataType => {
             const categoryDirection = getCategoryDirection(dataType);
+            const isCategoryEnabled = getCategorySyncStatus(dataType);
             
             return (
               <AccordionItem key={dataType} value={dataType} className="border rounded-md mb-4">
                 <div className="flex flex-col">
-                  <div className="flex justify-between items-center bg-muted/30 p-4">
-                    <AccordionTrigger className="flex-1 hover:no-underline">
-                      <h3 className="text-lg font-medium capitalize text-left">{dataTypeLabels[dataType] || dataType}</h3>
-                    </AccordionTrigger>
+                  <div className="grid grid-cols-[1fr_auto_1fr] gap-4 bg-muted/30">
+                    {/* GHL Side Title */}
+                    <div className="p-4">
+                      <AccordionTrigger className="hover:no-underline w-full text-left">
+                        <h3 className="text-lg font-medium capitalize text-left">{dataTypeLabels[dataType] || dataType}</h3>
+                      </AccordionTrigger>
+                    </div>
                     
-                    {/* Category-level direction controls */}
-                    <div className="flex items-center">
-                      <ToggleGroup
-                        type="single"
-                        size="sm"
-                        value={categoryDirection || undefined}
-                        onValueChange={(value) => {
-                          if (value) handleCategoryDirectionChange(dataType, value as SyncDirection);
-                        }}
-                        className="flex gap-0 border rounded-md overflow-hidden mr-4"
+                    {/* Category-level sync controls */}
+                    <div className="flex items-center justify-center gap-2 p-2">
+                      <Switch
+                        id={`${dataType}-category-sync`}
+                        checked={isCategoryEnabled}
+                        onCheckedChange={(checked) => handleCategorySyncChange(dataType, checked)}
                         disabled={disabled}
-                      >
-                        <ToggleGroupItem 
-                          value="one_way_intakeq_to_ghl"
-                          aria-label="IntakeQ to GHL"
-                          className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                      />
+                      
+                      {isCategoryEnabled && (
+                        <ToggleGroup
+                          type="single"
+                          size="sm"
+                          value={categoryDirection || undefined}
+                          onValueChange={(value) => {
+                            if (value) handleCategoryDirectionChange(dataType, value as SyncDirection);
+                          }}
+                          className="flex gap-0 border rounded-md overflow-hidden"
+                          disabled={disabled || !isCategoryEnabled}
                         >
-                          <ArrowLeft className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem 
-                          value="bidirectional"
-                          aria-label="Bidirectional"
-                          className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                        >
-                          <ArrowLeftRight className="h-4 w-4" />
-                        </ToggleGroupItem>
-                        <ToggleGroupItem 
-                          value="one_way_ghl_to_intakeq"
-                          aria-label="GHL to IntakeQ"
-                          className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                        >
-                          <ArrowRight className="h-4 w-4" />
-                        </ToggleGroupItem>
-                      </ToggleGroup>
+                          <ToggleGroupItem 
+                            value="one_way_intakeq_to_ghl"
+                            aria-label="IntakeQ to GHL"
+                            className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem 
+                            value="bidirectional"
+                            aria-label="Bidirectional"
+                            className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                          >
+                            <ArrowLeftRight className="h-4 w-4" />
+                          </ToggleGroupItem>
+                          <ToggleGroupItem 
+                            value="one_way_ghl_to_intakeq"
+                            aria-label="GHL to IntakeQ"
+                            className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </ToggleGroupItem>
+                        </ToggleGroup>
+                      )}
+                    </div>
+                    
+                    {/* IntakeQ Side Title */}
+                    <div className="p-4">
+                      <div className="text-lg font-medium capitalize text-right">{dataTypeLabels[dataType] || dataType}</div>
                     </div>
                   </div>
                 

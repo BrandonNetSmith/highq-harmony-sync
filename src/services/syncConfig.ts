@@ -31,7 +31,8 @@ export const saveSyncConfig = async (config: Partial<SyncConfig>) => {
       config.id = existingConfig.id;
     } else {
       // If no config exists yet, create one with a default ID
-      config.id = 1; // Using a default ID of 1 for the single config
+      // Using gen_random_uuid() to generate a UUID instead of a number
+      config.id = crypto.randomUUID(); // Fix: Use a proper UUID instead of a number
     }
   }
   
