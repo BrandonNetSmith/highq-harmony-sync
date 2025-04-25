@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -5,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -185,31 +187,38 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                                 />
                                 
                                 {fieldSettings.sync && (
-                                  <Button
-                                    variant="outline"
+                                  <ToggleGroup
+                                    type="single"
                                     size="sm"
-                                    className="p-1 h-8 w-16 flex justify-center"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      let newDirection: SyncDirection;
-                                      switch (fieldSettings.direction) {
-                                        case 'bidirectional':
-                                          newDirection = 'one_way_ghl_to_intakeq';
-                                          break;
-                                        case 'one_way_ghl_to_intakeq':
-                                          newDirection = 'one_way_intakeq_to_ghl';
-                                          break;
-                                        case 'one_way_intakeq_to_ghl':
-                                        default:
-                                          newDirection = 'bidirectional';
-                                          break;
-                                      }
-                                      handleFieldDirectionChange(dataType, fieldName, newDirection);
+                                    value={fieldSettings.direction}
+                                    onValueChange={(value) => {
+                                      if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
                                     }}
+                                    className="flex gap-0 border rounded-md overflow-hidden"
                                     disabled={disabled || !fieldSettings.sync}
                                   >
-                                    {getDirectionIcon(fieldSettings.direction)}
-                                  </Button>
+                                    <ToggleGroupItem 
+                                      value="one_way_intakeq_to_ghl"
+                                      aria-label="IntakeQ to GHL"
+                                      className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                    >
+                                      <ArrowLeft className="h-4 w-4" />
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem 
+                                      value="bidirectional"
+                                      aria-label="Bidirectional"
+                                      className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                    >
+                                      <ArrowLeftRight className="h-4 w-4" />
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem 
+                                      value="one_way_ghl_to_intakeq"
+                                      aria-label="GHL to IntakeQ"
+                                      className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                    >
+                                      <ArrowRight className="h-4 w-4" />
+                                    </ToggleGroupItem>
+                                  </ToggleGroup>
                                 )}
                               </div>
                               
@@ -237,36 +246,47 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                                 <div className="flex flex-col items-center justify-center space-y-2">
                                   <Label className="mb-1 block text-center">Direction</Label>
                                   <div className="flex flex-col gap-2">
-                                    <Button
-                                      variant={fieldSettings.direction === 'bidirectional' ? 'default' : 'outline'}
+                                    <ToggleGroup
+                                      type="single"
                                       size="sm"
-                                      className="w-full"
-                                      onClick={() => handleFieldDirectionChange(dataType, fieldName, 'bidirectional')}
+                                      value={fieldSettings.direction}
+                                      onValueChange={(value) => {
+                                        if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
+                                      }}
+                                      className="flex flex-col gap-2 w-full"
                                       disabled={disabled}
                                     >
-                                      <ArrowLeftRight className="h-4 w-4 mr-1" />
-                                      <span>Both</span>
-                                    </Button>
-                                    <Button
-                                      variant={fieldSettings.direction === 'one_way_ghl_to_intakeq' ? 'default' : 'outline'}
-                                      size="sm"
-                                      className="w-full"
-                                      onClick={() => handleFieldDirectionChange(dataType, fieldName, 'one_way_ghl_to_intakeq')}
-                                      disabled={disabled}
-                                    >
-                                      <ArrowRight className="h-4 w-4 mr-1" />
-                                      <span>GHL to IQ</span>
-                                    </Button>
-                                    <Button
-                                      variant={fieldSettings.direction === 'one_way_intakeq_to_ghl' ? 'default' : 'outline'}
-                                      size="sm"
-                                      className="w-full"
-                                      onClick={() => handleFieldDirectionChange(dataType, fieldName, 'one_way_intakeq_to_ghl')}
-                                      disabled={disabled}
-                                    >
-                                      <ArrowLeft className="h-4 w-4 mr-1" />
-                                      <span>IQ to GHL</span>
-                                    </Button>
+                                      <ToggleGroupItem 
+                                        value="bidirectional"
+                                        aria-label="Bidirectional"
+                                        className="w-full data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <ArrowLeftRight className="h-4 w-4" />
+                                          <span>Both</span>
+                                        </div>
+                                      </ToggleGroupItem>
+                                      <ToggleGroupItem 
+                                        value="one_way_ghl_to_intakeq"
+                                        aria-label="GHL to IntakeQ"
+                                        className="w-full data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <ArrowRight className="h-4 w-4" />
+                                          <span>GHL to IQ</span>
+                                        </div>
+                                      </ToggleGroupItem>
+                                      <ToggleGroupItem 
+                                        value="one_way_intakeq_to_ghl"
+                                        aria-label="IntakeQ to GHL"
+                                        className="w-full data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <ArrowLeft className="h-4 w-4" />
+                                          <span>IQ to GHL</span>
+                                        </div>
+                                      </ToggleGroupItem>
+                                    </ToggleGroup>
                                   </div>
                                 </div>
                                 
