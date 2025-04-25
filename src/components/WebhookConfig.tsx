@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ const WebhookConfig = () => {
         description: error instanceof Error ? error.message : "Failed to save API keys",
         variant: "destructive",
       });
-      setConnectionError('Failed to save to Supabase. Please check your database schema.');
+      setConnectionError('Failed to save to Supabase. Please make sure Row Level Security policies are configured correctly.');
     } finally {
       setIsLoading(false);
     }

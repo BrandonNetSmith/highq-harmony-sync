@@ -2,17 +2,30 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const saveApiKeys = async (ghlApiKey: string, intakeqApiKey: string) => {
+  // First check if there's an existing record
+  const { data } = await supabase
+    .from('api_keys')
+    .select('id')
+    .limit(1);
+  
+  const id = data && data.length > 0 ? data[0].id : 1;
+
   const { error } = await supabase
     .from('api_keys')
     .upsert([
       {
-        id: 1, // Single record for the app
+        id: id, // Use existing ID or default to 1
         ghl_key: ghlApiKey,
         intakeq_key: intakeqApiKey
       }
-    ]);
+    ], {
+      onConflict: 'id'
+    });
 
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase error:', error);
+    throw new Error(`Failed to save API keys: ${error.message}`);
+  }
 };
 
 export const getApiKeys = async () => {
@@ -20,9 +33,10 @@ export const getApiKeys = async () => {
     .from('api_keys')
     .select('ghl_key, intakeq_key')
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 is the error when no rows returned
+  if (error) {
+    console.error('Supabase error:', error);
     throw error;
   }
   
