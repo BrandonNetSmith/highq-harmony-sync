@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,7 +57,6 @@ export const SyncFilters = ({
         return;
       }
 
-      // Use a proxy approach to avoid CORS issues
       const response = await fetch('/api/proxy', {
         method: 'POST',
         headers: {
@@ -81,7 +79,6 @@ export const SyncFilters = ({
       const tags = data.tags?.map((tag: any) => tag.name) || [];
       setAvailableTags(tags);
       
-      // Fetch statuses through proxy as well
       const statusResponse = await fetch('/api/proxy', {
         method: 'POST',
         headers: {
@@ -143,7 +140,6 @@ export const SyncFilters = ({
         return;
       }
 
-      // Use a proxy approach to avoid CORS issues
       const response = await fetch('/api/proxy', {
         method: 'POST',
         headers: {
@@ -224,182 +220,184 @@ export const SyncFilters = ({
         </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>GoHighLevel Filters</CardTitle>
-          <CardDescription>Filter which GHL records to sync</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Button 
-              variant="outline" 
-              onClick={fetchGHLData}
-              disabled={isLoadingGHL || disabled}
-            >
-              {isLoadingGHL ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Fetch Available Options
-            </Button>
-          </div>
-          
-          <div>
-            <Label htmlFor="ghl-contact-ids">Contact IDs (comma-separated)</Label>
-            <Input
-              id="ghl-contact-ids"
-              value={ghlFilters.contactIds.join(',')}
-              onChange={(e) => onGhlFiltersChange({
-                ...ghlFilters,
-                contactIds: e.target.value.split(',').map(id => id.trim()).filter(Boolean)
-              })}
-              placeholder="Enter contact IDs for testing"
-              disabled={disabled}
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="ghl-tags">Tags (comma-separated)</Label>
-            <div className="flex gap-2 mb-2">
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>GoHighLevel Filters</CardTitle>
+            <CardDescription>Filter which GHL records to sync</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Button 
+                variant="outline" 
+                onClick={fetchGHLData}
+                disabled={isLoadingGHL || disabled}
+              >
+                {isLoadingGHL ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Fetch Available Options
+              </Button>
+            </div>
+            
+            <div>
+              <Label htmlFor="ghl-contact-ids">Contact IDs (comma-separated)</Label>
               <Input
-                id="ghl-tags"
-                value={ghlFilters.tags.join(',')}
+                id="ghl-contact-ids"
+                value={ghlFilters.contactIds.join(',')}
                 onChange={(e) => onGhlFiltersChange({
                   ...ghlFilters,
-                  tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
+                  contactIds: e.target.value.split(',').map(id => id.trim()).filter(Boolean)
                 })}
-                placeholder="Enter tags to filter"
+                placeholder="Enter contact IDs for testing"
                 disabled={disabled}
               />
             </div>
             
-            {availableTags.length > 0 && (
-              <div className="mt-2">
-                <Label className="text-sm">Available Tags:</Label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {availableTags.slice(0, 10).map((tag, index) => (
-                    <Button 
-                      key={index} 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleAddTag(tag)}
-                      disabled={disabled}
-                      className="text-xs py-0 h-6"
-                    >
-                      {tag}
-                    </Button>
-                  ))}
-                  {availableTags.length > 10 && <span className="text-xs text-muted-foreground">+{availableTags.length - 10} more</span>}
-                </div>
+            <div>
+              <Label htmlFor="ghl-tags">Tags (comma-separated)</Label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  id="ghl-tags"
+                  value={ghlFilters.tags.join(',')}
+                  onChange={(e) => onGhlFiltersChange({
+                    ...ghlFilters,
+                    tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
+                  })}
+                  placeholder="Enter tags to filter"
+                  disabled={disabled}
+                />
               </div>
-            )}
-          </div>
-          
-          <div>
-            <Label htmlFor="ghl-status">Status (comma-separated)</Label>
-            <div className="flex gap-2 mb-2">
-              <Input
-                id="ghl-status"
-                value={ghlFilters.status.join(',')}
-                onChange={(e) => onGhlFiltersChange({
-                  ...ghlFilters,
-                  status: e.target.value.split(',').map(status => status.trim()).filter(Boolean)
-                })}
-                placeholder="Enter statuses to filter"
-                disabled={disabled}
-              />
+              
+              {availableTags.length > 0 && (
+                <div className="mt-2">
+                  <Label className="text-sm">Available Tags:</Label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {availableTags.slice(0, 10).map((tag, index) => (
+                      <Button 
+                        key={index} 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleAddTag(tag)}
+                        disabled={disabled}
+                        className="text-xs py-0 h-6"
+                      >
+                        {tag}
+                      </Button>
+                    ))}
+                    {availableTags.length > 10 && <span className="text-xs text-muted-foreground">+{availableTags.length - 10} more</span>}
+                  </div>
+                </div>
+              )}
             </div>
             
-            {availableStatuses.length > 0 && (
-              <div className="mt-2">
-                <Label className="text-sm">Available Statuses:</Label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {availableStatuses.slice(0, 10).map((status, index) => (
-                    <Button 
-                      key={index} 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleAddStatus(status)}
-                      disabled={disabled}
-                      className="text-xs py-0 h-6"
-                    >
-                      {status}
-                    </Button>
-                  ))}
-                  {availableStatuses.length > 10 && <span className="text-xs text-muted-foreground">+{availableStatuses.length - 10} more</span>}
-                </div>
+            <div>
+              <Label htmlFor="ghl-status">Status (comma-separated)</Label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  id="ghl-status"
+                  value={ghlFilters.status.join(',')}
+                  onChange={(e) => onGhlFiltersChange({
+                    ...ghlFilters,
+                    status: e.target.value.split(',').map(status => status.trim()).filter(Boolean)
+                  })}
+                  placeholder="Enter statuses to filter"
+                  disabled={disabled}
+                />
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              
+              {availableStatuses.length > 0 && (
+                <div className="mt-2">
+                  <Label className="text-sm">Available Statuses:</Label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {availableStatuses.slice(0, 10).map((status, index) => (
+                      <Button 
+                        key={index} 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleAddStatus(status)}
+                        disabled={disabled}
+                        className="text-xs py-0 h-6"
+                      >
+                        {status}
+                      </Button>
+                    ))}
+                    {availableStatuses.length > 10 && <span className="text-xs text-muted-foreground">+{availableStatuses.length - 10} more</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>IntakeQ Filters</CardTitle>
-          <CardDescription>Filter which IntakeQ records to sync</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Button 
-              variant="outline" 
-              onClick={fetchIntakeQData}
-              disabled={isLoadingIntakeQ || disabled}
-            >
-              {isLoadingIntakeQ ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Fetch Available Options
-            </Button>
-          </div>
-          
-          <div>
-            <Label htmlFor="intakeq-client-ids">Client IDs (comma-separated)</Label>
-            <Input
-              id="intakeq-client-ids"
-              value={intakeqFilters.clientIds.join(',')}
-              onChange={(e) => onIntakeqFiltersChange({
-                ...intakeqFilters,
-                clientIds: e.target.value.split(',').map(id => id.trim()).filter(Boolean)
-              })}
-              placeholder="Enter client IDs for testing"
-              disabled={disabled}
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="intakeq-form-ids">Form IDs (comma-separated)</Label>
-            <div className="flex gap-2 mb-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>IntakeQ Filters</CardTitle>
+            <CardDescription>Filter which IntakeQ records to sync</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Button 
+                variant="outline" 
+                onClick={fetchIntakeQData}
+                disabled={isLoadingIntakeQ || disabled}
+              >
+                {isLoadingIntakeQ ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Fetch Available Options
+              </Button>
+            </div>
+            
+            <div>
+              <Label htmlFor="intakeq-client-ids">Client IDs (comma-separated)</Label>
               <Input
-                id="intakeq-form-ids"
-                value={intakeqFilters.formIds.join(',')}
+                id="intakeq-client-ids"
+                value={intakeqFilters.clientIds.join(',')}
                 onChange={(e) => onIntakeqFiltersChange({
                   ...intakeqFilters,
-                  formIds: e.target.value.split(',').map(id => id.trim()).filter(Boolean)
+                  clientIds: e.target.value.split(',').map(id => id.trim()).filter(Boolean)
                 })}
-                placeholder="Enter form IDs to filter"
+                placeholder="Enter client IDs for testing"
                 disabled={disabled}
               />
             </div>
             
-            {availableFormIds.length > 0 && (
-              <div className="mt-2">
-                <Label className="text-sm">Available Form IDs:</Label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {availableFormIds.slice(0, 10).map((formId, index) => (
-                    <Button 
-                      key={index} 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleAddFormId(formId)}
-                      disabled={disabled}
-                      className="text-xs py-0 h-6"
-                    >
-                      {formId}
-                    </Button>
-                  ))}
-                  {availableFormIds.length > 10 && <span className="text-xs text-muted-foreground">+{availableFormIds.length - 10} more</span>}
-                </div>
+            <div>
+              <Label htmlFor="intakeq-form-ids">Form IDs (comma-separated)</Label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  id="intakeq-form-ids"
+                  value={intakeqFilters.formIds.join(',')}
+                  onChange={(e) => onIntakeqFiltersChange({
+                    ...intakeqFilters,
+                    formIds: e.target.value.split(',').map(id => id.trim()).filter(Boolean)
+                  })}
+                  placeholder="Enter form IDs to filter"
+                  disabled={disabled}
+                />
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              
+              {availableFormIds.length > 0 && (
+                <div className="mt-2">
+                  <Label className="text-sm">Available Form IDs:</Label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {availableFormIds.slice(0, 10).map((formId, index) => (
+                      <Button 
+                        key={index} 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleAddFormId(formId)}
+                        disabled={disabled}
+                        className="text-xs py-0 h-6"
+                      >
+                        {formId}
+                      </Button>
+                    ))}
+                    {availableFormIds.length > 10 && <span className="text-xs text-muted-foreground">+{availableFormIds.length - 10} more</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
