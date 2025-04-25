@@ -33,6 +33,7 @@ export type Database = {
       sync_config: {
         Row: {
           created_at: string
+          field_mapping: Json | null
           ghl_filters: Json | null
           id: string
           intakeq_filters: Json | null
@@ -42,6 +43,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          field_mapping?: Json | null
           ghl_filters?: Json | null
           id?: string
           intakeq_filters?: Json | null
@@ -51,6 +53,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          field_mapping?: Json | null
           ghl_filters?: Json | null
           id?: string
           intakeq_filters?: Json | null

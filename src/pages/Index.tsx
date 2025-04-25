@@ -5,11 +5,23 @@ import { SyncDirection } from '@/components/SyncDirection';
 import { SyncFilters } from '@/components/SyncFilters';
 import SyncStatus from '@/components/SyncStatus';
 import SyncActivity from '@/components/SyncActivity';
+import { FieldMapping } from '@/components/FieldMapping';
 import { useToast } from "@/hooks/use-toast";
 import { getSyncConfig, saveSyncConfig } from '@/services/syncConfig';
 import type { Database } from "@/integrations/supabase/types";
 
 type SyncDirection = Database["public"]["Enums"]["sync_direction"];
+
+type FieldMappingType = {
+  [dataType: string]: {
+    fields: {
+      [fieldName: string]: {
+        sync: boolean;
+        direction: SyncDirection;
+      }
+    }
+  }
+}
 
 const Index = () => {
   const { toast } = useToast();
@@ -18,7 +30,8 @@ const Index = () => {
     sync_direction: 'bidirectional' as SyncDirection,
     ghl_filters: { contactIds: [], tags: [], status: [] },
     intakeq_filters: { clientIds: [], formIds: [], status: [] },
-    is_sync_enabled: false
+    is_sync_enabled: false,
+    field_mapping: {} as FieldMappingType
   });
 
   React.useEffect(() => {
@@ -34,7 +47,10 @@ const Index = () => {
             intakeq_filters: typeof config.intakeq_filters === 'string' 
               ? JSON.parse(config.intakeq_filters) 
               : config.intakeq_filters as any,
-            is_sync_enabled: config.is_sync_enabled
+            is_sync_enabled: config.is_sync_enabled,
+            field_mapping: typeof config.field_mapping === 'string'
+              ? JSON.parse(config.field_mapping)
+              : config.field_mapping as FieldMappingType || {}
           });
         }
       } catch (error) {
@@ -96,6 +112,27 @@ const Index = () => {
     }
   };
 
+  const handleFieldMappingChange = async (fieldMapping: FieldMappingType) => {
+    try {
+      const newConfig = {
+        ...syncConfig,
+        field_mapping: fieldMapping
+      };
+      await saveSyncConfig(newConfig);
+      setSyncConfig(newConfig);
+      toast({
+        title: "Success",
+        description: "Field mapping updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update field mapping",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
@@ -111,6 +148,12 @@ const Index = () => {
         <SyncDirection
           value={syncConfig.sync_direction}
           onChange={handleSyncDirectionChange}
+          disabled={isLoading}
+        />
+        
+        <FieldMapping
+          fieldMapping={syncConfig.field_mapping}
+          onChange={handleFieldMappingChange}
           disabled={isLoading}
         />
         

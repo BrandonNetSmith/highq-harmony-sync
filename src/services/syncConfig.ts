@@ -13,7 +13,8 @@ export const saveSyncConfig = async (config: Partial<SyncConfig>) => {
       sync_direction: config.sync_direction,
       ghl_filters: config.ghl_filters,
       intakeq_filters: config.intakeq_filters,
-      is_sync_enabled: config.is_sync_enabled
+      is_sync_enabled: config.is_sync_enabled,
+      field_mapping: config.field_mapping
     }]);
 
   if (error) {
