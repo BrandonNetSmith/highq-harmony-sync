@@ -18,10 +18,38 @@ type FieldMappingType = {
       [fieldName: string]: {
         sync: boolean;
         direction: SyncDirection;
+        ghlField?: string;
+        intakeqField?: string;
       }
     }
   }
 }
+
+const defaultFieldMapping: FieldMappingType = {
+  contact: {
+    fields: {
+      first_name: { sync: true, direction: 'bidirectional', ghlField: 'firstName', intakeqField: 'firstName' },
+      last_name: { sync: true, direction: 'bidirectional', ghlField: 'lastName', intakeqField: 'lastName' },
+      email: { sync: true, direction: 'bidirectional' },
+      phone: { sync: true, direction: 'bidirectional', ghlField: 'phone', intakeqField: 'phoneNumber' },
+      address: { sync: true, direction: 'bidirectional' }
+    }
+  },
+  appointment: {
+    fields: {
+      datetime: { sync: true, direction: 'bidirectional', ghlField: 'startTime', intakeqField: 'appointmentDate' },
+      status: { sync: true, direction: 'bidirectional' },
+      notes: { sync: true, direction: 'bidirectional', ghlField: 'notes', intakeqField: 'description' }
+    }
+  },
+  form: {
+    fields: {
+      name: { sync: true, direction: 'bidirectional', ghlField: 'formName', intakeqField: 'formTitle' },
+      description: { sync: true, direction: 'bidirectional' },
+      status: { sync: true, direction: 'bidirectional' }
+    }
+  }
+};
 
 const Index = () => {
   const { toast } = useToast();
@@ -31,7 +59,7 @@ const Index = () => {
     ghl_filters: { contactIds: [], tags: [], status: [] },
     intakeq_filters: { clientIds: [], formIds: [], status: [] },
     is_sync_enabled: false,
-    field_mapping: {} as FieldMappingType
+    field_mapping: defaultFieldMapping
   });
 
   React.useEffect(() => {
@@ -50,7 +78,7 @@ const Index = () => {
             is_sync_enabled: config.is_sync_enabled,
             field_mapping: typeof config.field_mapping === 'string'
               ? JSON.parse(config.field_mapping)
-              : config.field_mapping as FieldMappingType || {}
+              : config.field_mapping as FieldMappingType || defaultFieldMapping
           });
         }
       } catch (error) {
