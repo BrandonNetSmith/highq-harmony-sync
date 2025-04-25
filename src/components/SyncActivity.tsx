@@ -5,30 +5,41 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import SyncActivityLogModal, { SyncActivityLog } from "./SyncActivityLogModal";
 import { getSyncActivityLogs } from "@/services/syncConfig";
+import { useToast } from "@/hooks/use-toast";
 
 const SyncActivity = () => {
+  const { toast } = useToast();
   const [activities, setActivities] = useState<SyncActivityLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<SyncActivityLog | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLogs = async () => {
       try {
         setLoading(true);
+        setError(null);
         const logs = await getSyncActivityLogs();
         setActivities(logs);
       } catch (error) {
         console.error('Failed to fetch activity logs:', error);
+        setError('Failed to fetch activity logs. Please try again later.');
+        toast({
+          title: "Error",
+          description: "Failed to fetch activity logs",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchLogs();
-  }, []);
+  }, [toast]);
 
   const handleActivityClick = (activity: SyncActivityLog) => {
     setSelectedLog(activity);
@@ -90,6 +101,12 @@ const SyncActivity = () => {
           )}
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, RefreshCw } from "lucide-react";
 import { getApiKeys } from "@/services/apiKeys";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface FilterConfig {
   contactIds: string[];
@@ -39,9 +40,11 @@ export const SyncFilters = ({
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
   const [availableFormIds, setAvailableFormIds] = useState<string[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const fetchGHLData = async () => {
     setIsLoadingGHL(true);
+    setApiError(null);
     try {
       const { ghl_key } = await getApiKeys();
       
@@ -55,26 +58,42 @@ export const SyncFilters = ({
         return;
       }
 
-      // Fetch tags
-      const tagsResponse = await fetch('https://rest.gohighlevel.com/v1/tags/', {
+      // Use a proxy approach to avoid CORS issues
+      const response = await fetch('/api/proxy', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${ghl_key}`
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: 'https://rest.gohighlevel.com/v1/tags/',
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${ghl_key}`
+          }
+        })
       });
       
-      if (!tagsResponse.ok) {
-        throw new Error(`Failed to fetch GHL tags: ${tagsResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch GHL tags: ${response.status}`);
       }
       
-      const tagsData = await tagsResponse.json();
-      const tags = tagsData.tags?.map((tag: any) => tag.name) || [];
+      const data = await response.json();
+      const tags = data.tags?.map((tag: any) => tag.name) || [];
       setAvailableTags(tags);
       
-      // Fetch statuses
-      const statusResponse = await fetch('https://rest.gohighlevel.com/v1/pipelines/', {
+      // Fetch statuses through proxy as well
+      const statusResponse = await fetch('/api/proxy', {
+        method: 'POST',
         headers: {
-          'Authorization': `Bearer ${ghl_key}`
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: 'https://rest.gohighlevel.com/v1/pipelines/',
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${ghl_key}`
+          }
+        })
       });
       
       if (!statusResponse.ok) {
@@ -97,6 +116,7 @@ export const SyncFilters = ({
       });
     } catch (error) {
       console.error('Error fetching GHL data:', error);
+      setApiError(`GHL API Error: ${error instanceof Error ? error.message : "Failed to fetch data"}`);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to fetch GHL data",
@@ -109,6 +129,7 @@ export const SyncFilters = ({
 
   const fetchIntakeQData = async () => {
     setIsLoadingIntakeQ(true);
+    setApiError(null);
     try {
       const { intakeq_key } = await getApiKeys();
       
@@ -122,19 +143,27 @@ export const SyncFilters = ({
         return;
       }
 
-      // Fetch forms
-      const formsResponse = await fetch('https://intakeq.com/api/v1/forms', {
+      // Use a proxy approach to avoid CORS issues
+      const response = await fetch('/api/proxy', {
+        method: 'POST',
         headers: {
-          'X-Auth-Key': intakeq_key
-        }
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: 'https://intakeq.com/api/v1/forms',
+          method: 'GET',
+          headers: {
+            'X-Auth-Key': intakeq_key
+          }
+        })
       });
       
-      if (!formsResponse.ok) {
-        throw new Error(`Failed to fetch IntakeQ forms: ${formsResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch IntakeQ forms: ${response.status}`);
       }
       
-      const formsData = await formsResponse.json();
-      const formIds = formsData.map((form: any) => form.id) || [];
+      const data = await response.json();
+      const formIds = data.map((form: any) => form.id) || [];
       setAvailableFormIds(formIds);
       
       toast({
@@ -143,6 +172,7 @@ export const SyncFilters = ({
       });
     } catch (error) {
       console.error('Error fetching IntakeQ data:', error);
+      setApiError(`IntakeQ API Error: ${error instanceof Error ? error.message : "Failed to fetch data"}`);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to fetch IntakeQ data",
@@ -182,6 +212,18 @@ export const SyncFilters = ({
 
   return (
     <div className="space-y-4">
+      {apiError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {apiError}
+            <p className="mt-2 text-sm">
+              Note: Direct API calls from the browser may be blocked by CORS policies.
+              For production use, consider using a server-side proxy or Supabase Edge Functions.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>GoHighLevel Filters</CardTitle>
