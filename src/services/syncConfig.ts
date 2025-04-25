@@ -18,15 +18,25 @@ export type FieldMappingType = {
   }
 }
 
+/**
+ * Saves sync configuration to the database
+ * @param config The sync configuration to save
+ * @returns Promise that resolves when the save is complete
+ */
 export const saveSyncConfig = async (config: Partial<SyncConfig>) => {
   try {
     // First, check if there's an existing config to get the ID
     if (!config.id) {
-      const { data: existingConfig } = await supabase
+      const { data: existingConfig, error: fetchError } = await supabase
         .from('sync_config')
         .select('id')
         .limit(1)
         .maybeSingle();
+      
+      if (fetchError) {
+        console.error('Error fetching existing config:', fetchError);
+        throw new Error(`Failed to fetch existing sync configuration: ${fetchError.message}`);
+      }
       
       if (existingConfig) {
         config.id = existingConfig.id;
@@ -49,16 +59,35 @@ export const saveSyncConfig = async (config: Partial<SyncConfig>) => {
       ? JSON.stringify(config.intakeq_filters)
       : config.intakeq_filters;
     
+    // Construct the record to be saved
+    const recordToSave: any = {
+      id: config.id
+    };
+    
+    // Only include fields that are provided in the config
+    if (config.sync_direction !== undefined) {
+      recordToSave.sync_direction = config.sync_direction;
+    }
+    
+    if (ghl_filters !== undefined) {
+      recordToSave.ghl_filters = ghl_filters;
+    }
+    
+    if (intakeq_filters !== undefined) {
+      recordToSave.intakeq_filters = intakeq_filters;
+    }
+    
+    if (config.is_sync_enabled !== undefined) {
+      recordToSave.is_sync_enabled = config.is_sync_enabled;
+    }
+    
+    if (field_mapping !== undefined) {
+      recordToSave.field_mapping = field_mapping;
+    }
+    
     const { error } = await supabase
       .from('sync_config')
-      .upsert([{
-        id: config.id,
-        sync_direction: config.sync_direction,
-        ghl_filters: ghl_filters,
-        intakeq_filters: intakeq_filters,
-        is_sync_enabled: config.is_sync_enabled,
-        field_mapping: field_mapping
-      }]);
+      .upsert([recordToSave]);
 
     if (error) {
       console.error('Supabase error:', error);
@@ -70,17 +99,26 @@ export const saveSyncConfig = async (config: Partial<SyncConfig>) => {
   }
 };
 
-export const getSyncConfig = async () => {
-  const { data, error } = await supabase
-    .from('sync_config')
-    .select('*')
-    .limit(1)
-    .maybeSingle();
+/**
+ * Retrieves the sync configuration from the database
+ * @returns The sync configuration object
+ */
+export const getSyncConfig = async (): Promise<SyncConfig | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('sync_config')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
 
-  if (error) {
-    console.error('Supabase error:', error);
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error getting sync config:', error);
     throw error;
   }
-
-  return data;
 };

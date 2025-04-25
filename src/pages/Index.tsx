@@ -1,7 +1,6 @@
 
 import React from 'react';
 import WebhookConfig from '@/components/WebhookConfig';
-import { SyncDirection } from '@/components/SyncDirection';
 import { SyncFilters } from '@/components/SyncFilters';
 import SyncStatus from '@/components/SyncStatus';
 import SyncActivity from '@/components/SyncActivity';
@@ -172,12 +171,6 @@ const Index = () => {
 
       <div className="grid gap-8">
         <WebhookConfig />
-        
-        <SyncDirection
-          value={syncConfig.sync_direction}
-          onChange={handleSyncDirectionChange}
-          disabled={isLoading}
-        />
         
         <FieldMapping
           fieldMapping={syncConfig.field_mapping}
