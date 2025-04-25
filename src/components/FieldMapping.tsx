@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowDown, ArrowUp, ArrowLeftRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type SyncDirection = Database["public"]["Enums"]["sync_direction"];
@@ -96,9 +96,9 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
       case 'bidirectional':
         return <ArrowLeftRight className="h-4 w-4" />;
       case 'one_way_ghl_to_intakeq':
-        return <ArrowDown className="h-4 w-4" />;
+        return <ArrowRight className="h-4 w-4" />;
       case 'one_way_intakeq_to_ghl':
-        return <ArrowUp className="h-4 w-4" />;
+        return <ArrowLeft className="h-4 w-4" />;
     }
   };
 
@@ -162,82 +162,104 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                 </div>
                 <AccordionContent className="p-4">
                   <div className="space-y-6">
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center font-medium border-b pb-2 mb-4">
+                      <div className="text-center">GoHighLevel</div>
+                      <div className="px-4">Sync</div>
+                      <div className="text-center">IntakeQ</div>
+                    </div>
                     {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
                       <Collapsible key={fieldName} className="border rounded-lg">
                         <CollapsibleTrigger asChild>
                           <Button variant="ghost" className="w-full flex items-center justify-between p-4 text-left" disabled={disabled}>
-                            <div className="flex items-center">
-                              <div className="mr-4">
+                            <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full">
+                              <div className="text-left font-medium capitalize">
+                                {fieldSettings.ghlField || fieldName.replace(/_/g, ' ')}
+                              </div>
+                              
+                              <div className="flex flex-col items-center mx-2">
                                 <Switch
                                   id={`${dataType}-${fieldName}-sync`}
                                   checked={fieldSettings.sync}
                                   onCheckedChange={(checked) => handleFieldSyncChange(dataType, fieldName, checked)}
                                   disabled={disabled}
+                                  className="mb-1"
                                 />
+                                
+                                {fieldSettings.sync && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="p-1 h-auto"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      let newDirection: SyncDirection;
+                                      switch (fieldSettings.direction) {
+                                        case 'bidirectional':
+                                          newDirection = 'one_way_ghl_to_intakeq';
+                                          break;
+                                        case 'one_way_ghl_to_intakeq':
+                                          newDirection = 'one_way_intakeq_to_ghl';
+                                          break;
+                                        case 'one_way_intakeq_to_ghl':
+                                        default:
+                                          newDirection = 'bidirectional';
+                                          break;
+                                      }
+                                      handleFieldDirectionChange(dataType, fieldName, newDirection);
+                                    }}
+                                    disabled={disabled || !fieldSettings.sync}
+                                  >
+                                    {getDirectionIcon(fieldSettings.direction)}
+                                  </Button>
+                                )}
                               </div>
-                              <div>
-                                <Label htmlFor={`${dataType}-${fieldName}-sync`} className="font-medium capitalize">
-                                  {fieldName.replace(/_/g, ' ')}
-                                </Label>
-                                <div className="text-sm text-muted-foreground">
-                                  {fieldSettings.sync ? (
-                                    <>
-                                      {fieldSettings.direction === "bidirectional" && <span className="flex items-center"><ArrowLeftRight className="h-3 w-3 mr-1"/> Bidirectional</span>}
-                                      {fieldSettings.direction === "one_way_ghl_to_intakeq" && <span className="flex items-center"><ArrowDown className="h-3 w-3 mr-1"/> GHL to IntakeQ</span>}
-                                      {fieldSettings.direction === "one_way_intakeq_to_ghl" && <span className="flex items-center"><ArrowUp className="h-3 w-3 mr-1"/> IntakeQ to GHL</span>}
-                                    </>
-                                  ) : (
-                                    "Not synced"
-                                  )}
-                                </div>
+                              
+                              <div className="text-right font-medium capitalize">
+                                {fieldSettings.intakeqField || fieldName.replace(/_/g, ' ')}
                               </div>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {fieldSettings.sync ? "Details" : ""}
                             </div>
                           </Button>
                         </CollapsibleTrigger>
+                        
                         {fieldSettings.sync && (
                           <CollapsibleContent className="p-4 border-t space-y-4 bg-muted/10">
-                            <div>
-                              <Label className="mb-2 block">Field Mapping</Label>
-                              <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-4">
+                              <div>
+                                <Label className="mb-2 block">GoHighLevel Field</Label>
                                 <div className="bg-muted/20 p-2 rounded">
-                                  <div className="font-medium mb-1">GoHighLevel Field</div>
                                   <div className="text-muted-foreground">{fieldSettings.ghlField || fieldName}</div>
                                 </div>
+                              </div>
+                              
+                              <div className="flex items-center justify-center">
+                                <ToggleGroup 
+                                  type="single" 
+                                  variant="outline"
+                                  className="flex-col"
+                                  value={fieldSettings.direction}
+                                  onValueChange={(value) => {
+                                    if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
+                                  }}
+                                  disabled={disabled || !fieldSettings.sync}
+                                >
+                                  <ToggleGroupItem value="bidirectional" className="flex items-center gap-1 text-xs">
+                                    <ArrowLeftRight className="h-3 w-3" />
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem value="one_way_ghl_to_intakeq" className="flex items-center gap-1 text-xs">
+                                    <ArrowRight className="h-3 w-3" />
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem value="one_way_intakeq_to_ghl" className="flex items-center gap-1 text-xs">
+                                    <ArrowLeft className="h-3 w-3" />
+                                  </ToggleGroupItem>
+                                </ToggleGroup>
+                              </div>
+                              
+                              <div>
+                                <Label className="mb-2 block">IntakeQ Field</Label>
                                 <div className="bg-muted/20 p-2 rounded">
-                                  <div className="font-medium mb-1">IntakeQ Field</div>
                                   <div className="text-muted-foreground">{fieldSettings.intakeqField || fieldName}</div>
                                 </div>
                               </div>
-                            </div>
-
-                            <div>
-                              <Label className="mb-2 block">Sync Direction</Label>
-                              <ToggleGroup 
-                                type="single" 
-                                variant="outline"
-                                className="justify-start"
-                                value={fieldSettings.direction}
-                                onValueChange={(value) => {
-                                  if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
-                                }}
-                                disabled={disabled || !fieldSettings.sync}
-                              >
-                                <ToggleGroupItem value="bidirectional" className="flex items-center gap-1 text-xs">
-                                  <ArrowLeftRight className="h-3 w-3" />
-                                  <span>Bidirectional</span>
-                                </ToggleGroupItem>
-                                <ToggleGroupItem value="one_way_ghl_to_intakeq" className="flex items-center gap-1 text-xs">
-                                  <ArrowDown className="h-3 w-3" />
-                                  <span>GHL → IntakeQ</span>
-                                </ToggleGroupItem>
-                                <ToggleGroupItem value="one_way_intakeq_to_ghl" className="flex items-center gap-1 text-xs">
-                                  <ArrowUp className="h-3 w-3" />
-                                  <span>IntakeQ → GHL</span>
-                                </ToggleGroupItem>
-                              </ToggleGroup>
                             </div>
                           </CollapsibleContent>
                         )}
