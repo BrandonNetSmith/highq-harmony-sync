@@ -19,10 +19,26 @@ export type FieldMappingType = {
 }
 
 export const saveSyncConfig = async (config: Partial<SyncConfig>) => {
+  // First, check if there's an existing config to get the ID
+  if (!config.id) {
+    const { data: existingConfig } = await supabase
+      .from('sync_config')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+    
+    if (existingConfig) {
+      config.id = existingConfig.id;
+    } else {
+      // If no config exists yet, create one with a default ID
+      config.id = 1; // Using a default ID of 1 for the single config
+    }
+  }
+  
   const { error } = await supabase
     .from('sync_config')
     .upsert([{
-      id: config.id || undefined,
+      id: config.id,
       sync_direction: config.sync_direction,
       ghl_filters: config.ghl_filters,
       intakeq_filters: config.intakeq_filters,

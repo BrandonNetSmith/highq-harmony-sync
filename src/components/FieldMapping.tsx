@@ -45,35 +45,14 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     onChange(newMapping);
   };
 
-  const handleCategoryDirectionChange = (dataType: string) => {
+  const handleCategoryDirectionChange = (dataType: string, direction: SyncDirection) => {
     const newMapping = { ...fieldMapping };
     const fields = Object.keys(newMapping[dataType].fields);
-    
-    // Get current direction of first field to determine next direction
-    const currentDirection = fields.length > 0 
-      ? newMapping[dataType].fields[fields[0]].direction 
-      : 'bidirectional';
-    
-    let newDirection: SyncDirection;
-    
-    // Cycle through directions: bidirectional -> ghl_to_intakeq -> intakeq_to_ghl -> bidirectional
-    switch (currentDirection) {
-      case 'bidirectional':
-        newDirection = 'one_way_ghl_to_intakeq';
-        break;
-      case 'one_way_ghl_to_intakeq':
-        newDirection = 'one_way_intakeq_to_ghl';
-        break;
-      case 'one_way_intakeq_to_ghl':
-      default:
-        newDirection = 'bidirectional';
-        break;
-    }
     
     // Apply the new direction to all fields in this category
     fields.forEach(fieldName => {
       if (newMapping[dataType].fields[fieldName].sync) {
-        newMapping[dataType].fields[fieldName].direction = newDirection;
+        newMapping[dataType].fields[fieldName].direction = direction;
       }
     });
     
@@ -146,20 +125,41 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                     <AccordionTrigger className="flex-1 hover:no-underline">
                       <h3 className="text-lg font-medium capitalize text-left">{dataTypeLabels[dataType] || dataType}</h3>
                     </AccordionTrigger>
-                    <div className="flex items-center mr-4">
-                      <Button
-                        variant="ghost"
+                    
+                    {/* Category-level direction controls */}
+                    <div className="flex items-center">
+                      <ToggleGroup
+                        type="single"
                         size="sm"
-                        className="flex gap-2 items-center"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCategoryDirectionChange(dataType);
+                        value={categoryDirection || undefined}
+                        onValueChange={(value) => {
+                          if (value) handleCategoryDirectionChange(dataType, value as SyncDirection);
                         }}
+                        className="flex gap-0 border rounded-md overflow-hidden mr-4"
                         disabled={disabled}
                       >
-                        {categoryDirection && getDirectionIcon(categoryDirection)}
-                        <span className="text-xs">{categoryDirection && getDirectionText(categoryDirection)}</span>
-                      </Button>
+                        <ToggleGroupItem 
+                          value="one_way_intakeq_to_ghl"
+                          aria-label="IntakeQ to GHL"
+                          className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                        </ToggleGroupItem>
+                        <ToggleGroupItem 
+                          value="bidirectional"
+                          aria-label="Bidirectional"
+                          className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                        >
+                          <ArrowLeftRight className="h-4 w-4" />
+                        </ToggleGroupItem>
+                        <ToggleGroupItem 
+                          value="one_way_ghl_to_intakeq"
+                          aria-label="GHL to IntakeQ"
+                          className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </ToggleGroupItem>
+                      </ToggleGroup>
                     </div>
                   </div>
                 
