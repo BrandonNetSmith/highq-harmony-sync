@@ -1,10 +1,92 @@
 
 import React from 'react';
 import WebhookConfig from '@/components/WebhookConfig';
+import { SyncDirection } from '@/components/SyncDirection';
+import { SyncFilters } from '@/components/SyncFilters';
 import SyncStatus from '@/components/SyncStatus';
 import SyncActivity from '@/components/SyncActivity';
+import { useToast } from "@/hooks/use-toast";
+import { getSyncConfig, saveSyncConfig } from '@/services/syncConfig';
+import type { Database } from "@/integrations/supabase/types";
+
+type SyncDirection = Database["public"]["Enums"]["sync_direction"];
 
 const Index = () => {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [syncConfig, setSyncConfig] = React.useState({
+    sync_direction: 'bidirectional' as SyncDirection,
+    ghl_filters: { contactIds: [], tags: [], status: [] },
+    intakeq_filters: { clientIds: [], formIds: [], status: [] },
+    is_sync_enabled: false
+  });
+
+  React.useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const config = await getSyncConfig();
+        if (config) {
+          setSyncConfig(config);
+        }
+      } catch (error) {
+        console.error('Failed to load sync config:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load sync configuration",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadConfig();
+  }, [toast]);
+
+  const handleSyncDirectionChange = async (direction: SyncDirection) => {
+    try {
+      await saveSyncConfig({
+        ...syncConfig,
+        sync_direction: direction
+      });
+      setSyncConfig(prev => ({ ...prev, sync_direction: direction }));
+      toast({
+        title: "Success",
+        description: "Sync direction updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update sync direction",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFiltersChange = async (
+    type: 'ghl' | 'intakeq',
+    filters: typeof syncConfig.ghl_filters | typeof syncConfig.intakeq_filters
+  ) => {
+    try {
+      const newConfig = {
+        ...syncConfig,
+        [type === 'ghl' ? 'ghl_filters' : 'intakeq_filters']: filters
+      };
+      await saveSyncConfig(newConfig);
+      setSyncConfig(newConfig);
+      toast({
+        title: "Success",
+        description: "Filters updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update filters",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
@@ -16,6 +98,20 @@ const Index = () => {
 
       <div className="grid gap-8">
         <WebhookConfig />
+        
+        <SyncDirection
+          value={syncConfig.sync_direction}
+          onChange={handleSyncDirectionChange}
+          disabled={isLoading}
+        />
+        
+        <SyncFilters
+          ghlFilters={syncConfig.ghl_filters}
+          intakeqFilters={syncConfig.intakeq_filters}
+          onGhlFiltersChange={(filters) => handleFiltersChange('ghl', filters)}
+          onIntakeqFiltersChange={(filters) => handleFiltersChange('intakeq', filters)}
+          disabled={isLoading}
+        />
         
         <div className="grid gap-8 md:grid-cols-2">
           <SyncStatus />

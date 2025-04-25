@@ -30,6 +30,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_config: {
+        Row: {
+          created_at: string
+          ghl_filters: Json | null
+          id: string
+          intakeq_filters: Json | null
+          is_sync_enabled: boolean
+          sync_direction: Database["public"]["Enums"]["sync_direction"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ghl_filters?: Json | null
+          id?: string
+          intakeq_filters?: Json | null
+          is_sync_enabled?: boolean
+          sync_direction?: Database["public"]["Enums"]["sync_direction"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ghl_filters?: Json | null
+          id?: string
+          intakeq_filters?: Json | null
+          is_sync_enabled?: boolean
+          sync_direction?: Database["public"]["Enums"]["sync_direction"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -38,7 +68,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      sync_direction:
+        | "one_way_ghl_to_intakeq"
+        | "one_way_intakeq_to_ghl"
+        | "bidirectional"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -153,6 +186,12 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      sync_direction: [
+        "one_way_ghl_to_intakeq",
+        "one_way_intakeq_to_ghl",
+        "bidirectional",
+      ],
+    },
   },
 } as const
