@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 import SyncActivityLogModal, { SyncActivityLog } from "./SyncActivityLogModal";
 import { getSyncActivityLogs } from "@/services/syncConfig";
 
@@ -38,11 +40,54 @@ const SyncActivity = () => {
     setSelectedLog(null);
   };
 
+  const handleDownloadAllLogs = () => {
+    if (!activities.length) return;
+    
+    // Create CSV headers
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "ID,Type,Timestamp,Status,Detail,Source,Destination,Error\r\n";
+    
+    // Add each log as a row
+    activities.forEach(log => {
+      const row = [
+        log.id,
+        log.type,
+        log.timestamp,
+        log.status,
+        log.detail ? `"${log.detail.replace(/"/g, '""')}"` : "",
+        log.source || "",
+        log.destination || "",
+        log.error ? `"${log.error.replace(/"/g, '""')}"` : ""
+      ];
+      csvContent += row.join(',') + "\r\n";
+    });
+    
+    // Create and trigger download
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `sync-activity-logs-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <>
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle>Recent Sync Activity</CardTitle>
+          {!loading && activities.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1" 
+              onClick={handleDownloadAllLogs}
+            >
+              <FileText size={16} />
+              Download All
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (

@@ -6,9 +6,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 
 export type SyncActivityLog = {
   id: number;
@@ -38,6 +41,55 @@ const SyncActivityLogModal: React.FC<SyncActivityLogModalProps> = ({
   log
 }) => {
   if (!log) return null;
+
+  const handleDownloadCSV = () => {
+    if (!log) return;
+    
+    // Create CSV headers
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Field,Value\r\n";
+    
+    // Add basic log info
+    csvContent += `ID,${log.id}\r\n`;
+    csvContent += `Type,${log.type}\r\n`;
+    csvContent += `Timestamp,${log.timestamp}\r\n`;
+    csvContent += `Status,${log.status}\r\n`;
+    csvContent += `Detail,${log.detail.replace(/,/g, ";")}\r\n`;
+    
+    if (log.source) {
+      csvContent += `Source,${log.source}\r\n`;
+    }
+    
+    if (log.destination) {
+      csvContent += `Destination,${log.destination}\r\n`;
+    }
+    
+    if (log.error) {
+      csvContent += `Error,${log.error.replace(/,/g, ";")}\r\n`;
+    }
+    
+    // Add changes section if available
+    if (log.changes && log.changes.length > 0) {
+      csvContent += "\r\n";
+      csvContent += "Changes\r\n";
+      csvContent += "Field,Previous Value,New Value\r\n";
+      
+      log.changes.forEach(change => {
+        const oldValue = change.oldValue ? change.oldValue.replace(/,/g, ";") : "(empty)";
+        const newValue = change.newValue ? change.newValue.replace(/,/g, ";") : "(empty)";
+        csvContent += `${change.field},${oldValue},${newValue}\r\n`;
+      });
+    }
+    
+    // Create and trigger download
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `sync-log-${log.id}-${log.type.toLowerCase().replace(/\s+/g, "-")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -104,6 +156,17 @@ const SyncActivityLogModal: React.FC<SyncActivityLogModalProps> = ({
             </div>
           )}
         </div>
+
+        <DialogFooter>
+          <Button 
+            onClick={handleDownloadCSV} 
+            variant="outline"
+            className="gap-2"
+          >
+            <FileText size={16} />
+            Download CSV
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
