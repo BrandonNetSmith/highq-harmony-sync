@@ -32,21 +32,47 @@ serve(async (req) => {
 
     console.log(`Proxying request to: ${url}`);
 
+    const requestHeaders = new Headers();
+    // Copy the headers from the request
+    if (headers) {
+      Object.entries(headers).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          requestHeaders.append(key, value);
+        }
+      });
+    }
+
+    // Set Content-Type if sending a body
+    if (body && method !== 'GET' && !requestHeaders.has('Content-Type')) {
+      requestHeaders.set('Content-Type', 'application/json');
+    }
+
     const requestOptions: RequestInit = {
       method: method || 'GET',
-      headers: headers || {},
+      headers: requestHeaders,
     };
 
     if (body && method !== 'GET') {
-      requestOptions.body = JSON.stringify(body);
+      requestOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
     }
 
     const response = await fetch(url, requestOptions);
-    const responseData = await response.json();
+    
+    // Try to parse as JSON, but if it fails just return the text
+    let responseData;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      responseData = await response.json();
+    } else {
+      responseData = { text: await response.text() };
+    }
+
+    const responseHeaders = new Headers(corsHeaders);
+    responseHeaders.set('Content-Type', 'application/json');
 
     return new Response(JSON.stringify(responseData), {
       status: response.status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: responseHeaders,
     });
   } catch (error) {
     console.error('Proxy error:', error);

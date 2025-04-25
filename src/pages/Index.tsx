@@ -1,4 +1,3 @@
-
 import React from 'react';
 import WebhookConfig from '@/components/WebhookConfig';
 import { SyncFilters } from '@/components/SyncFilters';
@@ -170,8 +169,6 @@ const Index = () => {
       </div>
 
       <div className="grid gap-8">
-        <WebhookConfig />
-        
         <FieldMapping
           fieldMapping={syncConfig.field_mapping}
           onChange={handleFieldMappingChange}
@@ -185,6 +182,8 @@ const Index = () => {
           onIntakeqFiltersChange={(filters) => handleFiltersChange('intakeq', filters)}
           disabled={isLoading}
         />
+        
+        <WebhookConfig />
         
         <div className="grid gap-8 md:grid-cols-2">
           <SyncStatus />
