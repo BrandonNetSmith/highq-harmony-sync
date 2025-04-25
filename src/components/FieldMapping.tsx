@@ -4,7 +4,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
@@ -94,11 +93,11 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
   const getDirectionIcon = (direction: SyncDirection) => {
     switch (direction) {
       case 'bidirectional':
-        return <ArrowLeftRight className="h-4 w-4" />;
+        return <ArrowLeftRight className="h-5 w-5" />;
       case 'one_way_ghl_to_intakeq':
-        return <ArrowRight className="h-4 w-4" />;
+        return <ArrowRight className="h-5 w-5" />;
       case 'one_way_intakeq_to_ghl':
-        return <ArrowLeft className="h-4 w-4" />;
+        return <ArrowLeft className="h-5 w-5" />;
     }
   };
 
@@ -133,9 +132,9 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
             const categoryDirection = getCategoryDirection(dataType);
             
             return (
-              <AccordionItem key={dataType} value={dataType} className="border rounded-md mb-4 overflow-hidden">
+              <AccordionItem key={dataType} value={dataType} className="border rounded-md mb-4">
                 <div className="flex items-center">
-                  <AccordionTrigger className="px-4 py-2 bg-muted/30 hover:bg-muted/50 flex-1">
+                  <AccordionTrigger className="px-4 py-3 bg-muted/30 hover:bg-muted/50 flex-1">
                     <div className="flex items-center justify-between w-full pr-4">
                       <h3 className="text-lg font-medium capitalize">{dataTypeLabels[dataType] || dataType}</h3>
                       {categoryDirection && (
@@ -156,27 +155,32 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                     }}
                     disabled={disabled}
                   >
-                    {categoryDirection ? getDirectionIcon(categoryDirection) : <ArrowLeftRight className="h-4 w-4" />}
+                    {categoryDirection ? getDirectionIcon(categoryDirection) : <ArrowLeftRight className="h-5 w-5" />}
                     <span className="sr-only">Change sync direction</span>
                   </Button>
                 </div>
                 <AccordionContent className="p-4">
                   <div className="space-y-6">
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center font-medium border-b pb-2 mb-4">
-                      <div className="text-center">GoHighLevel</div>
-                      <div className="px-4">Sync</div>
-                      <div className="text-center">IntakeQ</div>
+                    {/* Header row with column names */}
+                    <div className="grid grid-cols-[1fr_auto_1fr] gap-4">
+                      <div className="font-medium text-center p-2 bg-muted/30 rounded-md">GoHighLevel</div>
+                      <div className="font-medium text-center">Sync</div>
+                      <div className="font-medium text-center p-2 bg-muted/30 rounded-md">IntakeQ</div>
                     </div>
+                    
+                    {/* Field rows */}
                     {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
                       <Collapsible key={fieldName} className="border rounded-lg">
                         <CollapsibleTrigger asChild>
                           <Button variant="ghost" className="w-full flex items-center justify-between p-4 text-left" disabled={disabled}>
-                            <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full">
-                              <div className="text-left font-medium capitalize">
+                            <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4">
+                              {/* GHL Side */}
+                              <div className="text-left font-medium capitalize p-2 bg-background rounded">
                                 {fieldSettings.ghlField || fieldName.replace(/_/g, ' ')}
                               </div>
                               
-                              <div className="flex flex-col items-center mx-2">
+                              {/* Sync Controls */}
+                              <div className="flex flex-col items-center justify-center">
                                 <Switch
                                   id={`${dataType}-${fieldName}-sync`}
                                   checked={fieldSettings.sync}
@@ -214,7 +218,8 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                                 )}
                               </div>
                               
-                              <div className="text-right font-medium capitalize">
+                              {/* IntakeQ Side */}
+                              <div className="text-right font-medium capitalize p-2 bg-background rounded">
                                 {fieldSettings.intakeqField || fieldName.replace(/_/g, ' ')}
                               </div>
                             </div>
@@ -222,42 +227,58 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                         </CollapsibleTrigger>
                         
                         {fieldSettings.sync && (
-                          <CollapsibleContent className="p-4 border-t space-y-4 bg-muted/10">
-                            <div className="grid grid-cols-[1fr_auto_1fr] gap-4">
+                          <CollapsibleContent className="p-4 border-t bg-muted/10">
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-8 items-center">
+                              {/* GHL Field Details */}
                               <div>
                                 <Label className="mb-2 block">GoHighLevel Field</Label>
-                                <div className="bg-muted/20 p-2 rounded">
-                                  <div className="text-muted-foreground">{fieldSettings.ghlField || fieldName}</div>
+                                <div className="bg-background p-3 rounded border">
+                                  <div>{fieldSettings.ghlField || fieldName}</div>
                                 </div>
                               </div>
                               
-                              <div className="flex items-center justify-center">
-                                <ToggleGroup 
-                                  type="single" 
-                                  variant="outline"
-                                  className="flex-col"
-                                  value={fieldSettings.direction}
-                                  onValueChange={(value) => {
-                                    if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
-                                  }}
-                                  disabled={disabled || !fieldSettings.sync}
-                                >
-                                  <ToggleGroupItem value="bidirectional" className="flex items-center gap-1 text-xs">
-                                    <ArrowLeftRight className="h-3 w-3" />
-                                  </ToggleGroupItem>
-                                  <ToggleGroupItem value="one_way_ghl_to_intakeq" className="flex items-center gap-1 text-xs">
-                                    <ArrowRight className="h-3 w-3" />
-                                  </ToggleGroupItem>
-                                  <ToggleGroupItem value="one_way_intakeq_to_ghl" className="flex items-center gap-1 text-xs">
-                                    <ArrowLeft className="h-3 w-3" />
-                                  </ToggleGroupItem>
-                                </ToggleGroup>
+                              {/* Direction Controls */}
+                              <div className="flex flex-col items-center justify-center space-y-2">
+                                <Label className="mb-1 block text-center">Direction</Label>
+                                <div className="flex flex-col gap-2">
+                                  <Button
+                                    variant={fieldSettings.direction === 'bidirectional' ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => handleFieldDirectionChange(dataType, fieldName, 'bidirectional')}
+                                    disabled={disabled}
+                                  >
+                                    <ArrowLeftRight className="h-4 w-4 mr-1" />
+                                    <span>Both</span>
+                                  </Button>
+                                  <Button
+                                    variant={fieldSettings.direction === 'one_way_ghl_to_intakeq' ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => handleFieldDirectionChange(dataType, fieldName, 'one_way_ghl_to_intakeq')}
+                                    disabled={disabled}
+                                  >
+                                    <ArrowRight className="h-4 w-4 mr-1" />
+                                    <span>GHL to IQ</span>
+                                  </Button>
+                                  <Button
+                                    variant={fieldSettings.direction === 'one_way_intakeq_to_ghl' ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => handleFieldDirectionChange(dataType, fieldName, 'one_way_intakeq_to_ghl')}
+                                    disabled={disabled}
+                                  >
+                                    <ArrowLeft className="h-4 w-4 mr-1" />
+                                    <span>IQ to GHL</span>
+                                  </Button>
+                                </div>
                               </div>
                               
+                              {/* IntakeQ Field Details */}
                               <div>
                                 <Label className="mb-2 block">IntakeQ Field</Label>
-                                <div className="bg-muted/20 p-2 rounded">
-                                  <div className="text-muted-foreground">{fieldSettings.intakeqField || fieldName}</div>
+                                <div className="bg-background p-3 rounded border">
+                                  <div>{fieldSettings.intakeqField || fieldName}</div>
                                 </div>
                               </div>
                             </div>
