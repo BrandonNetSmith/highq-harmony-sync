@@ -162,6 +162,8 @@ export const SyncFilters = ({
         return;
       }
 
+      console.log("Calling IntakeQ API with key:", intakeq_key.substring(0, 5) + "...");
+      
       const response = await fetch('/api/proxy', {
         method: 'POST',
         headers: {
@@ -176,13 +178,32 @@ export const SyncFilters = ({
         })
       });
       
-      const data = await response.json();
-      console.log("IntakeQ API response:", data);
+      // Log the raw response for debugging
+      console.log("IntakeQ API raw response:", response);
       
+      const data = await response.json();
+      console.log("IntakeQ API parsed response:", data);
+      
+      // Check for error indicators in our proxy response
       if (data._statusCode >= 400) {
         throw new Error(data._errorMessage || `Failed with status: ${data._statusCode}`);
       }
+      
+      if (data._empty) {
+        console.log("API returned an empty response");
+        setAvailableFormIds([]);
+        toast({
+          title: "Note",
+          description: "IntakeQ API returned an empty response. Your account may not have any forms created yet.",
+        });
+        return;
+      }
+      
+      if (data._parseError) {
+        throw new Error(`Parse error: ${data._parseError}`);
+      }
 
+      // If we have a successful response with forms
       if (Array.isArray(data)) {
         const formIds = data.map((form: any) => form.id) || [];
         setAvailableFormIds(formIds);
@@ -198,6 +219,9 @@ export const SyncFilters = ({
             description: "No forms found in your IntakeQ account",
           });
         }
+      } else if (data.text) {
+        // Handle text response
+        throw new Error(`Unexpected response format: ${data.text.substring(0, 100)}...`);
       } else {
         setIntakeqApiError("Unexpected response format from IntakeQ API");
       }

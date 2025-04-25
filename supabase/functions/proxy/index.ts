@@ -60,20 +60,45 @@ serve(async (req) => {
     const responseStatus = response.status;
     
     // Try to parse as JSON, but if it fails just return the text
-    let responseData;
+    let responseData: any = {};
     const contentType = response.headers.get('content-type');
+    const contentLength = response.headers.get('content-length');
     
-    try {
-      if (contentType && contentType.includes('application/json')) {
-        responseData = await response.json();
-      } else {
-        const text = await response.text();
-        responseData = { text };
+    // Check if the response is empty (content-length: 0 or no content)
+    if (contentLength === '0' || responseStatus === 204) {
+      responseData = { _empty: true };
+    } else {
+      try {
+        // First try to get the response as text
+        const responseText = await response.text();
+        
+        // If the response text is empty, return an empty object
+        if (!responseText || responseText.trim() === '') {
+          responseData = { _empty: true };
+        } 
+        // If it seems like JSON (starts with { or [), parse it
+        else if ((responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) && 
+                contentType && contentType.includes('application/json')) {
+          try {
+            responseData = JSON.parse(responseText);
+          } catch (jsonError) {
+            console.error('JSON parse error:', jsonError);
+            responseData = { 
+              text: responseText,
+              _parseError: 'Failed to parse JSON response'
+            };
+          }
+        } else {
+          // Just return the text
+          responseData = { text: responseText };
+        }
+      } catch (error) {
+        console.error('Response processing error:', error);
+        responseData = { 
+          _error: 'Failed to process response',
+          _errorDetails: error.message
+        };
       }
-    } catch (error) {
-      // If we can't parse the response, return the raw text
-      const text = await response.text();
-      responseData = { text };
     }
 
     // Add status code to the response for better error handling
@@ -84,7 +109,12 @@ serve(async (req) => {
       responseData._errorMessage = "Authentication failed. Your API key may be invalid or expired.";
     } else if (responseStatus === 403) {
       responseData._errorMessage = "Access forbidden. Your API key doesn't have permission to access this resource.";
+    } else if (responseStatus === 404) {
+      responseData._errorMessage = "Resource not found. The requested API endpoint doesn't exist.";
     }
+
+    // Add the URL that was called (useful for debugging)
+    responseData._requestUrl = url;
 
     const responseHeaders = new Headers(corsHeaders);
     responseHeaders.set('Content-Type', 'application/json');
