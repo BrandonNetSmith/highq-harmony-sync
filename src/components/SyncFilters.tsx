@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, RefreshCw } from "lucide-react";
 import { getApiKeys } from "@/services/apiKeys";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface FilterConfig {
   contactIds: string[];
@@ -39,11 +41,12 @@ export const SyncFilters = ({
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
   const [availableFormIds, setAvailableFormIds] = useState<string[]>([]);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [ghlApiError, setGhlApiError] = useState<string | null>(null);
+  const [intakeqApiError, setIntakeqApiError] = useState<string | null>(null);
 
   const fetchGHLData = async () => {
     setIsLoadingGHL(true);
-    setApiError(null);
+    setGhlApiError(null);
     try {
       const { ghl_key } = await getApiKeys();
       
@@ -71,13 +74,33 @@ export const SyncFilters = ({
         })
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch GHL tags: ${response.status}`);
-      }
-      
       const data = await response.json();
-      const tags = data.tags?.map((tag: any) => tag.name) || [];
-      setAvailableTags(tags);
+      console.log("GHL API response:", data);
+      
+      if (data._statusCode >= 400) {
+        throw new Error(data._errorMessage || `Failed with status: ${data._statusCode}`);
+      }
+
+      if (data.tags) {
+        const tags = data.tags.map((tag: any) => tag.name) || [];
+        setAvailableTags(tags);
+        
+        // Only show success toast if we get meaningful data
+        if (tags.length > 0) {
+          toast({
+            title: "Success",
+            description: `Retrieved ${tags.length} tags from GoHighLevel`,
+          });
+        } else {
+          toast({
+            title: "Note",
+            description: "No tags found in your GoHighLevel account",
+          });
+        }
+      } else {
+        // Handle non-standard response
+        setGhlApiError("Unexpected response format from GoHighLevel API");
+      }
       
       const statusResponse = await fetch('/api/proxy', {
         method: 'POST',
@@ -93,29 +116,28 @@ export const SyncFilters = ({
         })
       });
       
-      if (!statusResponse.ok) {
-        throw new Error(`Failed to fetch GHL statuses: ${statusResponse.status}`);
-      }
-      
       const statusData = await statusResponse.json();
-      const statuses: string[] = [];
-      statusData.pipelines?.forEach((pipeline: any) => {
-        pipeline.stages?.forEach((stage: any) => {
-          statuses.push(stage.name);
+      console.log("GHL Pipelines API response:", statusData);
+      
+      if (statusData._statusCode >= 400) {
+        throw new Error(statusData._errorMessage || `Failed with status: ${statusData._statusCode}`);
+      }
+
+      if (statusData.pipelines) {
+        const statuses: string[] = [];
+        statusData.pipelines.forEach((pipeline: any) => {
+          pipeline.stages?.forEach((stage: any) => {
+            statuses.push(stage.name);
+          });
         });
-      });
-      
-      setAvailableStatuses([...new Set(statuses)]);
-      
-      toast({
-        title: "Success",
-        description: "GoHighLevel data fetched successfully",
-      });
+        
+        setAvailableStatuses([...new Set(statuses)]);
+      }
     } catch (error) {
       console.error('Error fetching GHL data:', error);
-      setApiError(`GHL API Error: ${error instanceof Error ? error.message : "Failed to fetch data"}`);
+      setGhlApiError(error instanceof Error ? error.message : "Failed to fetch GHL data");
       toast({
-        title: "Error",
+        title: "GHL API Error",
         description: error instanceof Error ? error.message : "Failed to fetch GHL data",
         variant: "destructive"
       });
@@ -126,7 +148,7 @@ export const SyncFilters = ({
 
   const fetchIntakeQData = async () => {
     setIsLoadingIntakeQ(true);
-    setApiError(null);
+    setIntakeqApiError(null);
     try {
       const { intakeq_key } = await getApiKeys();
       
@@ -154,23 +176,36 @@ export const SyncFilters = ({
         })
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch IntakeQ forms: ${response.status}`);
-      }
-      
       const data = await response.json();
-      const formIds = data.map((form: any) => form.id) || [];
-      setAvailableFormIds(formIds);
+      console.log("IntakeQ API response:", data);
       
-      toast({
-        title: "Success",
-        description: "IntakeQ data fetched successfully",
-      });
+      if (data._statusCode >= 400) {
+        throw new Error(data._errorMessage || `Failed with status: ${data._statusCode}`);
+      }
+
+      if (Array.isArray(data)) {
+        const formIds = data.map((form: any) => form.id) || [];
+        setAvailableFormIds(formIds);
+        
+        if (formIds.length > 0) {
+          toast({
+            title: "Success",
+            description: `Retrieved ${formIds.length} forms from IntakeQ`,
+          });
+        } else {
+          toast({
+            title: "Note",
+            description: "No forms found in your IntakeQ account",
+          });
+        }
+      } else {
+        setIntakeqApiError("Unexpected response format from IntakeQ API");
+      }
     } catch (error) {
       console.error('Error fetching IntakeQ data:', error);
-      setApiError(`IntakeQ API Error: ${error instanceof Error ? error.message : "Failed to fetch data"}`);
+      setIntakeqApiError(error instanceof Error ? error.message : "Failed to fetch IntakeQ data");
       toast({
-        title: "Error",
+        title: "IntakeQ API Error",
         description: error instanceof Error ? error.message : "Failed to fetch IntakeQ data",
         variant: "destructive"
       });
@@ -208,35 +243,38 @@ export const SyncFilters = ({
 
   return (
     <div className="space-y-4">
-      {apiError && (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {apiError}
-            <p className="mt-2 text-sm">
-              Note: Direct API calls from the browser may be blocked by CORS policies.
-              For production use, consider using a server-side proxy or Supabase Edge Functions.
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
-
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>GoHighLevel Filters</CardTitle>
-            <CardDescription>Filter which GHL records to sync</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center justify-between">
+              <span>GoHighLevel Filters</span>
               <Button 
                 variant="outline" 
+                size="sm"
                 onClick={fetchGHLData}
                 disabled={isLoadingGHL || disabled}
               >
                 {isLoadingGHL ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                Fetch Available Options
+                Fetch Options
               </Button>
-            </div>
+            </CardTitle>
+            <CardDescription>Filter which GHL records to sync</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {ghlApiError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>GoHighLevel API Error</AlertTitle>
+                <AlertDescription>
+                  {ghlApiError}
+                  {ghlApiError.includes("401") && (
+                    <p className="mt-2 text-sm font-medium">
+                      Your API key may be invalid or expired. Please check your API key in the API Configuration section below.
+                    </p>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div>
               <Label htmlFor="ghl-contact-ids">Contact IDs (comma-separated)</Label>
@@ -330,20 +368,35 @@ export const SyncFilters = ({
 
         <Card>
           <CardHeader>
-            <CardTitle>IntakeQ Filters</CardTitle>
-            <CardDescription>Filter which IntakeQ records to sync</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center justify-between">
+              <span>IntakeQ Filters</span>
               <Button 
                 variant="outline" 
+                size="sm"
                 onClick={fetchIntakeQData}
                 disabled={isLoadingIntakeQ || disabled}
               >
                 {isLoadingIntakeQ ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                Fetch Available Options
+                Fetch Options
               </Button>
-            </div>
+            </CardTitle>
+            <CardDescription>Filter which IntakeQ records to sync</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {intakeqApiError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>IntakeQ API Error</AlertTitle>
+                <AlertDescription>
+                  {intakeqApiError}
+                  {intakeqApiError.includes("401") && (
+                    <p className="mt-2 text-sm font-medium">
+                      Your API key may be invalid or expired. Please check your API key in the API Configuration section below.
+                    </p>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div>
               <Label htmlFor="intakeq-client-ids">Client IDs (comma-separated)</Label>

@@ -57,28 +57,50 @@ serve(async (req) => {
     }
 
     const response = await fetch(url, requestOptions);
+    const responseStatus = response.status;
     
     // Try to parse as JSON, but if it fails just return the text
     let responseData;
     const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = { text: await response.text() };
+    
+    try {
+      if (contentType && contentType.includes('application/json')) {
+        responseData = await response.json();
+      } else {
+        const text = await response.text();
+        responseData = { text };
+      }
+    } catch (error) {
+      // If we can't parse the response, return the raw text
+      const text = await response.text();
+      responseData = { text };
+    }
+
+    // Add status code to the response for better error handling
+    responseData._statusCode = responseStatus;
+    
+    // Add specific error messages for common authentication errors
+    if (responseStatus === 401) {
+      responseData._errorMessage = "Authentication failed. Your API key may be invalid or expired.";
+    } else if (responseStatus === 403) {
+      responseData._errorMessage = "Access forbidden. Your API key doesn't have permission to access this resource.";
     }
 
     const responseHeaders = new Headers(corsHeaders);
     responseHeaders.set('Content-Type', 'application/json');
 
     return new Response(JSON.stringify(responseData), {
-      status: response.status,
+      status: 200, // Always return 200 from the proxy and include the actual status in the response
       headers: responseHeaders,
     });
   } catch (error) {
     console.error('Proxy error:', error);
     
-    return new Response(JSON.stringify({ error: error.message || 'Proxy server error' }), {
-      status: 500,
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Proxy server error',
+      _statusCode: 500
+    }), {
+      status: 200, // Return 200 but include error details and status code in body
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
