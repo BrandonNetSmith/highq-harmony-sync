@@ -26,7 +26,16 @@ const Index = () => {
       try {
         const config = await getSyncConfig();
         if (config) {
-          setSyncConfig(config);
+          setSyncConfig({
+            sync_direction: config.sync_direction,
+            ghl_filters: typeof config.ghl_filters === 'string' 
+              ? JSON.parse(config.ghl_filters) 
+              : config.ghl_filters as any,
+            intakeq_filters: typeof config.intakeq_filters === 'string' 
+              ? JSON.parse(config.intakeq_filters) 
+              : config.intakeq_filters as any,
+            is_sync_enabled: config.is_sync_enabled
+          });
         }
       } catch (error) {
         console.error('Failed to load sync config:', error);
