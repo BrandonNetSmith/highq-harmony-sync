@@ -1,13 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowLeftRight, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
 type SyncDirection = Database["public"]["Enums"]["sync_direction"];
@@ -32,9 +32,32 @@ interface FieldMappingProps {
   disabled?: boolean;
 }
 
-export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: FieldMappingProps) => {
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+// Mock function for field discovery - in production this would call actual API endpoints
+const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<string[]> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  // Mock data - in production, this would come from the actual API
+  const mockFields: Record<string, Record<string, string[]>> = {
+    ghl: {
+      contact: ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zip', 'country', 'tags', 'source'],
+      appointment: ['startTime', 'endTime', 'title', 'notes', 'status', 'location'],
+      form: ['formName', 'description', 'status', 'created', 'updated']
+    },
+    intakeq: {
+      contact: ['firstName', 'lastName', 'email', 'phoneNumber', 'address', 'city', 'state', 'zipCode', 'country', 'customFields'],
+      appointment: ['appointmentDate', 'duration', 'title', 'description', 'status', 'location', 'provider'],
+      form: ['formTitle', 'description', 'status', 'createdAt', 'updatedAt', 'formFields']
+    }
+  };
 
+  return mockFields[system][dataType] || [];
+};
+
+export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: FieldMappingProps) => {
+  const { toast } = useToast();
+  const [isDiscovering, setIsDiscovering] = useState<Record<string, boolean>>({});
+  
   const handleFieldSyncChange = (dataType: string, field: string, checked: boolean) => {
     const newMapping = { ...fieldMapping };
     newMapping[dataType].fields[field].sync = checked;
@@ -91,25 +114,58 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     return fields.some(field => field.sync);
   };
 
-  const getDirectionIcon = (direction: SyncDirection) => {
-    switch (direction) {
-      case 'bidirectional':
-        return <ArrowLeftRight className="h-5 w-5" />;
-      case 'one_way_ghl_to_intakeq':
-        return <ArrowRight className="h-5 w-5" />;
-      case 'one_way_intakeq_to_ghl':
-        return <ArrowLeft className="h-5 w-5" />;
-    }
-  };
-
-  const getDirectionText = (direction: SyncDirection) => {
-    switch (direction) {
-      case 'bidirectional':
-        return "Bidirectional";
-      case 'one_way_ghl_to_intakeq':
-        return "GHL to IntakeQ";
-      case 'one_way_intakeq_to_ghl':
-        return "IntakeQ to GHL";
+  // Function to discover available fields from both systems
+  const handleDiscoverFields = async (dataType: string) => {
+    try {
+      setIsDiscovering({ ...isDiscovering, [dataType]: true });
+      
+      // Get fields from both systems
+      const [ghlFields, intakeqFields] = await Promise.all([
+        discoverFields('ghl', dataType),
+        discoverFields('intakeq', dataType)
+      ]);
+      
+      // Create a set of all unique field names from both systems
+      const allFields = new Set([...ghlFields, ...intakeqFields].map(field => field.toLowerCase()));
+      
+      // Create a new mapping with discovered fields
+      const newMapping = { ...fieldMapping };
+      
+      // For each discovered field, add it to the mapping if it doesn't already exist
+      allFields.forEach(field => {
+        const normalizedField = field.toLowerCase().replace(/\s+/g, '_');
+        
+        if (!newMapping[dataType].fields[normalizedField]) {
+          // Find the corresponding field in each system
+          const ghlField = ghlFields.find(f => f.toLowerCase() === field) || normalizedField;
+          const intakeqField = intakeqFields.find(f => f.toLowerCase() === field) || normalizedField;
+          
+          // Add the new field to the mapping
+          newMapping[dataType].fields[normalizedField] = {
+            sync: false,
+            direction: 'bidirectional',
+            ghlField,
+            intakeqField
+          };
+        }
+      });
+      
+      // Update the field mapping
+      onChange(newMapping);
+      
+      toast({
+        title: "Fields discovered",
+        description: `${allFields.size} fields found for ${dataType}`,
+      });
+    } catch (error) {
+      console.error(`Error discovering fields for ${dataType}:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to discover fields for ${dataType}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDiscovering({ ...isDiscovering, [dataType]: false });
     }
   };
 
@@ -197,149 +253,91 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                     </div>
                     
                     {/* IntakeQ Side Title */}
-                    <div className="p-4">
+                    <div className="p-4 flex justify-end items-center">
                       <div className="text-lg font-medium capitalize text-right">{dataTypeLabels[dataType] || dataType}</div>
                     </div>
                   </div>
                 
                   <AccordionContent className="p-4">
                     <div className="space-y-4">
+                      {/* Discover Fields Button */}
+                      <div className="flex justify-end mb-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDiscoverFields(dataType)}
+                          disabled={disabled || isDiscovering[dataType]}
+                          className="flex items-center gap-2"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${isDiscovering[dataType] ? 'animate-spin' : ''}`} />
+                          Discover Available Fields
+                        </Button>
+                      </div>
+                      
                       {/* Field rows */}
                       {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
-                        <Collapsible key={fieldName} className="border rounded-lg">
-                          <CollapsibleTrigger asChild>
-                            <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 hover:bg-muted/10 transition-colors cursor-pointer">
-                              {/* GHL Side */}
-                              <div className="text-left p-4 bg-background rounded-l-lg border-r">
-                                <span className="font-medium capitalize">
-                                  {fieldSettings.ghlField || fieldName.replace(/_/g, ' ')}
-                                </span>
-                              </div>
-                              
-                              {/* Sync Controls */}
-                              <div className="flex flex-col items-center justify-center py-2 gap-2">
-                                <Switch
-                                  id={`${dataType}-${fieldName}-sync`}
-                                  checked={fieldSettings.sync}
-                                  onCheckedChange={(checked) => handleFieldSyncChange(dataType, fieldName, checked)}
-                                  disabled={disabled}
-                                />
-                                
-                                {fieldSettings.sync && (
-                                  <ToggleGroup
-                                    type="single"
-                                    size="sm"
-                                    value={fieldSettings.direction}
-                                    onValueChange={(value) => {
-                                      if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
-                                    }}
-                                    className="flex gap-0 border rounded-md overflow-hidden"
-                                    disabled={disabled || !fieldSettings.sync}
-                                  >
-                                    <ToggleGroupItem 
-                                      value="one_way_intakeq_to_ghl"
-                                      aria-label="IntakeQ to GHL"
-                                      className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                                    >
-                                      <ArrowLeft className="h-4 w-4" />
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem 
-                                      value="bidirectional"
-                                      aria-label="Bidirectional"
-                                      className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                                    >
-                                      <ArrowLeftRight className="h-4 w-4" />
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem 
-                                      value="one_way_ghl_to_intakeq"
-                                      aria-label="GHL to IntakeQ"
-                                      className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                                    >
-                                      <ArrowRight className="h-4 w-4" />
-                                    </ToggleGroupItem>
-                                  </ToggleGroup>
-                                )}
-                              </div>
-                              
-                              {/* IntakeQ Side */}
-                              <div className="text-right p-4 bg-background rounded-r-lg border-l">
-                                <span className="font-medium capitalize">
-                                  {fieldSettings.intakeqField || fieldName.replace(/_/g, ' ')}
-                                </span>
-                              </div>
+                        <div key={fieldName} className="border rounded-lg">
+                          <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 hover:bg-muted/10 transition-colors">
+                            {/* GHL Side */}
+                            <div className="text-left p-4 bg-background rounded-l-lg">
+                              <span className="font-medium capitalize">
+                                {fieldSettings.ghlField || fieldName.replace(/_/g, ' ')}
+                              </span>
                             </div>
-                          </CollapsibleTrigger>
-                          
-                          {fieldSettings.sync && (
-                            <CollapsibleContent className="p-4 border-t bg-muted/10">
-                              <div className="grid grid-cols-[1fr_auto_1fr] gap-8 items-center">
-                                {/* GHL Field Details */}
-                                <div>
-                                  <Label className="mb-2 block">GoHighLevel Field</Label>
-                                  <div className="bg-background p-3 rounded border">
-                                    <div>{fieldSettings.ghlField || fieldName}</div>
-                                  </div>
-                                </div>
-                                
-                                {/* Direction Controls */}
-                                <div className="flex flex-col items-center justify-center space-y-2">
-                                  <Label className="mb-1 block text-center">Direction</Label>
-                                  <div className="flex flex-col gap-2">
-                                    <ToggleGroup
-                                      type="single"
-                                      size="sm"
-                                      value={fieldSettings.direction}
-                                      onValueChange={(value) => {
-                                        if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
-                                      }}
-                                      className="flex flex-col gap-2 w-full"
-                                      disabled={disabled}
-                                    >
-                                      <ToggleGroupItem 
-                                        value="bidirectional"
-                                        aria-label="Bidirectional"
-                                        className="w-full data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <ArrowLeftRight className="h-4 w-4" />
-                                          <span>Both</span>
-                                        </div>
-                                      </ToggleGroupItem>
-                                      <ToggleGroupItem 
-                                        value="one_way_ghl_to_intakeq"
-                                        aria-label="GHL to IntakeQ"
-                                        className="w-full data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <ArrowRight className="h-4 w-4" />
-                                          <span>GHL to IQ</span>
-                                        </div>
-                                      </ToggleGroupItem>
-                                      <ToggleGroupItem 
-                                        value="one_way_intakeq_to_ghl"
-                                        aria-label="IntakeQ to GHL"
-                                        className="w-full data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <ArrowLeft className="h-4 w-4" />
-                                          <span>IQ to GHL</span>
-                                        </div>
-                                      </ToggleGroupItem>
-                                    </ToggleGroup>
-                                  </div>
-                                </div>
-                                
-                                {/* IntakeQ Field Details */}
-                                <div>
-                                  <Label className="mb-2 block">IntakeQ Field</Label>
-                                  <div className="bg-background p-3 rounded border">
-                                    <div>{fieldSettings.intakeqField || fieldName}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            </CollapsibleContent>
-                          )}
-                        </Collapsible>
+                            
+                            {/* Sync Controls */}
+                            <div className="flex flex-col items-center justify-center py-2 gap-2">
+                              <Switch
+                                id={`${dataType}-${fieldName}-sync`}
+                                checked={fieldSettings.sync}
+                                onCheckedChange={(checked) => handleFieldSyncChange(dataType, fieldName, checked)}
+                                disabled={disabled}
+                              />
+                              
+                              {fieldSettings.sync && (
+                                <ToggleGroup
+                                  type="single"
+                                  size="sm"
+                                  value={fieldSettings.direction}
+                                  onValueChange={(value) => {
+                                    if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
+                                  }}
+                                  className="flex gap-0 border rounded-md overflow-hidden"
+                                  disabled={disabled || !fieldSettings.sync}
+                                >
+                                  <ToggleGroupItem 
+                                    value="one_way_intakeq_to_ghl"
+                                    aria-label="IntakeQ to GHL"
+                                    className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                  >
+                                    <ArrowLeft className="h-4 w-4" />
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem 
+                                    value="bidirectional"
+                                    aria-label="Bidirectional"
+                                    className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                  >
+                                    <ArrowLeftRight className="h-4 w-4" />
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem 
+                                    value="one_way_ghl_to_intakeq"
+                                    aria-label="GHL to IntakeQ"
+                                    className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                  >
+                                    <ArrowRight className="h-4 w-4" />
+                                  </ToggleGroupItem>
+                                </ToggleGroup>
+                              )}
+                            </div>
+                            
+                            {/* IntakeQ Side */}
+                            <div className="text-right p-4 bg-background rounded-r-lg">
+                              <span className="font-medium capitalize">
+                                {fieldSettings.intakeqField || fieldName.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </AccordionContent>
