@@ -34,11 +34,13 @@ serve(async (req) => {
     console.log(`Request method: ${method}`);
     console.log(`Request headers:`, headers);
 
+    // Create a new headers object to avoid any modification issues
     const requestHeaders = new Headers();
-    // Copy the headers from the request
+    
+    // Only copy specific headers we need, not all headers to avoid loop issues
     if (headers) {
       Object.entries(headers).forEach(([key, value]) => {
-        if (typeof value === 'string') {
+        if (typeof value === 'string' && !key.toLowerCase().includes('host')) {
           requestHeaders.append(key, value);
           console.log(`Added header: ${key}`);
         }
@@ -50,9 +52,12 @@ serve(async (req) => {
       requestHeaders.set('Content-Type', 'application/json');
     }
 
+    // Create the request options
     const requestOptions: RequestInit = {
       method: method || 'GET',
       headers: requestHeaders,
+      // IMPORTANT: Disable redirect-following to prevent loops
+      redirect: 'manual',
     };
 
     if (body && method !== 'GET') {
@@ -83,10 +88,7 @@ serve(async (req) => {
     const contentType = response.headers.get('content-type');
     console.log(`Response content-type: ${contentType}`);
     
-    const contentLength = response.headers.get('content-length');
-    console.log(`Response content-length: ${contentLength}`);
-    
-    // Try to get the raw response text first
+    // Always try to get the raw response text first
     let responseText = '';
     try {
       responseText = await response.text();
@@ -156,7 +158,7 @@ serve(async (req) => {
         responseData = { 
           _parseError: 'Failed to parse JSON response',
           _errorDetails: jsonError.message,
-          _rawResponse: responseText,
+          _rawResponse: responseText.substring(0, 1000),
           _responsePreview: responseText.substring(0, 100) + '...',
           _statusCode: responseStatus,
           _requestUrl: url

@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { saveApiKeys, getApiKeys } from '@/services/apiKeys';
 import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ApiConfigForm {
   ghlApiKey: string;
@@ -32,6 +33,13 @@ const WebhookConfig = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [testingKeys, setTestingKeys] = useState<{ghl: boolean; intakeq: boolean}>({ghl: false, intakeq: false});
+  const [testResults, setTestResults] = useState<{
+    ghl: { success: boolean; message: string | null } | null;
+    intakeq: { success: boolean; message: string | null } | null;
+  }>({
+    ghl: null,
+    intakeq: null
+  });
 
   useEffect(() => {
     const loadApiKeys = async () => {
@@ -68,15 +76,24 @@ const WebhookConfig = () => {
     }
     
     setTestingKeys(prev => ({ ...prev, [type]: true }));
+    // Reset test results
+    setTestResults(prev => ({ ...prev, [type]: null }));
     
     try {
-      const url = type === 'ghl' 
-        ? 'https://rest.gohighlevel.com/v1/contacts/' 
-        : 'https://intakeq.com/api/v1/clients';
+      let url;
+      let headers;
       
-      const headers = type === 'ghl'
-        ? { 'Authorization': `Bearer ${apiKey}` }
-        : { 'X-Auth-Key': apiKey };
+      if (type === 'ghl') {
+        url = 'https://rest.gohighlevel.com/v1/contacts/';
+        headers = { 'Authorization': `Bearer ${apiKey}` };
+      } else {
+        // Using a different endpoint for IntakeQ testing - the /forms endpoint seems to have issues
+        url = 'https://intakeq.com/api/v1/clients';
+        headers = { 'X-Auth-Key': apiKey };
+      }
+      
+      console.log(`Testing ${type} API with key: ${apiKey.substring(0, 5)}...`);
+      console.log(`URL: ${url}`);
       
       const response = await fetch('/api/proxy', {
         method: 'POST',
@@ -91,24 +108,38 @@ const WebhookConfig = () => {
       });
       
       const data = await response.json();
+      console.log(`${type} API test response:`, data);
       
-      if (data._statusCode >= 400 || data._error) {
-        throw new Error(data._errorMessage || data._error || `Failed with status: ${data._statusCode}`);
+      // Check for various error conditions
+      if (data._error || data._statusCode >= 400 || data._isHtml) {
+        const errorMsg = data._errorMessage || data._error || `Failed with status: ${data._statusCode}`;
+        throw new Error(errorMsg);
       }
       
-      // Check for HTML response (which indicates authentication failure)
-      if (data._isHtml) {
-        throw new Error("Authentication failed. Your API key may be invalid.");
-      }
+      // Success!
+      setTestResults(prev => ({ 
+        ...prev, 
+        [type]: { success: true, message: `${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} API connection successful!` } 
+      }));
       
       toast({
         title: "Success",
         description: `${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} API key is valid!`,
       });
     } catch (error) {
+      console.error(`${type} API test error:`, error);
+      
+      setTestResults(prev => ({ 
+        ...prev, 
+        [type]: { 
+          success: false, 
+          message: error instanceof Error ? error.message : `Failed to test ${type} API key` 
+        } 
+      }));
+      
       toast({
         title: "API Key Test Failed",
-        description: error instanceof Error ? error.message : "Failed to test API key",
+        description: error instanceof Error ? error.message : `Failed to test ${type} API key`,
         variant: "destructive",
       });
     } finally {
@@ -173,14 +204,31 @@ const WebhookConfig = () => {
                         />
                         <Button 
                           type="button" 
-                          variant="outline" 
+                          variant={testResults.ghl?.success ? "outline" : "outline"}
+                          className={testResults.ghl?.success ? "bg-green-50 hover:bg-green-100 border-green-200" : ""}
                           onClick={() => testApiKey('ghl')}
                           disabled={isLoading || testingKeys.ghl}
                         >
-                          {testingKeys.ghl ? "Testing..." : "Test"}
+                          {testingKeys.ghl ? "Testing..." : testResults.ghl?.success ? "Verified ✓" : "Test"}
                         </Button>
                       </div>
                     </FormControl>
+                    {testResults.ghl && !testResults.ghl.success && (
+                      <Alert variant="destructive" className="mt-2 py-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle className="text-sm">Test Failed</AlertTitle>
+                        <AlertDescription className="text-xs">
+                          {testResults.ghl.message}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    {testResults.ghl && testResults.ghl.success && (
+                      <Alert variant="default" className="mt-2 py-2 border-green-200 bg-green-50 text-green-800">
+                        <AlertDescription className="text-xs flex items-center">
+                          <span className="mr-1">✓</span> {testResults.ghl.message}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -215,14 +263,34 @@ const WebhookConfig = () => {
                         />
                         <Button 
                           type="button" 
-                          variant="outline" 
+                          variant={testResults.intakeq?.success ? "outline" : "outline"}
+                          className={testResults.intakeq?.success ? "bg-green-50 hover:bg-green-100 border-green-200" : ""}
                           onClick={() => testApiKey('intakeq')}
                           disabled={isLoading || testingKeys.intakeq}
                         >
-                          {testingKeys.intakeq ? "Testing..." : "Test"}
+                          {testingKeys.intakeq ? "Testing..." : testResults.intakeq?.success ? "Verified ✓" : "Test"}
                         </Button>
                       </div>
                     </FormControl>
+                    {testResults.intakeq && !testResults.intakeq.success && (
+                      <Alert variant="destructive" className="mt-2 py-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle className="text-sm">Test Failed</AlertTitle>
+                        <AlertDescription className="text-xs">
+                          {testResults.intakeq.message}
+                          {testResults.intakeq.message?.includes('HTML') && (
+                            <p className="mt-1">This usually means your API key is invalid or IntakeQ is returning an error page instead of JSON.</p>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    {testResults.intakeq && testResults.intakeq.success && (
+                      <Alert variant="default" className="mt-2 py-2 border-green-200 bg-green-50 text-green-800">
+                        <AlertDescription className="text-xs flex items-center">
+                          <span className="mr-1">✓</span> {testResults.intakeq.message}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
