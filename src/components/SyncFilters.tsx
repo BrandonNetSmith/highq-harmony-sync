@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,6 +43,7 @@ export const SyncFilters = ({
   const [ghlApiError, setGhlApiError] = useState<string | null>(null);
   const [intakeqApiError, setIntakeqApiError] = useState<string | null>(null);
   const [intakeqRawResponse, setIntakeqRawResponse] = useState<string | null>(null);
+  const [intakeqDebugInfo, setIntakeqDebugInfo] = useState<any>(null);
 
   const fetchGHLData = async () => {
     setIsLoadingGHL(true);
@@ -149,6 +149,7 @@ export const SyncFilters = ({
     setIsLoadingIntakeQ(true);
     setIntakeqApiError(null);
     setIntakeqRawResponse(null);
+    setIntakeqDebugInfo(null);
     
     try {
       const { intakeq_key } = await getApiKeys();
@@ -183,6 +184,17 @@ export const SyncFilters = ({
       
       const data = await response.json();
       console.log("IntakeQ API parsed response:", data);
+
+      setIntakeqDebugInfo({
+        statusCode: data._statusCode,
+        contentType: data._contentType,
+        isHtml: data._isHtml,
+        hasParseError: !!data._parseError
+      });
+      
+      if (data._error) {
+        throw new Error(data._error);
+      }
       
       if (data._statusCode >= 400) {
         throw new Error(data._errorMessage || `Failed with status: ${data._statusCode}`);
@@ -198,13 +210,13 @@ export const SyncFilters = ({
         return;
       }
       
+      if (data._isHtml) {
+        setIntakeqRawResponse(data._htmlSnippet || "HTML response received (no content provided)");
+        throw new Error("Received HTML instead of JSON. This likely means the API key is invalid or the authentication failed.");
+      }
+      
       if (data._parseError) {
-        if (data._isHtml) {
-          setIntakeqRawResponse(data._htmlSnippet);
-          throw new Error("Received HTML instead of JSON. This likely means the API key is invalid or the authentication failed.");
-        } else {
-          throw new Error(`Parse error: ${data._parseError}`);
-        }
+        throw new Error(`Parse error: ${data._parseError}`);
       }
 
       if (Array.isArray(data)) {
@@ -429,6 +441,15 @@ export const SyncFilters = ({
                       <p className="mt-2 text-sm font-medium">
                         Please check your API key in the API Configuration section below and try again.
                       </p>
+                      {intakeqDebugInfo && (
+                        <div className="mt-2 p-2 bg-gray-800 text-white rounded text-xs">
+                          <p>Debug info (for troubleshooting):</p>
+                          <p>Status: {intakeqDebugInfo.statusCode}</p>
+                          <p>Content-Type: {intakeqDebugInfo.contentType}</p>
+                          <p>IsHTML: {intakeqDebugInfo.isHtml ? 'Yes' : 'No'}</p>
+                          <p>Parse Error: {intakeqDebugInfo.hasParseError ? 'Yes' : 'No'}</p>
+                        </div>
+                      )}
                     </>
                   )}
                 </AlertDescription>

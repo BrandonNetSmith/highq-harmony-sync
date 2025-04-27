@@ -38,6 +38,7 @@ const WebhookConfig = () => {
       setConnectionError(null);
       try {
         const keys = await getApiKeys();
+        console.log("Loaded API keys:", keys ? "Keys found" : "No keys found");
         form.reset({
           ghlApiKey: keys.ghl_key || '',
           intakeqApiKey: keys.intakeq_key || ''
@@ -57,6 +58,7 @@ const WebhookConfig = () => {
     setIsLoading(true);
     setConnectionError(null);
     try {
+      console.log("Saving API keys");
       await saveApiKeys(data.ghlApiKey, data.intakeqApiKey);
       toast({
         title: "Success",
@@ -91,7 +93,7 @@ const WebhookConfig = () => {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form className="space-y-4">
               <FormField
                 control={form.control}
                 name="ghlApiKey"
@@ -122,7 +124,7 @@ const WebhookConfig = () => {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form className="space-y-4">
               <FormField
                 control={form.control}
                 name="intakeqApiKey"

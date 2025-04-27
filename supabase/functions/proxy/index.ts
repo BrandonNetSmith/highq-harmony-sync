@@ -31,6 +31,8 @@ serve(async (req) => {
     }
 
     console.log(`Proxying request to: ${url}`);
+    console.log(`Request method: ${method}`);
+    console.log(`Request headers:`, headers);
 
     const requestHeaders = new Headers();
     // Copy the headers from the request
@@ -38,6 +40,7 @@ serve(async (req) => {
       Object.entries(headers).forEach(([key, value]) => {
         if (typeof value === 'string') {
           requestHeaders.append(key, value);
+          console.log(`Added header: ${key}`);
         }
       });
     }
@@ -58,7 +61,9 @@ serve(async (req) => {
 
     let response;
     try {
+      console.log(`Sending ${method || 'GET'} request to: ${url}`);
       response = await fetch(url, requestOptions);
+      console.log(`Received response with status: ${response.status}`);
     } catch (fetchError) {
       console.error('Fetch error:', fetchError);
       return new Response(JSON.stringify({
@@ -73,11 +78,15 @@ serve(async (req) => {
     }
     
     const responseStatus = response.status;
+    console.log(`Response status code: ${responseStatus}`);
     
     // Try to parse as JSON, but if it fails just return the text
     let responseData: any = {};
     const contentType = response.headers.get('content-type');
+    console.log(`Response content-type: ${contentType}`);
+    
     const contentLength = response.headers.get('content-length');
+    console.log(`Response content-length: ${contentLength}`);
     
     // Check if the response is empty (content-length: 0 or no content)
     if (contentLength === '0' || responseStatus === 204) {
@@ -86,10 +95,16 @@ serve(async (req) => {
         _statusCode: responseStatus,
         _requestUrl: url
       };
+      console.log('Empty response detected');
     } else {
       try {
         // First try to get the response as text
         const responseText = await response.text();
+        console.log(`Response text length: ${responseText.length}`);
+        
+        if (responseText.length > 0) {
+          console.log(`Response text preview: ${responseText.substring(0, 50)}...`);
+        }
         
         // If the response text is empty, return an empty object
         if (!responseText || responseText.trim() === '') {
@@ -98,41 +113,59 @@ serve(async (req) => {
             _statusCode: responseStatus,
             _requestUrl: url
           };
+          console.log('Empty response text detected');
         } 
+        // Special handling for HTML responses which are likely auth errors
+        else if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+          console.log('HTML response detected (likely an error page)');
+          
+          // Extract any useful information from the HTML
+          let errorMessage = "Authentication failed or invalid endpoint";
+          
+          // Look for common patterns in error pages
+          if (responseText.includes('401') || responseText.includes('Unauthorized')) {
+            errorMessage = "401 Unauthorized - Invalid API key or credentials";
+          } else if (responseText.includes('403') || responseText.includes('Forbidden')) {
+            errorMessage = "403 Forbidden - Access denied";
+          } else if (responseText.includes('404') || responseText.includes('Not Found')) {
+            errorMessage = "404 Not Found - API endpoint does not exist";
+          } else if (responseText.includes('Internal Server Error') || responseText.includes('500')) {
+            errorMessage = "500 Internal Server Error - Server issue on the API provider side";
+          }
+          
+          responseData = { 
+            _error: errorMessage,
+            _isHtml: true,
+            _statusCode: responseStatus,
+            _requestUrl: url,
+            _htmlSnippet: responseText.substring(0, 500) + '...'
+          };
+        }
         // If it seems like JSON (starts with { or [), parse it
         else if ((responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) && 
                 contentType && contentType.includes('application/json')) {
           try {
             responseData = JSON.parse(responseText);
+            console.log('Successfully parsed JSON response');
           } catch (jsonError) {
             console.error('JSON parse error:', jsonError);
             responseData = { 
-              text: responseText,
               _parseError: 'Failed to parse JSON response',
+              _errorDetails: jsonError.message,
+              _responsePreview: responseText.substring(0, 100) + '...',
               _statusCode: responseStatus,
               _requestUrl: url
             };
           }
         } else {
-          // Check if it's HTML
-          if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
-            responseData = { 
-              text: 'HTML response received (likely an error page)',
-              _parseError: 'Received HTML instead of JSON. The API endpoint may be incorrect or there may be an authentication issue.',
-              _isHtml: true,
-              _statusCode: responseStatus,
-              _requestUrl: url,
-              // Include just a snippet of the HTML for debugging
-              _htmlSnippet: responseText.substring(0, 500) + '...'
-            };
-          } else {
-            // Just return the text
-            responseData = { 
-              text: responseText,
-              _statusCode: responseStatus,
-              _requestUrl: url
-            };
-          }
+          // Just return the text for any other content type
+          console.log('Non-JSON text response detected');
+          responseData = { 
+            text: responseText,
+            _contentType: contentType || 'text/plain',
+            _statusCode: responseStatus,
+            _requestUrl: url
+          };
         }
       } catch (error) {
         console.error('Response processing error:', error);
@@ -185,7 +218,7 @@ serve(async (req) => {
       error: error.message || 'Proxy server error',
       _statusCode: 500
     }), {
-      status: 200, // Return 200 but include error details and status code in body
+      status: 200, // Return 200 but include error details in body
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
