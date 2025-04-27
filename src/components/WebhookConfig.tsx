@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { saveApiKeys, getApiKeys } from '@/services/apiKeys';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ApiConfigForm {
@@ -95,7 +95,12 @@ const WebhookConfig = () => {
       console.log(`Testing ${type} API with key: ${apiKey.substring(0, 5)}...`);
       console.log(`URL: ${url}`);
       
-      const response = await fetch('/api/proxy', {
+      // Get the base URL of the site for making API requests
+      const baseUrl = window.location.origin;
+      console.log(`Current site base URL: ${baseUrl}`);
+      
+      // Make the request to our proxy
+      const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,6 +111,11 @@ const WebhookConfig = () => {
           headers
         })
       });
+      
+      if (!response.ok) {
+        console.log(`Proxy returned status: ${response.status}`);
+        throw new Error(`Proxy error: ${response.statusText || response.status}`);
+      }
       
       const data = await response.json();
       console.log(`${type} API test response:`, data);
@@ -225,7 +235,7 @@ const WebhookConfig = () => {
                     {testResults.ghl && testResults.ghl.success && (
                       <Alert variant="default" className="mt-2 py-2 border-green-200 bg-green-50 text-green-800">
                         <AlertDescription className="text-xs flex items-center">
-                          <span className="mr-1">✓</span> {testResults.ghl.message}
+                          <CheckCircle className="h-3 w-3 mr-1" /> {testResults.ghl.message}
                         </AlertDescription>
                       </Alert>
                     )}
@@ -287,7 +297,7 @@ const WebhookConfig = () => {
                     {testResults.intakeq && testResults.intakeq.success && (
                       <Alert variant="default" className="mt-2 py-2 border-green-200 bg-green-50 text-green-800">
                         <AlertDescription className="text-xs flex items-center">
-                          <span className="mr-1">✓</span> {testResults.intakeq.message}
+                          <CheckCircle className="h-3 w-3 mr-1" /> {testResults.intakeq.message}
                         </AlertDescription>
                       </Alert>
                     )}

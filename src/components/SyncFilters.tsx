@@ -61,7 +61,10 @@ export const SyncFilters = ({
         return;
       }
 
-      const response = await fetch('/api/proxy', {
+      const baseUrl = window.location.origin;
+      console.log(`Current site base URL: ${baseUrl}`);
+
+      const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,6 +77,11 @@ export const SyncFilters = ({
           }
         })
       });
+      
+      if (!response.ok) {
+        console.log(`Proxy returned status: ${response.status}`);
+        throw new Error(`Proxy error: ${response.statusText || response.status}`);
+      }
       
       const data = await response.json();
       console.log("GHL API response:", data);
@@ -101,7 +109,7 @@ export const SyncFilters = ({
         setGhlApiError("Unexpected response format from GoHighLevel API");
       }
       
-      const statusResponse = await fetch('/api/proxy', {
+      const statusResponse = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,6 +122,11 @@ export const SyncFilters = ({
           }
         })
       });
+      
+      if (!statusResponse.ok) {
+        console.log(`Proxy returned status: ${statusResponse.status}`);
+        throw new Error(`Proxy error: ${statusResponse.statusText || statusResponse.status}`);
+      }
       
       const statusData = await statusResponse.json();
       console.log("GHL Pipelines API response:", statusData);
@@ -166,7 +179,10 @@ export const SyncFilters = ({
 
       console.log("Calling IntakeQ API with key:", intakeq_key.substring(0, 5) + "...");
       
-      const response = await fetch('/api/proxy', {
+      const baseUrl = window.location.origin;
+      console.log(`Current site base URL for IntakeQ request: ${baseUrl}`);
+      
+      const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -179,6 +195,11 @@ export const SyncFilters = ({
           }
         })
       });
+      
+      if (!response.ok) {
+        console.log(`Proxy returned status: ${response.status}`);
+        throw new Error(`Proxy error: ${response.statusText || response.status}`);
+      }
       
       console.log("IntakeQ API raw response:", response);
       
@@ -246,7 +267,7 @@ export const SyncFilters = ({
       toast({
         title: "IntakeQ API Error",
         description: error instanceof Error ? error.message : "Failed to fetch IntakeQ data",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsLoadingIntakeQ(false);
