@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -85,7 +84,6 @@ export const SyncFilters = ({
         const tags = data.tags.map((tag: any) => tag.name) || [];
         setAvailableTags(tags);
         
-        // Only show success toast if we get meaningful data
         if (tags.length > 0) {
           toast({
             title: "Success",
@@ -98,7 +96,6 @@ export const SyncFilters = ({
           });
         }
       } else {
-        // Handle non-standard response
         setGhlApiError("Unexpected response format from GoHighLevel API");
       }
       
@@ -178,13 +175,11 @@ export const SyncFilters = ({
         })
       });
       
-      // Log the raw response for debugging
       console.log("IntakeQ API raw response:", response);
       
       const data = await response.json();
       console.log("IntakeQ API parsed response:", data);
       
-      // Check for error indicators in our proxy response
       if (data._statusCode >= 400) {
         throw new Error(data._errorMessage || `Failed with status: ${data._statusCode}`);
       }
@@ -203,7 +198,10 @@ export const SyncFilters = ({
         throw new Error(`Parse error: ${data._parseError}`);
       }
 
-      // If we have a successful response with forms
+      if (data._isHtml) {
+        throw new Error("Received HTML instead of JSON. The API endpoint may be incorrect or there may be an authentication issue.");
+      }
+
       if (Array.isArray(data)) {
         const formIds = data.map((form: any) => form.id) || [];
         setAvailableFormIds(formIds);
@@ -220,7 +218,6 @@ export const SyncFilters = ({
           });
         }
       } else if (data.text) {
-        // Handle text response
         throw new Error(`Unexpected response format: ${data.text.substring(0, 100)}...`);
       } else {
         setIntakeqApiError("Unexpected response format from IntakeQ API");
@@ -416,6 +413,11 @@ export const SyncFilters = ({
                   {intakeqApiError.includes("401") && (
                     <p className="mt-2 text-sm font-medium">
                       Your API key may be invalid or expired. Please check your API key in the API Configuration section below.
+                    </p>
+                  )}
+                  {intakeqApiError.includes("HTML") && (
+                    <p className="mt-2 text-sm font-medium">
+                      The API is returning HTML instead of JSON. This often means the API endpoint is incorrect or the authentication failed.
                     </p>
                   )}
                 </AlertDescription>

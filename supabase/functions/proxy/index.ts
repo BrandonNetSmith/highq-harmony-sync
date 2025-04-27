@@ -89,8 +89,19 @@ serve(async (req) => {
             };
           }
         } else {
-          // Just return the text
-          responseData = { text: responseText };
+          // Check if it's HTML
+          if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+            responseData = { 
+              text: 'HTML response received (likely an error page)',
+              _parseError: 'Received HTML instead of JSON. The API endpoint may be incorrect or there may be an authentication issue.',
+              _isHtml: true,
+              // Include just a snippet of the HTML for debugging
+              _htmlSnippet: responseText.substring(0, 200) + '...'
+            };
+          } else {
+            // Just return the text
+            responseData = { text: responseText };
+          }
         }
       } catch (error) {
         console.error('Response processing error:', error);
