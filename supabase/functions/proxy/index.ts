@@ -80,102 +80,98 @@ serve(async (req) => {
     const responseStatus = response.status;
     console.log(`Response status code: ${responseStatus}`);
     
-    // Try to parse as JSON, but if it fails just return the text
-    let responseData: any = {};
     const contentType = response.headers.get('content-type');
     console.log(`Response content-type: ${contentType}`);
     
     const contentLength = response.headers.get('content-length');
     console.log(`Response content-length: ${contentLength}`);
     
-    // Check if the response is empty (content-length: 0 or no content)
-    if (contentLength === '0' || responseStatus === 204) {
+    // Try to get the raw response text first
+    let responseText = '';
+    try {
+      responseText = await response.text();
+      console.log(`Response text length: ${responseText.length}`);
+      if (responseText.length > 0) {
+        console.log(`Response text preview: ${responseText.substring(0, 100)}...`);
+      }
+    } catch (textError) {
+      console.error('Error reading response text:', textError);
+      return new Response(JSON.stringify({
+        _error: 'Failed to read response text',
+        _errorDetails: textError.message,
+        _statusCode: responseStatus,
+        _requestUrl: url
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Initialize responseData
+    let responseData: any = {};
+    
+    // Handle empty responses
+    if (!responseText || responseText.trim() === '') {
       responseData = { 
         _empty: true,
         _statusCode: responseStatus,
         _requestUrl: url
       };
       console.log('Empty response detected');
-    } else {
+    } 
+    // Handle HTML responses (likely authentication errors)
+    else if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+      console.log('HTML response detected (likely an error page)');
+      
+      // Extract any useful information from the HTML
+      let errorMessage = "Authentication failed or invalid endpoint";
+      
+      // Look for common patterns in error pages
+      if (responseText.includes('401') || responseText.includes('Unauthorized')) {
+        errorMessage = "401 Unauthorized - Invalid API key or credentials";
+      } else if (responseText.includes('403') || responseText.includes('Forbidden')) {
+        errorMessage = "403 Forbidden - Access denied";
+      } else if (responseText.includes('404') || responseText.includes('Not Found')) {
+        errorMessage = "404 Not Found - API endpoint does not exist";
+      } else if (responseText.includes('Internal Server Error') || responseText.includes('500')) {
+        errorMessage = "500 Internal Server Error - Server issue on the API provider side";
+      }
+      
+      responseData = { 
+        _error: errorMessage,
+        _isHtml: true,
+        _statusCode: responseStatus,
+        _requestUrl: url,
+        _htmlSnippet: responseText.substring(0, 500) + '...'
+      };
+    }
+    // Try to parse as JSON if it looks like JSON
+    else if ((responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) && 
+             (contentType?.includes('application/json') || !contentType)) {
       try {
-        // First try to get the response as text
-        const responseText = await response.text();
-        console.log(`Response text length: ${responseText.length}`);
-        
-        if (responseText.length > 0) {
-          console.log(`Response text preview: ${responseText.substring(0, 50)}...`);
-        }
-        
-        // If the response text is empty, return an empty object
-        if (!responseText || responseText.trim() === '') {
-          responseData = { 
-            _empty: true,
-            _statusCode: responseStatus,
-            _requestUrl: url
-          };
-          console.log('Empty response text detected');
-        } 
-        // Special handling for HTML responses which are likely auth errors
-        else if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
-          console.log('HTML response detected (likely an error page)');
-          
-          // Extract any useful information from the HTML
-          let errorMessage = "Authentication failed or invalid endpoint";
-          
-          // Look for common patterns in error pages
-          if (responseText.includes('401') || responseText.includes('Unauthorized')) {
-            errorMessage = "401 Unauthorized - Invalid API key or credentials";
-          } else if (responseText.includes('403') || responseText.includes('Forbidden')) {
-            errorMessage = "403 Forbidden - Access denied";
-          } else if (responseText.includes('404') || responseText.includes('Not Found')) {
-            errorMessage = "404 Not Found - API endpoint does not exist";
-          } else if (responseText.includes('Internal Server Error') || responseText.includes('500')) {
-            errorMessage = "500 Internal Server Error - Server issue on the API provider side";
-          }
-          
-          responseData = { 
-            _error: errorMessage,
-            _isHtml: true,
-            _statusCode: responseStatus,
-            _requestUrl: url,
-            _htmlSnippet: responseText.substring(0, 500) + '...'
-          };
-        }
-        // If it seems like JSON (starts with { or [), parse it
-        else if ((responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) && 
-                contentType && contentType.includes('application/json')) {
-          try {
-            responseData = JSON.parse(responseText);
-            console.log('Successfully parsed JSON response');
-          } catch (jsonError) {
-            console.error('JSON parse error:', jsonError);
-            responseData = { 
-              _parseError: 'Failed to parse JSON response',
-              _errorDetails: jsonError.message,
-              _responsePreview: responseText.substring(0, 100) + '...',
-              _statusCode: responseStatus,
-              _requestUrl: url
-            };
-          }
-        } else {
-          // Just return the text for any other content type
-          console.log('Non-JSON text response detected');
-          responseData = { 
-            text: responseText,
-            _contentType: contentType || 'text/plain',
-            _statusCode: responseStatus,
-            _requestUrl: url
-          };
-        }
-      } catch (error) {
-        console.error('Response processing error:', error);
+        responseData = JSON.parse(responseText);
+        console.log('Successfully parsed JSON response');
+      } catch (jsonError) {
+        console.error('JSON parse error:', jsonError);
         responseData = { 
-          _error: 'Failed to process response',
-          _errorDetails: error.message,
+          _parseError: 'Failed to parse JSON response',
+          _errorDetails: jsonError.message,
+          _rawResponse: responseText,
+          _responsePreview: responseText.substring(0, 100) + '...',
           _statusCode: responseStatus,
           _requestUrl: url
         };
       }
+    } 
+    // Just return the text for any other content type
+    else {
+      console.log('Non-JSON text response detected');
+      responseData = { 
+        text: responseText,
+        _contentType: contentType || 'text/plain',
+        _statusCode: responseStatus,
+        _requestUrl: url
+      };
     }
 
     // Add status code to the response for better error handling if not already added

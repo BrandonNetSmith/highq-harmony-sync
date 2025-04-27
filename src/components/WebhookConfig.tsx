@@ -31,6 +31,7 @@ const WebhookConfig = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [testingKeys, setTestingKeys] = useState<{ghl: boolean; intakeq: boolean}>({ghl: false, intakeq: false});
 
   useEffect(() => {
     const loadApiKeys = async () => {
@@ -53,6 +54,67 @@ const WebhookConfig = () => {
 
     loadApiKeys();
   }, [form]);
+
+  const testApiKey = async (type: 'ghl' | 'intakeq') => {
+    const apiKey = type === 'ghl' ? form.getValues('ghlApiKey') : form.getValues('intakeqApiKey');
+    
+    if (!apiKey) {
+      toast({
+        title: "Error",
+        description: `Please enter an API key for ${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} first`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setTestingKeys(prev => ({ ...prev, [type]: true }));
+    
+    try {
+      const url = type === 'ghl' 
+        ? 'https://rest.gohighlevel.com/v1/contacts/' 
+        : 'https://intakeq.com/api/v1/clients';
+      
+      const headers = type === 'ghl'
+        ? { 'Authorization': `Bearer ${apiKey}` }
+        : { 'X-Auth-Key': apiKey };
+      
+      const response = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          method: 'GET',
+          headers
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data._statusCode >= 400 || data._error) {
+        throw new Error(data._errorMessage || data._error || `Failed with status: ${data._statusCode}`);
+      }
+      
+      // Check for HTML response (which indicates authentication failure)
+      if (data._isHtml) {
+        throw new Error("Authentication failed. Your API key may be invalid.");
+      }
+      
+      toast({
+        title: "Success",
+        description: `${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} API key is valid!`,
+      });
+    } catch (error) {
+      toast({
+        title: "API Key Test Failed",
+        description: error instanceof Error ? error.message : "Failed to test API key",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingKeys(prev => ({ ...prev, [type]: false }));
+    }
+  };
 
   const onSubmit = async (data: ApiConfigForm) => {
     setIsLoading(true);
@@ -101,12 +163,23 @@ const WebhookConfig = () => {
                   <FormItem>
                     <FormLabel>API Key</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter GoHighLevel API key"
-                        {...field}
-                        disabled={isLoading}
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          type="password"
+                          placeholder="Enter GoHighLevel API key"
+                          {...field}
+                          disabled={isLoading}
+                          className="flex-1"
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => testApiKey('ghl')}
+                          disabled={isLoading || testingKeys.ghl}
+                        >
+                          {testingKeys.ghl ? "Testing..." : "Test"}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -132,12 +205,23 @@ const WebhookConfig = () => {
                   <FormItem>
                     <FormLabel>API Key</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter IntakeQ API key"
-                        {...field}
-                        disabled={isLoading}
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          type="password"
+                          placeholder="Enter IntakeQ API key"
+                          {...field}
+                          disabled={isLoading}
+                          className="flex-1"
+                        />
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => testApiKey('intakeq')}
+                          disabled={isLoading || testingKeys.intakeq}
+                        >
+                          {testingKeys.intakeq ? "Testing..." : "Test"}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
