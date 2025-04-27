@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ export const SyncFilters = ({
   const [availableFormIds, setAvailableFormIds] = useState<string[]>([]);
   const [ghlApiError, setGhlApiError] = useState<string | null>(null);
   const [intakeqApiError, setIntakeqApiError] = useState<string | null>(null);
+  const [intakeqRawResponse, setIntakeqRawResponse] = useState<string | null>(null);
 
   const fetchGHLData = async () => {
     setIsLoadingGHL(true);
@@ -146,6 +148,8 @@ export const SyncFilters = ({
   const fetchIntakeQData = async () => {
     setIsLoadingIntakeQ(true);
     setIntakeqApiError(null);
+    setIntakeqRawResponse(null);
+    
     try {
       const { intakeq_key } = await getApiKeys();
       
@@ -195,11 +199,12 @@ export const SyncFilters = ({
       }
       
       if (data._parseError) {
-        throw new Error(`Parse error: ${data._parseError}`);
-      }
-
-      if (data._isHtml) {
-        throw new Error("Received HTML instead of JSON. The API endpoint may be incorrect or there may be an authentication issue.");
+        if (data._isHtml) {
+          setIntakeqRawResponse(data._htmlSnippet);
+          throw new Error("Received HTML instead of JSON. This likely means the API key is invalid or the authentication failed.");
+        } else {
+          throw new Error(`Parse error: ${data._parseError}`);
+        }
       }
 
       if (Array.isArray(data)) {
@@ -218,6 +223,7 @@ export const SyncFilters = ({
           });
         }
       } else if (data.text) {
+        setIntakeqRawResponse(data.text.substring(0, 200));
         throw new Error(`Unexpected response format: ${data.text.substring(0, 100)}...`);
       } else {
         setIntakeqApiError("Unexpected response format from IntakeQ API");
@@ -410,15 +416,20 @@ export const SyncFilters = ({
                 <AlertTitle>IntakeQ API Error</AlertTitle>
                 <AlertDescription>
                   {intakeqApiError}
-                  {intakeqApiError.includes("401") && (
-                    <p className="mt-2 text-sm font-medium">
-                      Your API key may be invalid or expired. Please check your API key in the API Configuration section below.
-                    </p>
-                  )}
-                  {intakeqApiError.includes("HTML") && (
-                    <p className="mt-2 text-sm font-medium">
-                      The API is returning HTML instead of JSON. This often means the API endpoint is incorrect or the authentication failed.
-                    </p>
+                  {intakeqRawResponse && intakeqApiError.includes("HTML") && (
+                    <>
+                      <p className="mt-2 text-sm font-medium">
+                        The API is returning HTML instead of JSON. This likely means:
+                      </p>
+                      <ul className="list-disc pl-5 mt-1 text-sm">
+                        <li>Your API key is invalid or expired</li>
+                        <li>The IntakeQ API endpoint URL may have changed</li>
+                        <li>IntakeQ may be down or experiencing issues</li>
+                      </ul>
+                      <p className="mt-2 text-sm font-medium">
+                        Please check your API key in the API Configuration section below and try again.
+                      </p>
+                    </>
                   )}
                 </AlertDescription>
               </Alert>
