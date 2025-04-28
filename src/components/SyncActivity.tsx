@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import SyncActivityLogModal, { SyncActivityLog } from "./SyncActivityLogModal";
-import { getSyncActivityLogs } from "@/services/syncConfig";
+import { getSyncActivityLogs } from "@/services/syncActivityLogs";
 import { useToast } from "@/hooks/use-toast";
 
 const SyncActivity = () => {
