@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import type { FieldMappingType } from '@/types/field-mapping';
@@ -70,7 +71,7 @@ export const useFieldDiscovery = () => {
     }
   };
 
-  const handleDiscoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<FieldMappingType> => {
+  const handleDiscoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<void> => {
     try {
       setIsDiscovering({ ...isDiscovering, [dataType]: true });
       
@@ -96,8 +97,6 @@ export const useFieldDiscovery = () => {
         title: "Fields discovered",
         description: `${uniqueFields.length} new unique fields found for ${system} ${dataType}`,
       });
-
-      return fieldMapping;
     } catch (error) {
       console.error(`Error discovering fields for ${dataType}:`, error);
       toast({
@@ -105,7 +104,6 @@ export const useFieldDiscovery = () => {
         description: `Failed to discover fields for ${dataType}`,
         variant: "destructive",
       });
-      return fieldMapping;
     } finally {
       setIsDiscovering({ ...isDiscovering, [dataType]: false });
     }

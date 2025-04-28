@@ -1,3 +1,4 @@
+
 import type { Database } from "@/integrations/supabase/types";
 
 type SyncDirection = Database["public"]["Enums"]["sync_direction"];

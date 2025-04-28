@@ -47,9 +47,8 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     onChange(newMapping);
   };
 
-  const handleDiscoverFieldsClick = async (dataType: string) => {
-    const updatedMapping = await handleDiscoverFields(dataType, fieldMapping);
-    onChange(updatedMapping);
+  const handleDiscoverFieldsClick = async (system: 'ghl' | 'intakeq', dataType: string) => {
+    await handleDiscoverFields(system, dataType);
   };
 
   const handleSyncNow = async () => {
@@ -161,12 +160,22 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDiscoverFieldsClick(dataType)}
+                        onClick={() => handleDiscoverFieldsClick('ghl', dataType)}
+                        disabled={disabled || isDiscovering[dataType]}
+                        className="flex items-center gap-2 mr-2"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isDiscovering[dataType] ? 'animate-spin' : ''}`} />
+                        Discover GHL Fields
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDiscoverFieldsClick('intakeq', dataType)}
                         disabled={disabled || isDiscovering[dataType]}
                         className="flex items-center gap-2"
                       >
                         <RefreshCw className={`h-4 w-4 ${isDiscovering[dataType] ? 'animate-spin' : ''}`} />
-                        Discover Available Fields
+                        Discover IntakeQ Fields
                       </Button>
                     </div>
                     
@@ -179,6 +188,7 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                           availableFields={availableFields}
                           disabled={disabled}
                           onFieldChange={handleFieldChange}
+                          onDiscoverFields={handleDiscoverFieldsClick}
                         />
                       </div>
                     ))}
