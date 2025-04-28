@@ -142,10 +142,10 @@ export const SyncFilters = ({
         return;
       }
 
-      // Fix the API endpoint URL - use the correct v2 API path
+      // Fix the API endpoint URL - use the correct v1 API path instead of v2
       const { data, error } = await supabase.functions.invoke('proxy', {
         body: {
-          url: 'https://intakeq.com/api/v2/forms',
+          url: 'https://intakeq.com/api/v1/forms',
           method: 'GET',
           headers: {
             'X-Auth-Key': intakeq_key
