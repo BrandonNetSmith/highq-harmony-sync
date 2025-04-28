@@ -1,9 +1,10 @@
+
 import React from 'react';
 import WebhookConfig from '@/components/WebhookConfig';
 import { SyncFilters } from '@/components/SyncFilters';
 import SyncStatus from '@/components/SyncStatus';
 import SyncActivity from '@/components/SyncActivity';
-import { FieldMapping } from '@/components/FieldMapping';
+import { FieldMapping } from '@/components/field-mapping/FieldMapping';
 import { useToast } from "@/hooks/use-toast";
 import { getSyncConfig, saveSyncConfig } from '@/services/syncConfig';
 import type { Database } from "@/integrations/supabase/types";

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Accordion, AccordionItem } from "@/components/ui/accordion";
+import { AccordionContent } from './AccordionContent';
 import { FieldControls } from './FieldControls';
 import { CategoryHeader } from './CategoryHeader';
 import type { FieldMappingType } from '@/types/field-mapping';
