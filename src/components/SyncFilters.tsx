@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +8,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { getApiKeys } from "@/services/apiKeys";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FilterConfig {
   contactIds: string[];
@@ -62,37 +62,29 @@ export const SyncFilters = ({
         return;
       }
 
-      const baseUrl = window.location.origin;
-      console.log(`Current site base URL: ${baseUrl}`);
-
-      const response = await fetch(`${baseUrl}/api/proxy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
+        body: {
           url: 'https://rest.gohighlevel.com/v1/tags/',
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${ghl_key}`
           }
-        })
+        }
       });
       
-      if (!response.ok) {
-        console.log(`Proxy returned status: ${response.status}`);
-        throw new Error(`Proxy error: ${response.statusText || response.status}`);
+      if (tagsError) {
+        console.error('GHL Tags API error:', tagsError);
+        throw new Error(`Failed to fetch tags: ${tagsError.message}`);
       }
       
-      const data = await response.json();
-      console.log("GHL API response:", data);
+      console.log("GHL API response:", tagsData);
       
-      if (data._statusCode >= 400) {
-        throw new Error(data._errorMessage || `Failed with status: ${data._statusCode}`);
+      if (tagsData._statusCode >= 400) {
+        throw new Error(tagsData._errorMessage || `Failed with status: ${tagsData._statusCode}`);
       }
 
-      if (data.tags) {
-        const tags = data.tags.map((tag: any) => tag.name) || [];
+      if (tagsData.tags) {
+        const tags = tagsData.tags.map((tag: any) => tag.name) || [];
         setAvailableTags(tags);
         
         if (tags.length > 0) {
@@ -110,35 +102,30 @@ export const SyncFilters = ({
         setGhlApiError("Unexpected response format from GoHighLevel API");
       }
       
-      const statusResponse = await fetch(`${baseUrl}/api/proxy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
+        body: {
           url: 'https://rest.gohighlevel.com/v1/pipelines/',
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${ghl_key}`
           }
-        })
+        }
       });
       
-      if (!statusResponse.ok) {
-        console.log(`Proxy returned status: ${statusResponse.status}`);
-        throw new Error(`Proxy error: ${statusResponse.statusText || statusResponse.status}`);
+      if (pipelineError) {
+        console.error('GHL Pipeline API error:', pipelineError);
+        throw new Error(`Failed to fetch pipelines: ${pipelineError.message}`);
       }
       
-      const statusData = await statusResponse.json();
-      console.log("GHL Pipelines API response:", statusData);
+      console.log("GHL Pipelines API response:", pipelineData);
       
-      if (statusData._statusCode >= 400) {
-        throw new Error(statusData._errorMessage || `Failed with status: ${statusData._statusCode}`);
+      if (pipelineData._statusCode >= 400) {
+        throw new Error(pipelineData._errorMessage || `Failed with status: ${pipelineData._statusCode}`);
       }
 
-      if (statusData.pipelines) {
+      if (pipelineData.pipelines) {
         const statuses: string[] = [];
-        statusData.pipelines.forEach((pipeline: any) => {
+        pipelineData.pipelines.forEach((pipeline: any) => {
           pipeline.stages?.forEach((stage: any) => {
             statuses.push(stage.name);
           });
@@ -180,42 +167,23 @@ export const SyncFilters = ({
 
       console.log("Calling IntakeQ API with key:", intakeq_key.substring(0, 5) + "...");
       
-      const baseUrl = window.location.origin;
-      console.log(`Current site base URL for IntakeQ request: ${baseUrl}`);
-      
-      // IntakeQ API URL - using the correct 'forms/list' endpoint
-      const response = await fetch(`${baseUrl}/api/proxy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('proxy', {
+        body: {
           url: 'https://app.intakeq.com/api/v1/forms/list',
           method: 'GET',
           headers: {
             'X-Auth-Key': intakeq_key
           }
-        })
+        }
       });
       
-      if (!response.ok) {
-        console.log(`Proxy returned status: ${response.status}`);
-        throw new Error(`Proxy error: ${response.statusText || response.status}`);
+      if (error) {
+        console.error('IntakeQ Forms API error:', error);
+        throw new Error(`Failed to fetch forms: ${error.message}`);
       }
       
-      // First check if the response is HTML
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('text/html')) {
-        const htmlText = await response.text();
-        setIntakeqRawResponse(htmlText.substring(0, 200));
-        throw new Error("Received HTML instead of JSON. This likely means the API key is invalid or the authentication failed.");
-      }
+      console.log("IntakeQ API response:", data);
       
-      console.log("IntakeQ API raw response:", response);
-      
-      const data = await response.json();
-      console.log("IntakeQ API parsed response:", data);
-
       setIntakeqDebugInfo({
         statusCode: data._statusCode,
         contentType: data._contentType,
