@@ -95,7 +95,7 @@ const WebhookConfig = () => {
       console.log(`Testing ${type} API with key: ${apiKey.substring(0, 5)}...`);
       console.log(`URL: ${url}`);
       
-      // Get the base URL of the site for making API requests
+      // Get the absolute URL of the proxy endpoint
       const baseUrl = window.location.origin;
       console.log(`Current site base URL: ${baseUrl}`);
       
@@ -121,9 +121,19 @@ const WebhookConfig = () => {
       console.log(`${type} API test response:`, data);
       
       // Check for various error conditions
-      if (data._error || data._statusCode >= 400 || data._isHtml) {
+      if (data._isHtml) {
+        throw new Error(
+          `Received HTML instead of JSON (status ${data._statusCode}). This usually indicates an authentication error or invalid API key. ${data._error || ''}`
+        );
+      }
+      
+      if (data._error || data._statusCode >= 400) {
         const errorMsg = data._errorMessage || data._error || `Failed with status: ${data._statusCode}`;
         throw new Error(errorMsg);
+      }
+      
+      if (data._parseError) {
+        throw new Error(`Error parsing response: ${data._parseError}`);
       }
       
       // Success!
