@@ -12,13 +12,12 @@ export const FieldControls = ({
   availableFields,
   disabled,
   onFieldChange,
-  onDiscoverFields,
 }: FieldControlsProps) => {
   const ghlOptions = availableFields.ghl[dataType] || [fieldName];
   const intakeqOptions = availableFields.intakeq[dataType] || [fieldName];
 
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 hover:bg-muted/10 transition-colors p-4">
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 hover:bg-muted/10 transition-colors p-2">
       <div>
         <GHLFieldSelect
           value={fieldSettings.ghlField || fieldName}

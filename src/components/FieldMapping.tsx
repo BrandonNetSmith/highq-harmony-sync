@@ -47,10 +47,6 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     onChange(newMapping);
   };
 
-  const handleDiscoverFieldsClick = async (system: 'ghl' | 'intakeq', dataType: string) => {
-    await handleDiscoverFields(system, dataType);
-  };
-
   const handleSyncNow = async () => {
     setSyncingNow(true);
     try {
@@ -140,7 +136,7 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleDiscoverFieldsClick('ghl', 'contact')}
+              onClick={() => handleDiscoverFields('ghl', 'contact')}
               disabled={disabled || isDiscovering['contact']}
               className="flex items-center gap-2 self-start"
             >
@@ -149,14 +145,14 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
             </Button>
           </div>
           <div className="flex items-center justify-center font-medium">Sync Direction</div>
-          <div className="flex flex-col gap-2">
-            <div className="bg-muted/30 p-3 font-semibold text-center rounded-md">IntakeQ</div>
+          <div className="flex flex-col gap-2 items-end">
+            <div className="bg-muted/30 p-3 font-semibold text-center rounded-md w-full">IntakeQ</div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleDiscoverFieldsClick('intakeq', 'contact')}
+              onClick={() => handleDiscoverFields('intakeq', 'contact')}
               disabled={disabled || isDiscovering['contact']}
-              className="flex items-center gap-2 self-end"
+              className="flex items-center gap-2"
             >
               <RefreshCw className={`h-4 w-4 ${isDiscovering['contact'] ? 'animate-spin' : ''}`} />
               Discover IntakeQ Fields
@@ -178,20 +174,18 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                   onCategoryDirectionChange={(direction) => handleCategoryDirectionChange(dataType, direction)}
                 />
               
-                <AccordionContent className="p-4">
-                  <div className="space-y-4">                    
+                <AccordionContent className="p-2">
+                  <div className="space-y-1 divide-y divide-border">                    
                     {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
-                      <div key={fieldName} className="border rounded-lg">
-                        <FieldControls
-                          dataType={dataType}
-                          fieldName={fieldName}
-                          fieldSettings={fieldSettings}
-                          availableFields={availableFields}
-                          disabled={disabled}
-                          onFieldChange={handleFieldChange}
-                          onDiscoverFields={handleDiscoverFieldsClick}
-                        />
-                      </div>
+                      <FieldControls
+                        key={fieldName}
+                        dataType={dataType}
+                        fieldName={fieldName}
+                        fieldSettings={fieldSettings}
+                        availableFields={availableFields}
+                        disabled={disabled}
+                        onFieldChange={handleFieldChange}
+                      />
                     ))}
                   </div>
                 </AccordionContent>

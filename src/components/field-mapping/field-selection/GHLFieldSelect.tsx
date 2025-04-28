@@ -22,7 +22,7 @@ export const GHLFieldSelect = ({
   disabled
 }: GHLFieldSelectProps) => {
   return (
-    <div className="text-left p-4 bg-background rounded-l-lg">
+    <div className="text-left">
       <Select
         value={value}
         onValueChange={onChange}

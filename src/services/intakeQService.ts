@@ -15,10 +15,10 @@ export const fetchIntakeQData = async () => {
       };
     }
 
-    // Updated URL to use correct IntakeQ API endpoint
+    // Using correct IntakeQ API endpoint paths
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://api.intakeq.com/api/v1/forms',
+        url: 'https://intakeq.com/api/forms',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -88,10 +88,10 @@ export const fetchIntakeQData = async () => {
       }));
     }
 
-    // Updated URL to use correct IntakeQ API endpoint
+    // Using correct IntakeQ API endpoint path for clients
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://api.intakeq.com/api/v1/clients',
+        url: 'https://intakeq.com/api/clients',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key

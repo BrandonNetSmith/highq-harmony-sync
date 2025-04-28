@@ -22,7 +22,7 @@ export const IntakeQFieldSelect = ({
   disabled
 }: IntakeQFieldSelectProps) => {
   return (
-    <div className="text-right p-4 bg-background rounded-r-lg">
+    <div className="text-right">
       <Select
         value={value}
         onValueChange={onChange}
