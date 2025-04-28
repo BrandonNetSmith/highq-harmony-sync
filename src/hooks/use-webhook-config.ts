@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { saveApiKeys, getApiKeys } from '@/services/apiKeys';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ApiConfigForm {
   ghlApiKey: string;
@@ -84,24 +84,18 @@ export const useWebhookConfig = () => {
       
       console.log(`Testing ${type} API with key: ${apiKey.substring(0, 5)}...`);
       
-      // Use the API route instead of the edge function
-      const response = await fetch(`/api/proxy`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('proxy', {
+        body: {
           url,
           method: 'GET',
           headers
-        })
+        }
       });
       
-      if (!response.ok) {
-        throw new Error(`Proxy request failed: ${response.statusText || response.status}`);
+      if (error) {
+        console.error(`Proxy error:`, error);
+        throw new Error(`Proxy request failed: ${error.message || error.toString()}`);
       }
-      
-      const data = await response.json();
       
       console.log(`${type} API test response:`, data);
       
