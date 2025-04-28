@@ -75,15 +75,15 @@ export const useFieldDiscovery = () => {
     try {
       setIsDiscovering({ ...isDiscovering, [dataType]: true });
       
-      // Only discover fields for the selected system
+      // Discover fields for the selected system
       const newFields = await discoverFields(system, dataType);
       
-      // Update available fields for only the selected system
+      // Update available fields for ONLY the selected system, replacing previous values
       setAvailableFields(prev => ({
         ...prev,
         [system]: { 
           ...prev[system], 
-          [dataType]: [...Array.from(new Set([...prev[system][dataType], ...newFields]))]
+          [dataType]: newFields // Replace with new fields instead of merging
         }
       }));
 

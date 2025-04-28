@@ -26,8 +26,8 @@ export const FieldMappingHeader = ({
           disabled={isDiscovering['contact']}
           className="flex items-center gap-2 self-start"
         >
-          <RefreshCw className={`h-4 w-4 ${isDiscovering['contact'] ? 'animate-spin' : ''}`} />
-          Discover GHL Fields
+          <RefreshCw className={`h-4 w-4 ${isDiscovering['contact'] && isDiscovering['ghl'] ? 'animate-spin' : ''}`} />
+          Discover GHL Fields Only
         </Button>
       </div>
       <div className="flex items-center justify-center font-medium">Sync Direction</div>
@@ -40,8 +40,8 @@ export const FieldMappingHeader = ({
           disabled={isDiscovering['contact']}
           className="flex items-center gap-2"
         >
-          <RefreshCw className={`h-4 w-4 ${isDiscovering['contact'] ? 'animate-spin' : ''}`} />
-          Discover IntakeQ Fields
+          <RefreshCw className={`h-4 w-4 ${isDiscovering['contact'] && isDiscovering['intakeq'] ? 'animate-spin' : ''}`} />
+          Discover IntakeQ Fields Only
         </Button>
       </div>
     </div>

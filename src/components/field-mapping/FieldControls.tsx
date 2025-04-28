@@ -18,10 +18,10 @@ export const FieldControls = ({
 
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 py-2 px-2 border-b border-border last:border-b-0">
-      <div>
+      <div className="w-full">
         <GHLFieldSelect
           value={fieldSettings.ghlField || fieldName}
-          options={ghlOptions}
+          options={ghlOptions.length > 0 ? ghlOptions : [fieldName]}
           onChange={(value) => {
             onFieldChange(dataType, fieldName, { ghlField: value });
           }}
@@ -41,10 +41,10 @@ export const FieldControls = ({
         disabled={disabled}
       />
 
-      <div>
+      <div className="w-full">
         <IntakeQFieldSelect
           value={fieldSettings.intakeqField || fieldName}
-          options={intakeqOptions}
+          options={intakeqOptions.length > 0 ? intakeqOptions : [fieldName]}
           onChange={(value) => {
             onFieldChange(dataType, fieldName, { intakeqField: value });
           }}
