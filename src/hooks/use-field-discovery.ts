@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import type { FieldMappingType } from '@/types/field-mapping';
 import type { Database } from "@/integrations/supabase/types";
 
 type SyncDirection = Database["public"]["Enums"]["sync_direction"];
@@ -23,6 +22,7 @@ export const useFieldDiscovery = () => {
   });
 
   const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<string[]> => {
+    // Simulating API call to discover fields
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     if (system === 'ghl') {

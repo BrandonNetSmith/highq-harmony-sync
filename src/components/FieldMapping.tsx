@@ -133,11 +133,35 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Column Headers */}
+        {/* Column Headers with Discovery Buttons */}
         <div className="grid grid-cols-[1fr_auto_1fr] gap-4 mb-4">
-          <div className="bg-muted/30 p-3 font-semibold text-center rounded-md">GoHighLevel</div>
+          <div className="flex flex-col gap-2">
+            <div className="bg-muted/30 p-3 font-semibold text-center rounded-md">GoHighLevel</div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDiscoverFieldsClick('ghl', 'contact')}
+              disabled={disabled || isDiscovering['contact']}
+              className="flex items-center gap-2 self-start"
+            >
+              <RefreshCw className={`h-4 w-4 ${isDiscovering['contact'] ? 'animate-spin' : ''}`} />
+              Discover GHL Fields
+            </Button>
+          </div>
           <div className="flex items-center justify-center font-medium">Sync Direction</div>
-          <div className="bg-muted/30 p-3 font-semibold text-center rounded-md">IntakeQ</div>
+          <div className="flex flex-col gap-2">
+            <div className="bg-muted/30 p-3 font-semibold text-center rounded-md">IntakeQ</div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDiscoverFieldsClick('intakeq', 'contact')}
+              disabled={disabled || isDiscovering['contact']}
+              className="flex items-center gap-2 self-end"
+            >
+              <RefreshCw className={`h-4 w-4 ${isDiscovering['contact'] ? 'animate-spin' : ''}`} />
+              Discover IntakeQ Fields
+            </Button>
+          </div>
         </div>
 
         <Accordion type="multiple" className="w-full">
@@ -155,30 +179,7 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                 />
               
                 <AccordionContent className="p-4">
-                  <div className="space-y-4">
-                    <div className="flex justify-end mb-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDiscoverFieldsClick('ghl', dataType)}
-                        disabled={disabled || isDiscovering[dataType]}
-                        className="flex items-center gap-2 mr-2"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${isDiscovering[dataType] ? 'animate-spin' : ''}`} />
-                        Discover GHL Fields
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDiscoverFieldsClick('intakeq', dataType)}
-                        disabled={disabled || isDiscovering[dataType]}
-                        className="flex items-center gap-2"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${isDiscovering[dataType] ? 'animate-spin' : ''}`} />
-                        Discover IntakeQ Fields
-                      </Button>
-                    </div>
-                    
+                  <div className="space-y-4">                    
                     {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
                       <div key={fieldName} className="border rounded-lg">
                         <FieldControls

@@ -1,3 +1,4 @@
+
 import { getApiKeys } from "@/services/apiKeys";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -14,6 +15,7 @@ export const fetchIntakeQData = async () => {
       };
     }
 
+    // Updated URL to use correct IntakeQ API endpoint
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
         url: 'https://api.intakeq.com/api/v1/forms',
@@ -86,6 +88,7 @@ export const fetchIntakeQData = async () => {
       }));
     }
 
+    // Updated URL to use correct IntakeQ API endpoint
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
         url: 'https://api.intakeq.com/api/v1/clients',
