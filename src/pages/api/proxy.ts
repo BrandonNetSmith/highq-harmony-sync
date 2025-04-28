@@ -1,5 +1,5 @@
+
 // This file serves as a proxy API endpoint for Vite applications
-import express from 'express';
 
 // This file is meant to be used in development when running a local proxy server
 // The actual functionality is handled by the `/api/proxy` endpoint which can be
