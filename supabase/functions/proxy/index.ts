@@ -87,6 +87,22 @@ serve(async (req) => {
     
     const contentType = response.headers.get('content-type');
     console.log(`Response content-type: ${contentType}`);
+
+    // Check if response is a redirect and handle it explicitly
+    if (responseStatus >= 300 && responseStatus < 400) {
+      const location = response.headers.get('location');
+      console.log(`Detected redirect to: ${location}`);
+      return new Response(JSON.stringify({
+        _redirect: true,
+        _location: location,
+        _statusCode: responseStatus,
+        _requestUrl: url,
+        _message: "Redirect detected. This proxy does not follow redirects automatically."
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     // Always try to get the raw response text first
     let responseText = '';
