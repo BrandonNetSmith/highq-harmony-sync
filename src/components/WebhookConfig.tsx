@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { saveApiKeys, getApiKeys } from '@/services/apiKeys';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ApiConfigForm {
@@ -87,7 +87,7 @@ const WebhookConfig = () => {
         url = 'https://rest.gohighlevel.com/v1/contacts/';
         headers = { 'Authorization': `Bearer ${apiKey}` };
       } else {
-        // Using a different endpoint for IntakeQ testing - the /forms endpoint seems to have issues
+        // Using a different endpoint for IntakeQ testing - /clients seems more reliable
         url = 'https://intakeq.com/api/v1/clients';
         headers = { 'X-Auth-Key': apiKey };
       }
@@ -123,8 +123,12 @@ const WebhookConfig = () => {
       // Check for various error conditions
       if (data._isHtml) {
         throw new Error(
-          `Received HTML instead of JSON (status ${data._statusCode}). This usually indicates an authentication error or invalid API key. ${data._error || ''}`
+          `Received HTML instead of JSON (status ${data._statusCode}). This usually indicates an authentication error or invalid API endpoint. ${data._error || ''}`
         );
+      }
+      
+      if (data._redirect) {
+        throw new Error(`Detected redirect to: ${data._location}. Please check your API key and endpoints.`);
       }
       
       if (data._error || data._statusCode >= 400) {
@@ -198,6 +202,14 @@ const WebhookConfig = () => {
           <p className="text-destructive">{connectionError}</p>
         </div>
       )}
+      
+      <Alert className="md:col-span-2 mb-2" variant="default">
+        <Info className="h-4 w-4" />
+        <AlertTitle>API Connection Status</AlertTitle>
+        <AlertDescription>
+          The proxy function is used to securely connect to external APIs. If the test fails, please check the Edge Function logs.
+        </AlertDescription>
+      </Alert>
       
       <Card>
         <CardHeader>
