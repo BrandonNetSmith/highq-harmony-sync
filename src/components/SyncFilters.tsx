@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { getApiKeys } from "@/services/apiKeys";
@@ -142,11 +141,9 @@ export const SyncFilters = ({
         return;
       }
 
-      console.log("Calling IntakeQ API with key:", intakeq_key.substring(0, 5) + "...");
-      
       const { data, error } = await supabase.functions.invoke('proxy', {
         body: {
-          url: 'https://app.intakeq.com/api/v1/forms/list',
+          url: 'https://intakeq.com/api/v1/forms/list',
           method: 'GET',
           headers: {
             'X-Auth-Key': intakeq_key

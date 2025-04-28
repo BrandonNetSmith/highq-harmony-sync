@@ -1,5 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
@@ -82,7 +88,19 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
   const [isDiscovering, setIsDiscovering] = useState<Record<string, boolean>>({});
   const [editingField, setEditingField] = useState<{dataType: string, fieldName: string, side: 'ghl' | 'intakeq'} | null>(null);
   const [editValue, setEditValue] = useState('');
-  
+  const [availableFields, setAvailableFields] = useState({
+    ghl: {
+      contact: [],
+      appointment: [],
+      form: []
+    },
+    intakeq: {
+      contact: [],
+      appointment: [],
+      form: []
+    }
+  });
+
   const handleFieldSyncChange = (dataType: string, field: string, checked: boolean) => {
     const newMapping = { ...fieldMapping };
     newMapping[dataType].fields[field].sync = checked;
@@ -288,6 +306,105 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     form: 'Forms'
   };
 
+  const renderFieldControls = (dataType: string, fieldName: string, fieldSettings: any) => {
+    return (
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 hover:bg-muted/10 transition-colors">
+        {/* GHL Side */}
+        <div className="text-left p-4 bg-background rounded-l-lg">
+          <Select
+            value={fieldSettings.ghlField || fieldName}
+            onValueChange={(value) => {
+              const newMapping = { ...fieldMapping };
+              newMapping[dataType].fields[fieldName].ghlField = value;
+              onChange(newMapping);
+            }}
+            disabled={disabled}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select GHL field" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableFields.ghl[dataType]?.map((field: string) => (
+                <SelectItem key={field} value={field}>
+                  {field}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Sync Controls */}
+        <div className="flex flex-col items-center justify-center py-2 gap-2">
+          <Switch
+            id={`${dataType}-${fieldName}-sync`}
+            checked={fieldSettings.sync}
+            onCheckedChange={(checked) => handleFieldSyncChange(dataType, fieldName, checked)}
+            disabled={disabled}
+          />
+          
+          {fieldSettings.sync && (
+            <ToggleGroup
+              type="single"
+              size="sm"
+              value={fieldSettings.direction}
+              onValueChange={(value) => {
+                if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
+              }}
+              className="flex gap-0 border rounded-md overflow-hidden"
+              disabled={disabled || !fieldSettings.sync}
+            >
+              <ToggleGroupItem 
+                value="one_way_intakeq_to_ghl"
+                aria-label="IntakeQ to GHL"
+                className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="bidirectional"
+                aria-label="Bidirectional"
+                className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="one_way_ghl_to_intakeq"
+                aria-label="GHL to IntakeQ"
+                className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          )}
+        </div>
+
+        {/* IntakeQ Side */}
+        <div className="text-right p-4 bg-background rounded-r-lg">
+          <Select
+            value={fieldSettings.intakeqField || fieldName}
+            onValueChange={(value) => {
+              const newMapping = { ...fieldMapping };
+              newMapping[dataType].fields[fieldName].intakeqField = value;
+              onChange(newMapping);
+            }}
+            disabled={disabled}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select IntakeQ field" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableFields.intakeq[dataType]?.map((field: string) => (
+                <SelectItem key={field} value={field}>
+                  {field}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -388,130 +505,7 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                       {/* Field rows */}
                       {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
                         <div key={fieldName} className="border rounded-lg">
-                          <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 hover:bg-muted/10 transition-colors">
-                            {/* GHL Side */}
-                            <div className="text-left p-4 bg-background rounded-l-lg flex items-center">
-                              {editingField?.dataType === dataType && 
-                               editingField?.fieldName === fieldName && 
-                               editingField?.side === 'ghl' ? (
-                                <div className="flex items-center gap-2 w-full">
-                                  <Input 
-                                    value={editValue} 
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    className="text-sm"
-                                    autoFocus
-                                  />
-                                  <Button
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={handleSaveEdit}
-                                    className="h-8 w-8"
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <>
-                                  <span className="font-medium capitalize flex-grow">
-                                    {fieldSettings.ghlField || fieldName.replace(/_/g, ' ')}
-                                  </span>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => handleStartEdit(dataType, fieldName, 'ghl')}
-                                    disabled={disabled}
-                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
-                                  >
-                                    <Edit className="h-3 w-3" />
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                            
-                            {/* Sync Controls */}
-                            <div className="flex flex-col items-center justify-center py-2 gap-2">
-                              <Switch
-                                id={`${dataType}-${fieldName}-sync`}
-                                checked={fieldSettings.sync}
-                                onCheckedChange={(checked) => handleFieldSyncChange(dataType, fieldName, checked)}
-                                disabled={disabled}
-                              />
-                              
-                              {fieldSettings.sync && (
-                                <ToggleGroup
-                                  type="single"
-                                  size="sm"
-                                  value={fieldSettings.direction}
-                                  onValueChange={(value) => {
-                                    if (value) handleFieldDirectionChange(dataType, fieldName, value as SyncDirection);
-                                  }}
-                                  className="flex gap-0 border rounded-md overflow-hidden"
-                                  disabled={disabled || !fieldSettings.sync}
-                                >
-                                  <ToggleGroupItem 
-                                    value="one_way_intakeq_to_ghl"
-                                    aria-label="IntakeQ to GHL"
-                                    className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                                  >
-                                    <ArrowLeft className="h-4 w-4" />
-                                  </ToggleGroupItem>
-                                  <ToggleGroupItem 
-                                    value="bidirectional"
-                                    aria-label="Bidirectional"
-                                    className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                                  >
-                                    <ArrowLeftRight className="h-4 w-4" />
-                                  </ToggleGroupItem>
-                                  <ToggleGroupItem 
-                                    value="one_way_ghl_to_intakeq"
-                                    aria-label="GHL to IntakeQ"
-                                    className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                                  >
-                                    <ArrowRight className="h-4 w-4" />
-                                  </ToggleGroupItem>
-                                </ToggleGroup>
-                              )}
-                            </div>
-                            
-                            {/* IntakeQ Side */}
-                            <div className="text-right p-4 bg-background rounded-r-lg flex items-center justify-end">
-                              {editingField?.dataType === dataType && 
-                               editingField?.fieldName === fieldName && 
-                               editingField?.side === 'intakeq' ? (
-                                <div className="flex items-center gap-2 w-full justify-end">
-                                  <Button
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={handleSaveEdit}
-                                    className="h-8 w-8"
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                  <Input 
-                                    value={editValue} 
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    className="text-sm text-right"
-                                    autoFocus
-                                  />
-                                </div>
-                              ) : (
-                                <>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => handleStartEdit(dataType, fieldName, 'intakeq')}
-                                    disabled={disabled}
-                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity mr-2"
-                                  >
-                                    <Edit className="h-3 w-3" />
-                                  </Button>
-                                  <span className="font-medium capitalize flex-grow text-right">
-                                    {fieldSettings.intakeqField || fieldName.replace(/_/g, ' ')}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
+                          {renderFieldControls(dataType, fieldName, fieldSettings)}
                         </div>
                       ))}
                     </div>
