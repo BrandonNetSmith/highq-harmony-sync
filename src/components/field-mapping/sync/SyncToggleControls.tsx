@@ -1,0 +1,69 @@
+
+import React from 'react';
+import { ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import type { Database } from "@/integrations/supabase/types";
+
+type SyncDirection = Database["public"]["Enums"]["sync_direction"];
+
+interface SyncToggleControlsProps {
+  isEnabled: boolean;
+  direction: SyncDirection | null;
+  disabled?: boolean;
+  onToggle: (checked: boolean) => void;
+  onDirectionChange: (direction: SyncDirection) => void;
+}
+
+export const SyncToggleControls = ({
+  isEnabled,
+  direction,
+  disabled,
+  onToggle,
+  onDirectionChange,
+}: SyncToggleControlsProps) => {
+  return (
+    <div className="flex items-center justify-center gap-2 p-2">
+      <Switch
+        checked={isEnabled}
+        onCheckedChange={onToggle}
+        disabled={disabled}
+      />
+      
+      {isEnabled && (
+        <ToggleGroup
+          type="single"
+          size="sm"
+          value={direction || undefined}
+          onValueChange={(value: any) => {
+            if (value) onDirectionChange(value);
+          }}
+          className="flex gap-0 border rounded-md overflow-hidden"
+          disabled={disabled || !isEnabled}
+        >
+          <ToggleGroupItem 
+            value="one_way_intakeq_to_ghl"
+            aria-label="IntakeQ to GHL"
+            className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem 
+            value="bidirectional"
+            aria-label="Bidirectional"
+            className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem 
+            value="one_way_ghl_to_intakeq"
+            aria-label="GHL to IntakeQ"
+            className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
+      )}
+    </div>
+  );
+};
