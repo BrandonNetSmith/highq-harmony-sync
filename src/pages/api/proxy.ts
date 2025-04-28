@@ -1,10 +1,26 @@
 
+import { NextApiRequest, NextApiResponse } from 'next';
 
 // This file serves as a proxy API endpoint for Vite applications
 
-// This file is meant to be used in development when running a local proxy server
-// The actual functionality is handled by the `/api/proxy` endpoint which can be
-// found in the Supabase edge function at `supabase/functions/proxy/index.ts`
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    // Forward the request to our Supabase Edge Function
+    const { supabaseUrl } = process.env;
+    const functionUrl = `${supabaseUrl}/functions/v1/proxy`;
 
-export {}; // This file is just a placeholder for type checking
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(req.body),
+    });
 
+    const data = await response.json();
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Proxy error:', error);
+    res.status(500).json({ error: 'Internal proxy error' });
+  }
+}

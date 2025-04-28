@@ -183,14 +183,14 @@ export const SyncFilters = ({
       const baseUrl = window.location.origin;
       console.log(`Current site base URL for IntakeQ request: ${baseUrl}`);
       
-      // Fix: changed the endpoint URL from 'forms' to 'forms/list' which is the correct endpoint
+      // IntakeQ API URL - using the correct 'forms/list' endpoint
       const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: 'https://intakeq.com/api/v1/forms/list',
+          url: 'https://app.intakeq.com/api/v1/forms/list',
           method: 'GET',
           headers: {
             'X-Auth-Key': intakeq_key
@@ -201,6 +201,14 @@ export const SyncFilters = ({
       if (!response.ok) {
         console.log(`Proxy returned status: ${response.status}`);
         throw new Error(`Proxy error: ${response.statusText || response.status}`);
+      }
+      
+      // First check if the response is HTML
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        const htmlText = await response.text();
+        setIntakeqRawResponse(htmlText.substring(0, 200));
+        throw new Error("Received HTML instead of JSON. This likely means the API key is invalid or the authentication failed.");
       }
       
       console.log("IntakeQ API raw response:", response);
