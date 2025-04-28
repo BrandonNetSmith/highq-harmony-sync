@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
-import { RefreshCw, PlayCircle, PauseCircle, ArrowRightLeft } from "lucide-react";
+import { RefreshCw, ArrowRightLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { FieldControls } from './field-mapping/FieldControls';
 import { CategoryHeader } from './field-mapping/CategoryHeader';
+import { useFieldDiscovery } from '@/hooks/use-field-discovery';
 import type { FieldMappingProps, FieldMappingType } from '@/types/field-mapping';
 import type { Database } from "@/integrations/supabase/types";
 
@@ -15,148 +16,11 @@ type SyncDirection = Database["public"]["Enums"]["sync_direction"];
 
 export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: FieldMappingProps) => {
   const { toast } = useToast();
-  const [isDiscovering, setIsDiscovering] = useState<Record<string, boolean>>({});
   const [isSyncingNow, setSyncingNow] = useState(false);
   const [isAutoSyncEnabled, setAutoSyncEnabled] = useState(false);
-  const [availableFields, setAvailableFields] = useState({
-    ghl: {
-      contact: [],
-      appointment: [],
-      form: []
-    },
-    intakeq: {
-      contact: [],
-      appointment: [],
-      form: []
-    }
-  });
+  const { isDiscovering, availableFields, handleDiscoverFields } = useFieldDiscovery();
 
-  // Mock function to discover available fields with more comprehensive fields
-  const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<string[]> => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Extended field lists based on the system and data type
-    if (system === 'ghl') {
-      switch(dataType) {
-        case 'contact':
-          return [
-            'firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zip',
-            'custom.preferredContactMethod', 'custom.leadSource', 'custom.insuranceProvider',
-            'dateOfBirth', 'companyName', 'tags', 'source', 'assignedTo', 'notes'
-          ];
-        case 'appointment':
-          return [
-            'startTime', 'endTime', 'title', 'description', 'location', 'status',
-            'notes', 'reminders', 'assignedTo', 'custom.appointmentType', 'custom.preAppointmentNotes'
-          ];
-        case 'form':
-          return [
-            'formName', 'createdDate', 'status', 'isActive', 'fields',
-            'custom.formCategory', 'custom.displayOrder', 'custom.requiredFields'
-          ];
-        default:
-          return [];
-      }
-    } else {
-      switch(dataType) {
-        case 'contact':
-          return [
-            'firstName', 'lastName', 'email', 'phoneNumber', 'address', 'city', 'state', 'zipCode',
-            'dateOfBirth', 'gender', 'emergencyContact', 'insuranceInfo', 'clientNotes',
-            'custom.firstVisitDate', 'custom.patientID', 'custom.referralSource'
-          ];
-        case 'appointment':
-          return [
-            'appointmentDate', 'startTime', 'endTime', 'appointmentType', 'practitioner',
-            'location', 'roomNumber', 'status', 'notes', 'custom.followUpRequired',
-            'custom.appointmentPurpose', 'custom.visitNumber'
-          ];
-        case 'form':
-          return [
-            'formTitle', 'createdAt', 'updatedAt', 'status', 'formFields',
-            'isTemplate', 'custom.formCategory', 'custom.displayOrder', 'custom.requiredSignature'
-          ];
-        default:
-          return [];
-      }
-    }
-  };
-
-  const handleDiscoverFields = async (dataType: string) => {
-    try {
-      setIsDiscovering({ ...isDiscovering, [dataType]: true });
-      
-      const [ghlFields, intakeqFields] = await Promise.all([
-        discoverFields('ghl', dataType),
-        discoverFields('intakeq', dataType)
-      ]);
-
-      // Create a Set of existing fields to avoid duplicates
-      const existingGhlFields = new Set(availableFields.ghl[dataType]);
-      const existingIntakeqFields = new Set(availableFields.intakeq[dataType]);
-      
-      // Add new fields without duplicates
-      const uniqueGhlFields = [...new Set([...ghlFields.filter(field => !existingGhlFields.has(field))])];
-      const uniqueIntakeqFields = [...new Set([...intakeqFields.filter(field => !existingIntakeqFields.has(field))])];
-
-      setAvailableFields(prev => ({
-        ...prev,
-        ghl: { 
-          ...prev.ghl, 
-          [dataType]: [...prev.ghl[dataType], ...uniqueGhlFields]
-        },
-        intakeq: { 
-          ...prev.intakeq, 
-          [dataType]: [...prev.intakeq[dataType], ...uniqueIntakeqFields]
-        }
-      }));
-
-      // Create new field mapping entries for discovered fields
-      const newMapping = { ...fieldMapping };
-      
-      // Helper function to add new field if it doesn't exist
-      const addNewFieldIfNotExists = (fieldName: string) => {
-        if (!newMapping[dataType].fields[fieldName]) {
-          newMapping[dataType].fields[fieldName] = {
-            sync: true,
-            direction: 'bidirectional'
-          };
-        }
-      };
-      
-      // Add any newly discovered fields to the mapping
-      uniqueGhlFields.forEach(addNewFieldIfNotExists);
-      uniqueIntakeqFields.forEach(addNewFieldIfNotExists);
-      
-      // Update the field mapping with new entries
-      onChange(newMapping);
-
-      toast({
-        title: "Fields discovered",
-        description: `${uniqueGhlFields.length + uniqueIntakeqFields.length} new fields found for ${dataType}`,
-      });
-    } catch (error) {
-      console.error(`Error discovering fields for ${dataType}:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to discover fields for ${dataType}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsDiscovering({ ...isDiscovering, [dataType]: false });
-    }
-  };
-
-  const handleFieldChange = (
-    dataType: string,
-    fieldName: string,
-    updates: Partial<{
-      sync: boolean;
-      direction: SyncDirection;
-      ghlField: string;
-      intakeqField: string;
-    }>
-  ) => {
+  const handleFieldChange = (dataType: string, fieldName: string, updates: any) => {
     const newMapping = { ...fieldMapping };
     newMapping[dataType].fields[fieldName] = {
       ...newMapping[dataType].fields[fieldName],
@@ -183,23 +47,14 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     onChange(newMapping);
   };
 
-  const getCategoryDirection = (dataType: string): SyncDirection | null => {
-    const fields = Object.values(fieldMapping[dataType].fields)
-      .filter(field => field.sync);
-    if (fields.length === 0) return null;
-    const firstDirection = fields[0].direction;
-    return fields.every(field => field.direction === firstDirection) ? firstDirection : null;
-  };
-
-  const getCategorySyncStatus = (dataType: string): boolean => {
-    const fields = Object.values(fieldMapping[dataType].fields);
-    return fields.some(field => field.sync);
+  const handleDiscoverFieldsClick = async (dataType: string) => {
+    const updatedMapping = await handleDiscoverFields(dataType, fieldMapping);
+    onChange(updatedMapping);
   };
 
   const handleSyncNow = async () => {
     setSyncingNow(true);
     try {
-      // Simulate sync operation
       await new Promise(resolve => setTimeout(resolve, 2000));
       toast({
         title: "Sync Complete",
@@ -226,6 +81,19 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
         ? "Changes will now be automatically synchronized" 
         : "Automatic synchronization has been paused",
     });
+  };
+
+  const getCategoryDirection = (dataType: string): SyncDirection | null => {
+    const fields = Object.values(fieldMapping[dataType].fields)
+      .filter(field => field.sync);
+    if (fields.length === 0) return null;
+    const firstDirection = fields[0].direction;
+    return fields.every(field => field.direction === firstDirection) ? firstDirection : null;
+  };
+
+  const getCategorySyncStatus = (dataType: string): boolean => {
+    const fields = Object.values(fieldMapping[dataType].fields);
+    return fields.some(field => field.sync);
   };
 
   const dataTypes = ['contact', 'appointment', 'form'];
@@ -289,12 +157,11 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
               
                 <AccordionContent className="p-4">
                   <div className="space-y-4">
-                    {/* Discover Fields Button */}
                     <div className="flex justify-end mb-4">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDiscoverFields(dataType)}
+                        onClick={() => handleDiscoverFieldsClick(dataType)}
                         disabled={disabled || isDiscovering[dataType]}
                         className="flex items-center gap-2"
                       >
@@ -303,7 +170,6 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                       </Button>
                     </div>
                     
-                    {/* Field rows */}
                     {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
                       <div key={fieldName} className="border rounded-lg">
                         <FieldControls
