@@ -1,12 +1,13 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { FilterConfig } from "@/types/sync-filters";
+import { TagsFilter } from './ghl/TagsFilter';
+import { StatusFilter } from './ghl/StatusFilter';
+import { ContactIdsFilter } from './ghl/ContactIdsFilter';
+import { ApiErrorAlert } from './ghl/ApiErrorAlert';
 
 interface GHLFilterCardProps {
   filters: FilterConfig;
@@ -29,22 +30,26 @@ export const GHLFilterCard = ({
   onFetchData,
   disabled
 }: GHLFilterCardProps) => {
-  const handleAddTag = (tag: string) => {
-    if (tag && !filters.tags.includes(tag)) {
-      onFiltersChange({
-        ...filters,
-        tags: [...filters.tags, tag]
-      });
-    }
+  
+  const handleContactIdsChange = (contactIds: string[]) => {
+    onFiltersChange({
+      ...filters,
+      contactIds
+    });
   };
-
-  const handleAddStatus = (status: string) => {
-    if (status && !filters.status.includes(status)) {
-      onFiltersChange({
-        ...filters,
-        status: [...filters.status, status]
-      });
-    }
+  
+  const handleTagsChange = (tags: string[]) => {
+    onFiltersChange({
+      ...filters,
+      tags
+    });
+  };
+  
+  const handleStatusesChange = (status: string[]) => {
+    onFiltersChange({
+      ...filters,
+      status
+    });
   };
 
   return (
@@ -65,116 +70,27 @@ export const GHLFilterCard = ({
         <CardDescription>Filter which GHL records to sync</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {apiError && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>GoHighLevel API Error</AlertTitle>
-            <AlertDescription>
-              {apiError}
-              {apiError.includes("401") && (
-                <p className="mt-2 text-sm font-medium">
-                  Your API key may be invalid or expired. Please check your API key in the API Configuration section below.
-                </p>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
+        {apiError && <ApiErrorAlert apiError={apiError} />}
         
-        <div>
-          <Label htmlFor="ghl-contact-ids">Contact IDs (comma-separated)</Label>
-          <Input
-            id="ghl-contact-ids"
-            value={filters.contactIds.join(',')}
-            onChange={(e) => onFiltersChange({
-              ...filters,
-              contactIds: e.target.value.split(',').map(id => id.trim()).filter(Boolean)
-            })}
-            placeholder="Enter contact IDs for testing"
-            disabled={disabled}
-          />
-        </div>
+        <ContactIdsFilter
+          contactIds={filters.contactIds}
+          onContactIdsChange={handleContactIdsChange}
+          disabled={disabled}
+        />
         
-        <div>
-          <Label htmlFor="ghl-tags">Tags (comma-separated)</Label>
-          <div className="flex gap-2 mb-2">
-            <Input
-              id="ghl-tags"
-              value={filters.tags.join(',')}
-              onChange={(e) => onFiltersChange({
-                ...filters,
-                tags: e.target.value.split(',').map(tag => tag.trim()).filter(Boolean)
-              })}
-              placeholder="Enter tags to filter"
-              disabled={disabled}
-            />
-          </div>
-          
-          {availableTags.length > 0 && (
-            <div className="mt-2">
-              <Label className="text-sm">Available Tags:</Label>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {availableTags.slice(0, 10).map((tag, index) => (
-                  <Button 
-                    key={index} 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleAddTag(tag)}
-                    disabled={disabled}
-                    className="text-xs py-0 h-6"
-                  >
-                    {tag}
-                  </Button>
-                ))}
-                {availableTags.length > 10 && (
-                  <span className="text-xs text-muted-foreground">
-                    +{availableTags.length - 10} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <TagsFilter
+          tags={filters.tags}
+          availableTags={availableTags}
+          onTagsChange={handleTagsChange}
+          disabled={disabled}
+        />
         
-        <div>
-          <Label htmlFor="ghl-status">Status (comma-separated)</Label>
-          <div className="flex gap-2 mb-2">
-            <Input
-              id="ghl-status"
-              value={filters.status.join(',')}
-              onChange={(e) => onFiltersChange({
-                ...filters,
-                status: e.target.value.split(',').map(status => status.trim()).filter(Boolean)
-              })}
-              placeholder="Enter statuses to filter"
-              disabled={disabled}
-            />
-          </div>
-          
-          {availableStatuses.length > 0 && (
-            <div className="mt-2">
-              <Label className="text-sm">Available Statuses:</Label>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {availableStatuses.slice(0, 10).map((status, index) => (
-                  <Button 
-                    key={index} 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleAddStatus(status)}
-                    disabled={disabled}
-                    className="text-xs py-0 h-6"
-                  >
-                    {status}
-                  </Button>
-                ))}
-                {availableStatuses.length > 10 && (
-                  <span className="text-xs text-muted-foreground">
-                    +{availableStatuses.length - 10} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <StatusFilter
+          statuses={filters.status}
+          availableStatuses={availableStatuses}
+          onStatusesChange={handleStatusesChange}
+          disabled={disabled}
+        />
       </CardContent>
     </Card>
   );
