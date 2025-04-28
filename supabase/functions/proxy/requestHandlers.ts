@@ -4,12 +4,10 @@
  */
 
 /**
- * Validates that the request method is POST and a URL is provided
+ * Validates that a URL is provided in the request
  */
 export const validateRequest = (method: string, url?: string) => {
-  if (method !== 'POST') {
-    return { error: 'Method not allowed', status: 405 };
-  }
+  // We now only validate that a URL is provided, not the method
   if (!url) {
     return { error: 'URL is required', status: 400 };
   }
