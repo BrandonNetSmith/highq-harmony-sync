@@ -18,3 +18,13 @@ export interface SyncFiltersProps {
   onIntakeqFiltersChange: (filters: IntakeQFilters) => void;
   disabled?: boolean;
 }
+
+export interface IntakeQForm {
+  id: string;
+  name: string;
+}
+
+export interface IntakeQClient {
+  id: string;
+  email: string;
+}

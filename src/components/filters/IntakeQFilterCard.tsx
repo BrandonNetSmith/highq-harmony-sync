@@ -1,19 +1,27 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { AlertTriangle, Loader2, RefreshCw, ChevronDown, Check, X } from "lucide-react";
 import { IntakeQFilters } from "@/types/sync-filters";
+import { Badge } from "@/components/ui/badge";
 
 interface IntakeQFilterCardProps {
   filters: IntakeQFilters;
   onFiltersChange: (filters: IntakeQFilters) => void;
   isLoading: boolean;
   apiError: string | null;
-  availableFormIds: string[];
+  availableForms: {id: string, name: string}[];
+  availableClients: {id: string, email: string}[];
   onFetchData: () => void;
   disabled?: boolean;
   debugInfo?: any;
@@ -24,18 +32,58 @@ export const IntakeQFilterCard = ({
   onFiltersChange,
   isLoading,
   apiError,
-  availableFormIds,
+  availableForms,
+  availableClients,
   onFetchData,
   disabled,
   debugInfo
 }: IntakeQFilterCardProps) => {
-  const handleAddFormId = (formId: string) => {
+  const [selectedClientEmail, setSelectedClientEmail] = useState<string>("");
+  const [selectedFormName, setSelectedFormName] = useState<string>("");
+
+  const handleAddClientId = (clientId: string, clientEmail: string) => {
+    if (clientId && !filters.clientIds.includes(clientId)) {
+      setSelectedClientEmail("");
+      onFiltersChange({
+        ...filters,
+        clientIds: [...filters.clientIds, clientId]
+      });
+    }
+  };
+
+  const handleAddFormId = (formId: string, formName: string) => {
     if (formId && !filters.formIds.includes(formId)) {
+      setSelectedFormName("");
       onFiltersChange({
         ...filters,
         formIds: [...filters.formIds, formId]
       });
     }
+  };
+
+  const handleRemoveClientId = (clientId: string) => {
+    onFiltersChange({
+      ...filters,
+      clientIds: filters.clientIds.filter(id => id !== clientId)
+    });
+  };
+
+  const handleRemoveFormId = (formId: string) => {
+    onFiltersChange({
+      ...filters,
+      formIds: filters.formIds.filter(id => id !== formId)
+    });
+  };
+
+  // Map IDs to names/emails for display
+  const getClientEmailById = (id: string) => {
+    const client = availableClients.find(client => client.id === id);
+    return client ? client.email : id;
+  };
+
+  const getFormNameById = (id: string) => {
+    const form = availableForms.find(form => form.id === id);
+    return form ? form.name : id;
   };
 
   return (
@@ -91,58 +139,95 @@ export const IntakeQFilterCard = ({
         )}
         
         <div>
-          <Label htmlFor="intakeq-client-ids">Client IDs (comma-separated)</Label>
-          <Input
-            id="intakeq-client-ids"
-            value={filters.clientIds.join(',')}
-            onChange={(e) => onFiltersChange({
-              ...filters,
-              clientIds: e.target.value.split(',').map(id => id.trim()).filter(Boolean)
-            })}
-            placeholder="Enter client IDs for testing"
-            disabled={disabled}
-          />
+          <Label htmlFor="intakeq-clients">Client Emails</Label>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild disabled={disabled || availableClients.length === 0}>
+                  <Button variant="outline" className="w-full justify-between">
+                    <span className="truncate">{selectedClientEmail || "Select client..."}</span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-[200px] overflow-y-auto w-[300px]">
+                  {availableClients.map((client) => (
+                    <DropdownMenuItem
+                      key={client.id}
+                      onSelect={() => {
+                        setSelectedClientEmail(client.email);
+                        handleAddClientId(client.id, client.email);
+                      }}
+                    >
+                      {client.email}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              {filters.clientIds.map(id => (
+                <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                  {getClientEmailById(id)}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 p-0"
+                    onClick={() => handleRemoveClientId(id)}
+                    disabled={disabled}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+          </div>
         </div>
         
         <div>
-          <Label htmlFor="intakeq-form-ids">Form IDs (comma-separated)</Label>
-          <div className="flex gap-2 mb-2">
-            <Input
-              id="intakeq-form-ids"
-              value={filters.formIds.join(',')}
-              onChange={(e) => onFiltersChange({
-                ...filters,
-                formIds: e.target.value.split(',').map(id => id.trim()).filter(Boolean)
-              })}
-              placeholder="Enter form IDs to filter"
-              disabled={disabled}
-            />
-          </div>
-          
-          {availableFormIds.length > 0 && (
-            <div className="mt-2">
-              <Label className="text-sm">Available Form IDs:</Label>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {availableFormIds.slice(0, 10).map((formId, index) => (
-                  <Button 
-                    key={index} 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleAddFormId(formId)}
-                    disabled={disabled}
-                    className="text-xs py-0 h-6"
-                  >
-                    {formId}
+          <Label htmlFor="intakeq-forms">Form Names</Label>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild disabled={disabled || availableForms.length === 0}>
+                  <Button variant="outline" className="w-full justify-between">
+                    <span className="truncate">{selectedFormName || "Select form..."}</span>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
-                ))}
-                {availableFormIds.length > 10 && (
-                  <span className="text-xs text-muted-foreground">
-                    +{availableFormIds.length - 10} more
-                  </span>
-                )}
-              </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-[200px] overflow-y-auto w-[300px]">
+                  {availableForms.map((form) => (
+                    <DropdownMenuItem
+                      key={form.id}
+                      onSelect={() => {
+                        setSelectedFormName(form.name);
+                        handleAddFormId(form.id, form.name);
+                      }}
+                    >
+                      {form.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
+            
+            <div className="flex flex-wrap gap-2">
+              {filters.formIds.map(id => (
+                <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                  {getFormNameById(id)}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 p-0"
+                    onClick={() => handleRemoveFormId(id)}
+                    disabled={disabled}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
