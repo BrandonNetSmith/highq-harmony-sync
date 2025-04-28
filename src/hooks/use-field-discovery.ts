@@ -81,21 +81,24 @@ export const useFieldDiscovery = () => {
         discoverFields('intakeq', dataType)
       ]);
 
-      const existingGhlFields = new Set(availableFields.ghl[dataType]);
-      const existingIntakeqFields = new Set(availableFields.intakeq[dataType]);
+      // Get existing fields
+      const existingGhlFields = new Set(availableFields.ghl[dataType] || []);
+      const existingIntakeqFields = new Set(availableFields.intakeq[dataType] || []);
       
-      const uniqueGhlFields = [...new Set([...ghlFields.filter(field => !existingGhlFields.has(field))])];
-      const uniqueIntakeqFields = [...new Set([...intakeqFields.filter(field => !existingIntakeqFields.has(field))])];
+      // Filter out duplicates when adding new fields
+      const uniqueGhlFields = ghlFields.filter(field => !existingGhlFields.has(field));
+      const uniqueIntakeqFields = intakeqFields.filter(field => !existingIntakeqFields.has(field));
 
+      // Update available fields with unique values only
       setAvailableFields(prev => ({
         ...prev,
         ghl: { 
           ...prev.ghl, 
-          [dataType]: [...prev.ghl[dataType], ...uniqueGhlFields]
+          [dataType]: [...Array.from(new Set([...prev.ghl[dataType], ...uniqueGhlFields]))]
         },
         intakeq: { 
           ...prev.intakeq, 
-          [dataType]: [...prev.intakeq[dataType], ...uniqueIntakeqFields]
+          [dataType]: [...Array.from(new Set([...prev.intakeq[dataType], ...uniqueIntakeqFields]))]
         }
       }));
 
@@ -116,7 +119,7 @@ export const useFieldDiscovery = () => {
 
       toast({
         title: "Fields discovered",
-        description: `${uniqueGhlFields.length + uniqueIntakeqFields.length} new fields found for ${dataType}`,
+        description: `${uniqueGhlFields.length + uniqueIntakeqFields.length} new unique fields found for ${dataType}`,
       });
 
       return newMapping;
