@@ -73,17 +73,22 @@ export const useFieldDiscovery = () => {
 
   const handleDiscoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<void> => {
     try {
-      setIsDiscovering({ ...isDiscovering, [dataType]: true });
+      // Mark the dataType and system as discovering
+      setIsDiscovering(prev => ({ 
+        ...prev, 
+        [dataType]: true,
+        [system]: true 
+      }));
       
       // Discover fields for the selected system
       const newFields = await discoverFields(system, dataType);
       
-      // Update available fields for ONLY the selected system, replacing previous values
+      // Update available fields for ONLY the selected system
       setAvailableFields(prev => ({
         ...prev,
         [system]: { 
           ...prev[system], 
-          [dataType]: newFields // Replace with new fields instead of merging
+          [dataType]: newFields // Replace with new fields
         }
       }));
 
@@ -99,7 +104,12 @@ export const useFieldDiscovery = () => {
         variant: "destructive",
       });
     } finally {
-      setIsDiscovering({ ...isDiscovering, [dataType]: false });
+      // Clear the discovering state
+      setIsDiscovering(prev => ({ 
+        ...prev, 
+        [dataType]: false,
+        [system]: false
+      }));
     }
   };
 

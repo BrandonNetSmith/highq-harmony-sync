@@ -15,6 +15,11 @@ export const FieldMappingHeader = ({
   isDiscovering,
   onDiscoverFields
 }: FieldMappingHeaderProps) => {
+  // Check if discovering is happening for a specific system
+  const isGhlDiscovering = isDiscovering['ghl'] || false;
+  const isIntakeqDiscovering = isDiscovering['intakeq'] || false;
+  const isAnyDataTypeDiscovering = isDiscovering['contact'] || isDiscovering['appointment'] || isDiscovering['form'] || false;
+
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] gap-4 mb-4">
       <div className="flex flex-col gap-2">
@@ -23,11 +28,11 @@ export const FieldMappingHeader = ({
           variant="outline"
           size="sm"
           onClick={() => onDiscoverFields('ghl', 'contact')}
-          disabled={isDiscovering['contact']}
+          disabled={isAnyDataTypeDiscovering}
           className="flex items-center gap-2 self-start"
         >
-          <RefreshCw className={`h-4 w-4 ${isDiscovering['contact'] && isDiscovering['ghl'] ? 'animate-spin' : ''}`} />
-          Discover GHL Fields Only
+          <RefreshCw className={`h-4 w-4 ${isGhlDiscovering ? 'animate-spin' : ''}`} />
+          Discover GHL Fields
         </Button>
       </div>
       <div className="flex items-center justify-center font-medium">Sync Direction</div>
@@ -37,11 +42,11 @@ export const FieldMappingHeader = ({
           variant="outline"
           size="sm"
           onClick={() => onDiscoverFields('intakeq', 'contact')}
-          disabled={isDiscovering['contact']}
+          disabled={isAnyDataTypeDiscovering}
           className="flex items-center gap-2"
         >
-          <RefreshCw className={`h-4 w-4 ${isDiscovering['contact'] && isDiscovering['intakeq'] ? 'animate-spin' : ''}`} />
-          Discover IntakeQ Fields Only
+          <RefreshCw className={`h-4 w-4 ${isIntakeqDiscovering ? 'animate-spin' : ''}`} />
+          Discover IntakeQ Fields
         </Button>
       </div>
     </div>
