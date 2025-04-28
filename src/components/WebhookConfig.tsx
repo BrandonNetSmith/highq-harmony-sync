@@ -1,21 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { saveApiKeys, getApiKeys } from '@/services/apiKeys';
-import { AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import ApiKeyConfigSection from './ApiKeyConfigSection';
 
 interface ApiConfigForm {
   ghlApiKey: string;
@@ -76,7 +64,6 @@ const WebhookConfig = () => {
     }
     
     setTestingKeys(prev => ({ ...prev, [type]: true }));
-    // Reset test results
     setTestResults(prev => ({ ...prev, [type]: null }));
     
     try {
@@ -87,19 +74,13 @@ const WebhookConfig = () => {
         url = 'https://rest.gohighlevel.com/v1/contacts/';
         headers = { 'Authorization': `Bearer ${apiKey}` };
       } else {
-        // Using a different endpoint for IntakeQ testing - /clients seems more reliable
         url = 'https://intakeq.com/api/v1/clients';
         headers = { 'X-Auth-Key': apiKey };
       }
       
       console.log(`Testing ${type} API with key: ${apiKey.substring(0, 5)}...`);
-      console.log(`URL: ${url}`);
-      
-      // Get the absolute URL of the proxy endpoint
       const baseUrl = window.location.origin;
-      console.log(`Current site base URL: ${baseUrl}`);
       
-      // Make the request to our proxy
       const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: {
@@ -113,54 +94,21 @@ const WebhookConfig = () => {
       });
       
       if (!response.ok) {
-        console.log(`Proxy returned status: ${response.status}`);
         throw new Error(`Proxy error: ${response.statusText || response.status}`);
       }
       
       const data = await response.json();
-      console.log(`${type} API test response:`, data);
       
-      // Check for various error conditions
-      if (data._isHtml) {
-        throw new Error(
-          `Received HTML instead of JSON (status ${data._statusCode}). This usually indicates an authentication error or invalid API endpoint. ${data._error || ''}`
-        );
+      if (data._isHtml || data._redirect || data._error || data._statusCode >= 400) {
+        throw new Error(data._errorMessage || data._error || `Failed with status: ${data._statusCode}`);
       }
       
-      if (data._redirect) {
-        throw new Error(`Detected redirect to: ${data._location}. Please check your API key and endpoints.`);
-      }
-      
-      if (data._error || data._statusCode >= 400) {
-        const errorMsg = data._errorMessage || data._error || `Failed with status: ${data._statusCode}`;
-        throw new Error(errorMsg);
-      }
-      
-      if (data._parseError) {
-        throw new Error(`Error parsing response: ${data._parseError}`);
-      }
-      
-      if (data._empty) {
-        // Empty responses may still be valid for some APIs
-        console.log(`${type} API returned an empty response but connection was successful`);
-        setTestResults(prev => ({ 
-          ...prev, 
-          [type]: { 
-            success: true, 
-            message: `${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} connection successful (empty response)` 
-          } 
-        }));
-        toast({
-          title: "Success",
-          description: `${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} API key is valid!`,
-        });
-        return;
-      }
-      
-      // Success!
       setTestResults(prev => ({ 
         ...prev, 
-        [type]: { success: true, message: `${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} API connection successful!` } 
+        [type]: { 
+          success: true, 
+          message: `${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} connection successful!` 
+        } 
       }));
       
       toast({
@@ -212,154 +160,15 @@ const WebhookConfig = () => {
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {connectionError && (
-        <div className="md:col-span-2 bg-destructive/15 p-4 rounded-md flex items-center gap-2">
-          <AlertCircle className="text-destructive h-5 w-5" />
-          <p className="text-destructive">{connectionError}</p>
-        </div>
-      )}
-      
-      <Alert className="md:col-span-2 mb-2" variant="default">
-        <Info className="h-4 w-4" />
-        <AlertTitle>API Connection Status</AlertTitle>
-        <AlertDescription>
-          The proxy function is used to securely connect to external APIs. If the test fails, please check the Edge Function logs.
-        </AlertDescription>
-      </Alert>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>GoHighLevel API</CardTitle>
-          <CardDescription>Configure your GoHighLevel API key</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form className="space-y-4">
-              <FormField
-                control={form.control}
-                name="ghlApiKey"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>API Key</FormLabel>
-                    <FormControl>
-                      <div className="flex gap-2">
-                        <Input
-                          type="password"
-                          placeholder="Enter GoHighLevel API key"
-                          {...field}
-                          disabled={isLoading}
-                          className="flex-1"
-                        />
-                        <Button 
-                          type="button" 
-                          variant={testResults.ghl?.success ? "outline" : "outline"}
-                          className={testResults.ghl?.success ? "bg-green-50 hover:bg-green-100 border-green-200" : ""}
-                          onClick={() => testApiKey('ghl')}
-                          disabled={isLoading || testingKeys.ghl}
-                        >
-                          {testingKeys.ghl ? "Testing..." : testResults.ghl?.success ? "Verified ✓" : "Test"}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    {testResults.ghl && !testResults.ghl.success && (
-                      <Alert variant="destructive" className="mt-2 py-2">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle className="text-sm">Test Failed</AlertTitle>
-                        <AlertDescription className="text-xs">
-                          {testResults.ghl.message}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    {testResults.ghl && testResults.ghl.success && (
-                      <Alert variant="default" className="mt-2 py-2 border-green-200 bg-green-50 text-green-800">
-                        <CheckCircle className="h-4 w-4" />
-                        <AlertDescription className="text-xs flex items-center">
-                          {testResults.ghl.message}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>IntakeQ API</CardTitle>
-          <CardDescription>Configure your IntakeQ API key</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form className="space-y-4">
-              <FormField
-                control={form.control}
-                name="intakeqApiKey"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>API Key</FormLabel>
-                    <FormControl>
-                      <div className="flex gap-2">
-                        <Input
-                          type="password"
-                          placeholder="Enter IntakeQ API key"
-                          {...field}
-                          disabled={isLoading}
-                          className="flex-1"
-                        />
-                        <Button 
-                          type="button" 
-                          variant={testResults.intakeq?.success ? "outline" : "outline"}
-                          className={testResults.intakeq?.success ? "bg-green-50 hover:bg-green-100 border-green-200" : ""}
-                          onClick={() => testApiKey('intakeq')}
-                          disabled={isLoading || testingKeys.intakeq}
-                        >
-                          {testingKeys.intakeq ? "Testing..." : testResults.intakeq?.success ? "Verified ✓" : "Test"}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    {testResults.intakeq && !testResults.intakeq.success && (
-                      <Alert variant="destructive" className="mt-2 py-2">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle className="text-sm">Test Failed</AlertTitle>
-                        <AlertDescription className="text-xs">
-                          {testResults.intakeq.message}
-                          {testResults.intakeq.message?.includes('HTML') && (
-                            <p className="mt-1">This usually means your API key is invalid or IntakeQ is returning an error page instead of JSON.</p>
-                          )}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    {testResults.intakeq && testResults.intakeq.success && (
-                      <Alert variant="default" className="mt-2 py-2 border-green-200 bg-green-50 text-green-800">
-                        <CheckCircle className="h-4 w-4" />
-                        <AlertDescription className="text-xs flex items-center">
-                          {testResults.intakeq.message}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-      
-      <div className="md:col-span-2 flex justify-end">
-        <Button 
-          onClick={form.handleSubmit(onSubmit)} 
-          disabled={isLoading}
-        >
-          {isLoading ? 'Saving...' : 'Save API Configuration'}
-        </Button>
-      </div>
-    </div>
+    <ApiKeyConfigSection
+      form={form}
+      isLoading={isLoading}
+      connectionError={connectionError}
+      onSubmit={onSubmit}
+      onTestApiKey={testApiKey}
+      testingKeys={testingKeys}
+      testResults={testResults}
+    />
   );
 };
 
