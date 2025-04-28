@@ -1,4 +1,3 @@
-
 import type { Database } from "@/integrations/supabase/types";
 
 type SyncDirection = Database["public"]["Enums"]["sync_direction"];
@@ -46,6 +45,7 @@ export interface FieldControlsProps {
       intakeqField: string;
     }>
   ) => void;
+  onDiscoverFields: (system: 'ghl' | 'intakeq', dataType: string) => void;
 }
 
 export interface CategoryHeaderProps {

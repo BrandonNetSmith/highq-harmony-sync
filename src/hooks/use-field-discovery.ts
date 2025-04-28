@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import type { FieldMappingType } from '@/types/field-mapping';
@@ -22,7 +21,6 @@ export const useFieldDiscovery = () => {
     }
   });
 
-  // Mock function to discover available fields with more comprehensive fields
   const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<string[]> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -72,57 +70,34 @@ export const useFieldDiscovery = () => {
     }
   };
 
-  const handleDiscoverFields = async (dataType: string, fieldMapping: FieldMappingType): Promise<FieldMappingType> => {
+  const handleDiscoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<FieldMappingType> => {
     try {
       setIsDiscovering({ ...isDiscovering, [dataType]: true });
       
-      const [ghlFields, intakeqFields] = await Promise.all([
-        discoverFields('ghl', dataType),
-        discoverFields('intakeq', dataType)
-      ]);
-
-      // Get existing fields
-      const existingGhlFields = new Set(availableFields.ghl[dataType] || []);
-      const existingIntakeqFields = new Set(availableFields.intakeq[dataType] || []);
+      // Only discover fields for the selected system
+      const newFields = await discoverFields(system, dataType);
       
-      // Filter out duplicates when adding new fields
-      const uniqueGhlFields = ghlFields.filter(field => !existingGhlFields.has(field));
-      const uniqueIntakeqFields = intakeqFields.filter(field => !existingIntakeqFields.has(field));
+      // Get existing fields for the selected system
+      const existingFields = new Set(availableFields[system][dataType] || []);
+      
+      // Filter out duplicates
+      const uniqueFields = newFields.filter(field => !existingFields.has(field));
 
-      // Update available fields with unique values only
+      // Update available fields for only the selected system
       setAvailableFields(prev => ({
         ...prev,
-        ghl: { 
-          ...prev.ghl, 
-          [dataType]: [...Array.from(new Set([...prev.ghl[dataType], ...uniqueGhlFields]))]
-        },
-        intakeq: { 
-          ...prev.intakeq, 
-          [dataType]: [...Array.from(new Set([...prev.intakeq[dataType], ...uniqueIntakeqFields]))]
+        [system]: { 
+          ...prev[system], 
+          [dataType]: [...Array.from(new Set([...prev[system][dataType], ...uniqueFields]))]
         }
       }));
 
-      // Create new field mapping entries for discovered fields
-      const newMapping = { ...fieldMapping };
-      
-      const addNewFieldIfNotExists = (fieldName: string) => {
-        if (!newMapping[dataType].fields[fieldName]) {
-          newMapping[dataType].fields[fieldName] = {
-            sync: true,
-            direction: 'bidirectional' as SyncDirection
-          };
-        }
-      };
-      
-      uniqueGhlFields.forEach(addNewFieldIfNotExists);
-      uniqueIntakeqFields.forEach(addNewFieldIfNotExists);
-
       toast({
         title: "Fields discovered",
-        description: `${uniqueGhlFields.length + uniqueIntakeqFields.length} new unique fields found for ${dataType}`,
+        description: `${uniqueFields.length} new unique fields found for ${system} ${dataType}`,
       });
 
-      return newMapping;
+      return fieldMapping;
     } catch (error) {
       console.error(`Error discovering fields for ${dataType}:`, error);
       toast({
