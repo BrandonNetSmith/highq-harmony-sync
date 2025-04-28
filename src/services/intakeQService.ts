@@ -18,7 +18,7 @@ export const fetchIntakeQData = async () => {
     // Using correct IntakeQ API endpoint paths
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/forms',
+        url: 'https://intakeq.com/api/v1/forms',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -91,7 +91,7 @@ export const fetchIntakeQData = async () => {
     // Using correct IntakeQ API endpoint path for clients
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/clients',
+        url: 'https://intakeq.com/api/v1/clients',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key

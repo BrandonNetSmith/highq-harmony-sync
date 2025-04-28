@@ -17,7 +17,7 @@ export const FieldControls = ({
   const intakeqOptions = availableFields.intakeq[dataType] || [fieldName];
 
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 hover:bg-muted/10 transition-colors p-2">
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 py-2 px-2 border-b border-border last:border-b-0">
       <div>
         <GHLFieldSelect
           value={fieldSettings.ghlField || fieldName}

@@ -53,7 +53,7 @@ export const FieldCategories = ({
             />
           
             <AccordionContent className="p-2">
-              <div className="space-y-1 divide-y divide-border">                    
+              <div className="space-y-0">                    
                 {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
                   <FieldControls
                     key={fieldName}

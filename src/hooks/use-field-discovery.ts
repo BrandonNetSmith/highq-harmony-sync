@@ -78,24 +78,18 @@ export const useFieldDiscovery = () => {
       // Only discover fields for the selected system
       const newFields = await discoverFields(system, dataType);
       
-      // Get existing fields for the selected system
-      const existingFields = new Set(availableFields[system][dataType] || []);
-      
-      // Filter out duplicates
-      const uniqueFields = newFields.filter(field => !existingFields.has(field));
-
       // Update available fields for only the selected system
       setAvailableFields(prev => ({
         ...prev,
         [system]: { 
           ...prev[system], 
-          [dataType]: [...Array.from(new Set([...prev[system][dataType], ...uniqueFields]))]
+          [dataType]: [...Array.from(new Set([...prev[system][dataType], ...newFields]))]
         }
       }));
 
       toast({
         title: "Fields discovered",
-        description: `${uniqueFields.length} new unique fields found for ${system} ${dataType}`,
+        description: `${newFields.length} fields found for ${system} ${dataType}`,
       });
     } catch (error) {
       console.error(`Error discovering fields for ${dataType}:`, error);
