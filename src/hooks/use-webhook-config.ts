@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
@@ -82,9 +83,9 @@ export const useWebhookConfig = () => {
       }
       
       console.log(`Testing ${type} API with key: ${apiKey.substring(0, 5)}...`);
-      const baseUrl = window.location.origin;
       
-      const response = await fetch(`${baseUrl}/api/proxy`, {
+      // Use the API route instead of the edge function
+      const response = await fetch(`/api/proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,10 +98,12 @@ export const useWebhookConfig = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`Proxy error: ${response.statusText || response.status}`);
+        throw new Error(`Proxy request failed: ${response.statusText || response.status}`);
       }
       
       const data = await response.json();
+      
+      console.log(`${type} API test response:`, data);
       
       if (data._isHtml || data._redirect || data._error || data._statusCode >= 400) {
         throw new Error(data._errorMessage || data._error || `Failed with status: ${data._statusCode}`);
