@@ -87,59 +87,17 @@ serve(async (req) => {
     
     const contentType = response.headers.get('content-type');
     console.log(`Response content-type: ${contentType}`);
-
-    // Check if response is a redirect and handle it explicitly
-    if (responseStatus >= 300 && responseStatus < 400) {
-      const location = response.headers.get('location');
-      console.log(`Detected redirect to: ${location}`);
-      return new Response(JSON.stringify({
-        _redirect: true,
-        _location: location,
-        _statusCode: responseStatus,
-        _requestUrl: url,
-        _message: "Redirect detected. This proxy does not follow redirects automatically."
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    
+    // Get the raw response data
+    const responseText = await response.text();
+    console.log(`Response text length: ${responseText.length}`);
+    if (responseText.length > 0) {
+      console.log(`Response text preview: ${responseText.substring(0, 100)}...`);
     }
     
-    // Always try to get the raw response text first
-    let responseText = '';
-    try {
-      responseText = await response.text();
-      console.log(`Response text length: ${responseText.length}`);
-      if (responseText.length > 0) {
-        console.log(`Response text preview: ${responseText.substring(0, 100)}...`);
-      }
-    } catch (textError) {
-      console.error('Error reading response text:', textError);
-      return new Response(JSON.stringify({
-        _error: 'Failed to read response text',
-        _errorDetails: textError.message,
-        _statusCode: responseStatus,
-        _requestUrl: url
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // Initialize responseData
-    let responseData: any = {};
-    
-    // Handle empty responses
-    if (!responseText || responseText.trim() === '') {
-      responseData = { 
-        _empty: true,
-        _statusCode: responseStatus,
-        _requestUrl: url
-      };
-      console.log('Empty response detected');
-    } 
-    // Handle HTML responses (likely authentication errors)
-    else if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
-      console.log('HTML response detected (likely an error page)');
+    // Handle HTML responses explicitly
+    if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+      console.log('HTML response detected - likely an error page');
       
       // Extract any useful information from the HTML
       let errorMessage = "Authentication failed or invalid endpoint";
@@ -155,17 +113,46 @@ serve(async (req) => {
         errorMessage = "500 Internal Server Error - Server issue on the API provider side";
       }
       
-      responseData = { 
+      // Return as a structured error with HTML information
+      return new Response(JSON.stringify({ 
         _error: errorMessage,
         _isHtml: true,
         _statusCode: responseStatus,
         _requestUrl: url,
-        _htmlSnippet: responseText.substring(0, 500) + '...'
-      };
+        _htmlSnippet: responseText.substring(0, 500) + '...' // Include a snippet of HTML for debugging
+      }), {
+        status: 200, // Return 200 but include error info in body
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+    
+    // Check if response is a redirect and handle it explicitly
+    if (responseStatus >= 300 && responseStatus < 400) {
+      const location = response.headers.get('location');
+      console.log(`Detected redirect to: ${location}`);
+      return new Response(JSON.stringify({
+        _redirect: true,
+        _location: location,
+        _statusCode: responseStatus,
+        _requestUrl: url,
+        _message: "Redirect detected. This proxy does not follow redirects automatically."
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Try to parse as JSON if it looks like JSON
-    else if ((responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) && 
-             (contentType?.includes('application/json') || !contentType)) {
+    let responseData;
+    if (responseText.trim() === '') {
+      responseData = { 
+        _empty: true,
+        _statusCode: responseStatus,
+        _requestUrl: url
+      };
+      console.log('Empty response detected');
+    } else if ((responseText.trim().startsWith('{') || responseText.trim().startsWith('[')) && 
+              (contentType?.includes('application/json') || !contentType)) {
       try {
         responseData = JSON.parse(responseText);
         console.log('Successfully parsed JSON response');
@@ -180,9 +167,8 @@ serve(async (req) => {
           _requestUrl: url
         };
       }
-    } 
-    // Just return the text for any other content type
-    else {
+    } else {
+      // Just return the text for any other content type
       console.log('Non-JSON text response detected');
       responseData = { 
         text: responseText,
@@ -192,8 +178,8 @@ serve(async (req) => {
       };
     }
 
-    // Add status code to the response for better error handling if not already added
-    if (!responseData._statusCode) {
+    // Add status code to the response for better error handling
+    if (responseData && typeof responseData === 'object' && !responseData._statusCode) {
       responseData._statusCode = responseStatus;
     }
     
@@ -211,19 +197,18 @@ serve(async (req) => {
     }
 
     // Add the URL that was called (useful for debugging)
-    responseData._requestUrl = url;
+    if (responseData && typeof responseData === 'object') {
+      responseData._requestUrl = url;
+    }
 
     // Add original content type for reference
-    if (contentType) {
+    if (contentType && responseData && typeof responseData === 'object') {
       responseData._contentType = contentType;
     }
 
-    const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', 'application/json');
-
     return new Response(JSON.stringify(responseData), {
       status: 200, // Always return 200 from the proxy and include the actual status in the response
-      headers: responseHeaders,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Proxy error:', error);

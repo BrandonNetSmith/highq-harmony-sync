@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { saveApiKeys, getApiKeys } from '@/services/apiKeys';
-import { AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ApiConfigForm {
@@ -140,6 +140,23 @@ const WebhookConfig = () => {
         throw new Error(`Error parsing response: ${data._parseError}`);
       }
       
+      if (data._empty) {
+        // Empty responses may still be valid for some APIs
+        console.log(`${type} API returned an empty response but connection was successful`);
+        setTestResults(prev => ({ 
+          ...prev, 
+          [type]: { 
+            success: true, 
+            message: `${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} connection successful (empty response)` 
+          } 
+        }));
+        toast({
+          title: "Success",
+          description: `${type === 'ghl' ? 'GoHighLevel' : 'IntakeQ'} API key is valid!`,
+        });
+        return;
+      }
+      
       // Success!
       setTestResults(prev => ({ 
         ...prev, 
@@ -256,8 +273,9 @@ const WebhookConfig = () => {
                     )}
                     {testResults.ghl && testResults.ghl.success && (
                       <Alert variant="default" className="mt-2 py-2 border-green-200 bg-green-50 text-green-800">
+                        <CheckCircle className="h-4 w-4" />
                         <AlertDescription className="text-xs flex items-center">
-                          <CheckCircle className="h-3 w-3 mr-1" /> {testResults.ghl.message}
+                          {testResults.ghl.message}
                         </AlertDescription>
                       </Alert>
                     )}
@@ -318,8 +336,9 @@ const WebhookConfig = () => {
                     )}
                     {testResults.intakeq && testResults.intakeq.success && (
                       <Alert variant="default" className="mt-2 py-2 border-green-200 bg-green-50 text-green-800">
+                        <CheckCircle className="h-4 w-4" />
                         <AlertDescription className="text-xs flex items-center">
-                          <CheckCircle className="h-3 w-3 mr-1" /> {testResults.intakeq.message}
+                          {testResults.intakeq.message}
                         </AlertDescription>
                       </Alert>
                     )}
