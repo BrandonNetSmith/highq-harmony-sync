@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -182,13 +183,14 @@ export const SyncFilters = ({
       const baseUrl = window.location.origin;
       console.log(`Current site base URL for IntakeQ request: ${baseUrl}`);
       
+      // Fix: changed the endpoint URL from 'forms' to 'forms/list' which is the correct endpoint
       const response = await fetch(`${baseUrl}/api/proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: 'https://intakeq.com/api/v1/forms',
+          url: 'https://intakeq.com/api/v1/forms/list',
           method: 'GET',
           headers: {
             'X-Auth-Key': intakeq_key
