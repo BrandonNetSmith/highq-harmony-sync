@@ -10,19 +10,20 @@ export const useFieldDiscovery = () => {
   const [isDiscovering, setIsDiscovering] = useState<Record<string, boolean>>({});
   const [availableFields, setAvailableFields] = useState({
     ghl: {
-      contact: [],
-      appointment: [],
-      form: []
+      contact: [] as string[],
+      appointment: [] as string[],
+      form: [] as string[]
     },
     intakeq: {
-      contact: [],
-      appointment: [],
-      form: []
+      contact: [] as string[],
+      appointment: [] as string[],
+      form: [] as string[]
     }
   });
 
   const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<string[]> => {
     // Simulating API call to discover fields
+    console.log(`Discovering fields for ${system} ${dataType}`);
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     if (system === 'ghl') {
@@ -73,6 +74,8 @@ export const useFieldDiscovery = () => {
 
   const handleDiscoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<void> => {
     try {
+      console.log(`Starting discovery for ${system} ${dataType}`);
+      
       // Mark the dataType and system as discovering
       setIsDiscovering(prev => ({ 
         ...prev, 
@@ -82,25 +85,30 @@ export const useFieldDiscovery = () => {
       
       // Discover fields for the selected system
       const newFields = await discoverFields(system, dataType);
+      console.log(`Discovery completed for ${system} ${dataType}:`, newFields);
       
       // Update available fields for ONLY the selected system
-      setAvailableFields(prev => ({
-        ...prev,
-        [system]: { 
-          ...prev[system], 
-          [dataType]: newFields // Replace with new fields
-        }
-      }));
+      setAvailableFields(prev => {
+        const updated = {
+          ...prev,
+          [system]: { 
+            ...prev[system], 
+            [dataType]: newFields // Replace with new fields
+          }
+        };
+        console.log(`Updated available fields:`, updated);
+        return updated;
+      });
 
       toast({
         title: "Fields discovered",
         description: `${newFields.length} fields found for ${system} ${dataType}`,
       });
     } catch (error) {
-      console.error(`Error discovering fields for ${dataType}:`, error);
+      console.error(`Error discovering fields for ${system} ${dataType}:`, error);
       toast({
         title: "Error",
-        description: `Failed to discover fields for ${dataType}`,
+        description: `Failed to discover fields for ${system} ${dataType}`,
         variant: "destructive",
       });
     } finally {

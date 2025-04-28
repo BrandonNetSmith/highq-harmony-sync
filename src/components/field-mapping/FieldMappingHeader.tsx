@@ -18,7 +18,6 @@ export const FieldMappingHeader = ({
   // Check if discovering is happening for a specific system
   const isGhlDiscovering = isDiscovering['ghl'] || false;
   const isIntakeqDiscovering = isDiscovering['intakeq'] || false;
-  const isAnyDataTypeDiscovering = isDiscovering['contact'] || isDiscovering['appointment'] || isDiscovering['form'] || false;
 
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] gap-4 mb-4">
@@ -28,7 +27,7 @@ export const FieldMappingHeader = ({
           variant="outline"
           size="sm"
           onClick={() => onDiscoverFields('ghl', 'contact')}
-          disabled={isAnyDataTypeDiscovering}
+          disabled={isGhlDiscovering}
           className="flex items-center gap-2 self-start"
         >
           <RefreshCw className={`h-4 w-4 ${isGhlDiscovering ? 'animate-spin' : ''}`} />
@@ -42,7 +41,7 @@ export const FieldMappingHeader = ({
           variant="outline"
           size="sm"
           onClick={() => onDiscoverFields('intakeq', 'contact')}
-          disabled={isAnyDataTypeDiscovering}
+          disabled={isIntakeqDiscovering}
           className="flex items-center gap-2"
         >
           <RefreshCw className={`h-4 w-4 ${isIntakeqDiscovering ? 'animate-spin' : ''}`} />
