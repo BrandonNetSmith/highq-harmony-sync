@@ -15,27 +15,41 @@ export const FieldControls = ({
 }: FieldControlsProps) => {
   // Memoize the options to avoid recalculating on every render
   const ghlOptions = useMemo(() => {
-    // Always include the current field or mapping if available
+    // Get the current field value, fallback to fieldName if not set
     const currentField = fieldSettings.ghlField || fieldName;
+    
+    // Get available fields for this dataType, or empty array if none
     const dataTypeFields = availableFields.ghl[dataType] || [];
     
-    // If we have fields from discovery, use them - otherwise just use the current field
+    // Start with the current field to ensure it's always in the list
+    let options = [currentField];
+    
+    // Add discovered fields if we have them (avoiding duplicates)
     if (dataTypeFields.length > 0) {
-      return [...new Set([...dataTypeFields, currentField])];
+      options = [...new Set([currentField, ...dataTypeFields])].filter(Boolean);
     }
-    return [currentField];
+    
+    console.log(`GHL options for ${dataType}.${fieldName}:`, options);
+    return options;
   }, [availableFields.ghl, dataType, fieldName, fieldSettings.ghlField]);
 
   const intakeqOptions = useMemo(() => {
-    // Always include the current field or mapping if available
+    // Get the current field value, fallback to fieldName if not set
     const currentField = fieldSettings.intakeqField || fieldName;
+    
+    // Get available fields for this dataType, or empty array if none
     const dataTypeFields = availableFields.intakeq[dataType] || [];
     
-    // If we have fields from discovery, use them - otherwise just use the current field
+    // Start with the current field to ensure it's always in the list
+    let options = [currentField];
+    
+    // Add discovered fields if we have them (avoiding duplicates)
     if (dataTypeFields.length > 0) {
-      return [...new Set([...dataTypeFields, currentField])];
+      options = [...new Set([currentField, ...dataTypeFields])].filter(Boolean);
     }
-    return [currentField];
+    
+    console.log(`IntakeQ options for ${dataType}.${fieldName}:`, options);
+    return options;
   }, [availableFields.intakeq, dataType, fieldName, fieldSettings.intakeqField]);
 
   return (
@@ -48,6 +62,8 @@ export const FieldControls = ({
             onFieldChange(dataType, fieldName, { ghlField: value });
           }}
           disabled={disabled}
+          dataType={dataType}
+          fieldName={fieldName}
         />
       </div>
 
@@ -71,6 +87,8 @@ export const FieldControls = ({
             onFieldChange(dataType, fieldName, { intakeqField: value });
           }}
           disabled={disabled}
+          dataType={dataType}
+          fieldName={fieldName}
         />
       </div>
     </div>

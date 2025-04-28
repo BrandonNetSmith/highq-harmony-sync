@@ -17,10 +17,10 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // Use v1 API endpoint which is the stable version
+    // Update: Use the correct base URL with the proper endpoint
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://app.intakeq.com/api/v1/forms',
+        url: 'https://app.intakeq.com/api/v1/intake-forms',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -44,7 +44,8 @@ export const fetchIntakeQData = async () => {
       statusCode: formsData._statusCode,
       contentType: formsData._contentType,
       isHtml: formsData._isHtml,
-      hasParseError: !!formsData._parseError
+      hasParseError: !!formsData._parseError,
+      requestUrl: formsData._requestUrl || 'Unknown URL'
     };
     
     if (formsData._error) {
@@ -90,7 +91,7 @@ export const fetchIntakeQData = async () => {
       }));
     }
 
-    // Use v1 API for clients
+    // Update: Use the correct base URL for clients endpoint
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
         url: 'https://app.intakeq.com/api/v1/clients',

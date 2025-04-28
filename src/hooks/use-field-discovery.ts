@@ -76,27 +76,23 @@ export const useFieldDiscovery = () => {
     try {
       console.log(`Starting discovery for ${system} ${dataType}`);
       
-      // Mark the dataType and system as discovering
+      // Mark the specific system and dataType as discovering
       setIsDiscovering(prev => ({ 
         ...prev, 
         [dataType]: true,
         [system]: true 
       }));
       
-      // Discover fields for the selected system
+      // Discover fields for the selected system and dataType
       const newFields = await discoverFields(system, dataType);
       console.log(`Discovery completed for ${system} ${dataType}:`, newFields);
       
-      // Update available fields for ONLY the selected system
+      // FIXED: Update ONLY the selected system's fields without affecting the other system
       setAvailableFields(prev => {
-        const updated = {
-          ...prev,
-          [system]: { 
-            ...prev[system], 
-            [dataType]: newFields // Replace with new fields
-          }
-        };
-        console.log(`Updated available fields:`, updated);
+        const updated = { ...prev };
+        updated[system][dataType] = newFields;
+        
+        console.log(`Updated available fields for ${system}.${dataType}:`, updated[system][dataType]);
         return updated;
       });
 

@@ -29,9 +29,10 @@ export const FieldMappingHeader = ({
           onClick={() => onDiscoverFields('ghl', 'contact')}
           disabled={isGhlDiscovering}
           className="flex items-center gap-2 self-start"
+          title="This will update ONLY the GHL field options"
         >
           <RefreshCw className={`h-4 w-4 ${isGhlDiscovering ? 'animate-spin' : ''}`} />
-          Discover GHL Fields
+          <span>Discover GHL Fields</span>
         </Button>
       </div>
       <div className="flex items-center justify-center font-medium">Sync Direction</div>
@@ -43,9 +44,10 @@ export const FieldMappingHeader = ({
           onClick={() => onDiscoverFields('intakeq', 'contact')}
           disabled={isIntakeqDiscovering}
           className="flex items-center gap-2"
+          title="This will update ONLY the IntakeQ field options"
         >
           <RefreshCw className={`h-4 w-4 ${isIntakeqDiscovering ? 'animate-spin' : ''}`} />
-          Discover IntakeQ Fields
+          <span>Discover IntakeQ Fields</span>
         </Button>
       </div>
     </div>
