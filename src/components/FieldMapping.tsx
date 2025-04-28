@@ -5,8 +5,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { ArrowLeft, ArrowRight, ArrowLeftRight, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowLeftRight, RefreshCw, Edit, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -32,22 +33,44 @@ interface FieldMappingProps {
   disabled?: boolean;
 }
 
-// Mock function for field discovery - in production this would call actual API endpoints
+// Enhanced mock function for field discovery that expands custom fields
 const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<string[]> => {
   // Simulate API call delay
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Mock data - in production, this would come from the actual API
+  // Mock data with expanded custom fields
   const mockFields: Record<string, Record<string, string[]>> = {
     ghl: {
-      contact: ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zip', 'country', 'tags', 'source'],
-      appointment: ['startTime', 'endTime', 'title', 'notes', 'status', 'location'],
-      form: ['formName', 'description', 'status', 'created', 'updated']
+      contact: [
+        'firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zip', 
+        'country', 'tags', 'source', 'dateOfBirth', 'companyName', 'website', 'fax',
+        'custom.preferredContactMethod', 'custom.leadSource', 'custom.preferredAppointmentTime', 
+        'custom.insuranceProvider', 'custom.policyNumber', 'custom.allergies'
+      ],
+      appointment: [
+        'startTime', 'endTime', 'title', 'notes', 'status', 'location', 'provider',
+        'custom.followUpRequired', 'custom.appointmentType', 'custom.reasonForVisit'
+      ],
+      form: [
+        'formName', 'description', 'status', 'created', 'updated', 
+        'custom.department', 'custom.category', 'custom.priority'
+      ]
     },
     intakeq: {
-      contact: ['firstName', 'lastName', 'email', 'phoneNumber', 'address', 'city', 'state', 'zipCode', 'country', 'customFields'],
-      appointment: ['appointmentDate', 'duration', 'title', 'description', 'status', 'location', 'provider'],
-      form: ['formTitle', 'description', 'status', 'createdAt', 'updatedAt', 'formFields']
+      contact: [
+        'firstName', 'lastName', 'email', 'phoneNumber', 'address', 'city', 'state', 
+        'zipCode', 'country', 'dateOfBirth', 'gender', 'occupation',
+        'custom.emergencyContact', 'custom.referredBy', 'custom.primaryLanguage', 
+        'custom.insuranceCompany', 'custom.memberID', 'custom.medicalHistory'
+      ],
+      appointment: [
+        'appointmentDate', 'duration', 'title', 'description', 'status', 'location', 
+        'provider', 'custom.virtualMeeting', 'custom.followUpDate', 'custom.notes'
+      ],
+      form: [
+        'formTitle', 'description', 'status', 'createdAt', 'updatedAt', 'formFields',
+        'custom.department', 'custom.requiredDocuments', 'custom.expirationDate'
+      ]
     }
   };
 
@@ -57,6 +80,8 @@ const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Prom
 export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: FieldMappingProps) => {
   const { toast } = useToast();
   const [isDiscovering, setIsDiscovering] = useState<Record<string, boolean>>({});
+  const [editingField, setEditingField] = useState<{dataType: string, fieldName: string, side: 'ghl' | 'intakeq'} | null>(null);
+  const [editValue, setEditValue] = useState('');
   
   const handleFieldSyncChange = (dataType: string, field: string, checked: boolean) => {
     const newMapping = { ...fieldMapping };
@@ -114,7 +139,34 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     return fields.some(field => field.sync);
   };
 
-  // Function to discover available fields from both systems
+  // Handle starting field name edit
+  const handleStartEdit = (dataType: string, fieldName: string, side: 'ghl' | 'intakeq') => {
+    const currentValue = side === 'ghl' 
+      ? fieldMapping[dataType].fields[fieldName].ghlField || fieldName 
+      : fieldMapping[dataType].fields[fieldName].intakeqField || fieldName;
+    
+    setEditingField({ dataType, fieldName, side });
+    setEditValue(currentValue);
+  };
+
+  // Handle saving field name edit
+  const handleSaveEdit = () => {
+    if (editingField) {
+      const { dataType, fieldName, side } = editingField;
+      const newMapping = { ...fieldMapping };
+      
+      if (side === 'ghl') {
+        newMapping[dataType].fields[fieldName].ghlField = editValue;
+      } else {
+        newMapping[dataType].fields[fieldName].intakeqField = editValue;
+      }
+      
+      onChange(newMapping);
+      setEditingField(null);
+    }
+  };
+
+  // Enhanced function to discover available fields from both systems
   const handleDiscoverFields = async (dataType: string) => {
     try {
       setIsDiscovering({ ...isDiscovering, [dataType]: true });
@@ -125,28 +177,87 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
         discoverFields('intakeq', dataType)
       ]);
       
-      // Create a set of all unique field names from both systems
-      const allFields = new Set([...ghlFields, ...intakeqFields].map(field => field.toLowerCase()));
-      
-      // Create a new mapping with discovered fields
       const newMapping = { ...fieldMapping };
       
-      // For each discovered field, add it to the mapping if it doesn't already exist
-      allFields.forEach(field => {
-        const normalizedField = field.toLowerCase().replace(/\s+/g, '_');
-        
-        if (!newMapping[dataType].fields[normalizedField]) {
-          // Find the corresponding field in each system
-          const ghlField = ghlFields.find(f => f.toLowerCase() === field) || normalizedField;
-          const intakeqField = intakeqFields.find(f => f.toLowerCase() === field) || normalizedField;
+      // Process GHL fields, including custom fields
+      ghlFields.forEach(field => {
+        // Check if it's a custom field
+        if (field.startsWith('custom.')) {
+          const customFieldName = field.split('.')[1].toLowerCase();
+          const existingFieldKey = Object.keys(newMapping[dataType].fields).find(
+            key => newMapping[dataType].fields[key].ghlField?.toLowerCase() === field.toLowerCase()
+          );
           
-          // Add the new field to the mapping
-          newMapping[dataType].fields[normalizedField] = {
-            sync: false,
-            direction: 'bidirectional',
-            ghlField,
-            intakeqField
-          };
+          if (!existingFieldKey) {
+            // Create new field entry
+            const normalizedName = `custom_${customFieldName}`;
+            newMapping[dataType].fields[normalizedName] = {
+              sync: false,
+              direction: 'bidirectional',
+              ghlField: field,
+              intakeqField: ''
+            };
+          }
+        } else {
+          // Regular field
+          const normalizedField = field.toLowerCase().replace(/\s+/g, '_');
+          
+          if (!newMapping[dataType].fields[normalizedField]) {
+            newMapping[dataType].fields[normalizedField] = {
+              sync: false,
+              direction: 'bidirectional',
+              ghlField: field,
+              intakeqField: ''
+            };
+          } else if (!newMapping[dataType].fields[normalizedField].ghlField) {
+            newMapping[dataType].fields[normalizedField].ghlField = field;
+          }
+        }
+      });
+      
+      // Process IntakeQ fields, including custom fields
+      intakeqFields.forEach(field => {
+        // Check if it's a custom field
+        if (field.startsWith('custom.')) {
+          const customFieldName = field.split('.')[1].toLowerCase();
+          const existingFieldKey = Object.keys(newMapping[dataType].fields).find(
+            key => newMapping[dataType].fields[key].intakeqField?.toLowerCase() === field.toLowerCase()
+          );
+          
+          if (!existingFieldKey) {
+            // Create new field entry or find matching GHL custom field
+            const matchingGhlField = Object.keys(newMapping[dataType].fields).find(
+              key => key.startsWith('custom_') && key.substring(7) === customFieldName
+            );
+            
+            if (matchingGhlField) {
+              // Update existing entry if field names match
+              newMapping[dataType].fields[matchingGhlField].intakeqField = field;
+            } else {
+              // Create new entry
+              const normalizedName = `custom_${customFieldName}`;
+              newMapping[dataType].fields[normalizedName] = {
+                sync: false,
+                direction: 'bidirectional',
+                ghlField: '',
+                intakeqField: field
+              };
+            }
+          }
+        } else {
+          // Regular field
+          const normalizedField = field.toLowerCase().replace(/\s+/g, '_');
+          
+          if (!newMapping[dataType].fields[normalizedField]) {
+            newMapping[dataType].fields[normalizedField] = {
+              sync: false,
+              direction: 'bidirectional',
+              ghlField: '',
+              intakeqField: field
+            };
+          } else if (!newMapping[dataType].fields[normalizedField].intakeqField) {
+            newMapping[dataType].fields[normalizedField].intakeqField = field;
+          }
         }
       });
       
@@ -155,7 +266,7 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
       
       toast({
         title: "Fields discovered",
-        description: `${allFields.size} fields found for ${dataType}`,
+        description: `${ghlFields.length + intakeqFields.length} total fields found for ${dataType}`,
       });
     } catch (error) {
       console.error(`Error discovering fields for ${dataType}:`, error);
@@ -279,10 +390,42 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                         <div key={fieldName} className="border rounded-lg">
                           <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 hover:bg-muted/10 transition-colors">
                             {/* GHL Side */}
-                            <div className="text-left p-4 bg-background rounded-l-lg">
-                              <span className="font-medium capitalize">
-                                {fieldSettings.ghlField || fieldName.replace(/_/g, ' ')}
-                              </span>
+                            <div className="text-left p-4 bg-background rounded-l-lg flex items-center">
+                              {editingField?.dataType === dataType && 
+                               editingField?.fieldName === fieldName && 
+                               editingField?.side === 'ghl' ? (
+                                <div className="flex items-center gap-2 w-full">
+                                  <Input 
+                                    value={editValue} 
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    className="text-sm"
+                                    autoFocus
+                                  />
+                                  <Button
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={handleSaveEdit}
+                                    className="h-8 w-8"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <>
+                                  <span className="font-medium capitalize flex-grow">
+                                    {fieldSettings.ghlField || fieldName.replace(/_/g, ' ')}
+                                  </span>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleStartEdit(dataType, fieldName, 'ghl')}
+                                    disabled={disabled}
+                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                             
                             {/* Sync Controls */}
@@ -331,10 +474,42 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
                             </div>
                             
                             {/* IntakeQ Side */}
-                            <div className="text-right p-4 bg-background rounded-r-lg">
-                              <span className="font-medium capitalize">
-                                {fieldSettings.intakeqField || fieldName.replace(/_/g, ' ')}
-                              </span>
+                            <div className="text-right p-4 bg-background rounded-r-lg flex items-center justify-end">
+                              {editingField?.dataType === dataType && 
+                               editingField?.fieldName === fieldName && 
+                               editingField?.side === 'intakeq' ? (
+                                <div className="flex items-center gap-2 w-full justify-end">
+                                  <Button
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={handleSaveEdit}
+                                    className="h-8 w-8"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Input 
+                                    value={editValue} 
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    className="text-sm text-right"
+                                    autoFocus
+                                  />
+                                </div>
+                              ) : (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleStartEdit(dataType, fieldName, 'intakeq')}
+                                    disabled={disabled}
+                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <span className="font-medium capitalize flex-grow text-right">
+                                    {fieldSettings.intakeqField || fieldName.replace(/_/g, ' ')}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { getApiKeys } from "@/services/apiKeys";
@@ -126,7 +127,6 @@ export const SyncFilters = ({
   const fetchIntakeQData = async () => {
     setIsLoadingIntakeQ(true);
     setIntakeqApiError(null);
-    setIntakeqRawResponse(null);
     setIntakeqDebugInfo(null);
     
     try {
@@ -187,7 +187,6 @@ export const SyncFilters = ({
       }
       
       if (data._isHtml) {
-        setIntakeqRawResponse(data._htmlSnippet || "HTML response received (no content provided)");
         throw new Error("Received HTML instead of JSON. This likely means the API key is invalid or the authentication failed.");
       }
       
@@ -210,9 +209,6 @@ export const SyncFilters = ({
             description: "No forms found in your IntakeQ account",
           });
         }
-      } else if (data.text) {
-        setIntakeqRawResponse(data.text.substring(0, 200));
-        throw new Error(`Unexpected response format: ${data.text.substring(0, 100)}...`);
       } else {
         setIntakeqApiError("Unexpected response format from IntakeQ API");
       }
