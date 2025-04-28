@@ -17,10 +17,10 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // Update: Use the correct base URL with the proper endpoint
+    // Using the correct IntakeQ API endpoints
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://app.intakeq.com/api/v1/intake-forms',
+        url: 'https://intakeq.com/api/v1/forms',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -91,10 +91,10 @@ export const fetchIntakeQData = async () => {
       }));
     }
 
-    // Update: Use the correct base URL for clients endpoint
+    // Using the correct endpoint for clients as well
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://app.intakeq.com/api/v1/clients',
+        url: 'https://intakeq.com/api/v1/clients',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key

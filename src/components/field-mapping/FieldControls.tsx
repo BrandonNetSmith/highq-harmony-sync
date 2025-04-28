@@ -13,7 +13,7 @@ export const FieldControls = ({
   disabled,
   onFieldChange,
 }: FieldControlsProps) => {
-  // Memoize the options to avoid recalculating on every render
+  // Memoize the GHL options to avoid recalculating on every render
   const ghlOptions = useMemo(() => {
     // Get the current field value, fallback to fieldName if not set
     const currentField = fieldSettings.ghlField || fieldName;
@@ -21,18 +21,21 @@ export const FieldControls = ({
     // Get available fields for this dataType, or empty array if none
     const dataTypeFields = availableFields.ghl[dataType] || [];
     
-    // Start with the current field to ensure it's always in the list
-    let options = [currentField];
-    
-    // Add discovered fields if we have them (avoiding duplicates)
+    // If we have discovered fields, use them
     if (dataTypeFields.length > 0) {
-      options = [...new Set([currentField, ...dataTypeFields])].filter(Boolean);
+      // Include the current field to ensure it's always in the list
+      if (!dataTypeFields.includes(currentField)) {
+        return [currentField, ...dataTypeFields];
+      }
+      return dataTypeFields;
     }
     
-    console.log(`GHL options for ${dataType}.${fieldName}:`, options);
-    return options;
+    // If we don't have discovered fields, just use the current field
+    return [currentField];
+    
   }, [availableFields.ghl, dataType, fieldName, fieldSettings.ghlField]);
 
+  // Memoize the IntakeQ options to avoid recalculating on every render
   const intakeqOptions = useMemo(() => {
     // Get the current field value, fallback to fieldName if not set
     const currentField = fieldSettings.intakeqField || fieldName;
@@ -40,16 +43,18 @@ export const FieldControls = ({
     // Get available fields for this dataType, or empty array if none
     const dataTypeFields = availableFields.intakeq[dataType] || [];
     
-    // Start with the current field to ensure it's always in the list
-    let options = [currentField];
-    
-    // Add discovered fields if we have them (avoiding duplicates)
+    // If we have discovered fields, use them
     if (dataTypeFields.length > 0) {
-      options = [...new Set([currentField, ...dataTypeFields])].filter(Boolean);
+      // Include the current field to ensure it's always in the list
+      if (!dataTypeFields.includes(currentField)) {
+        return [currentField, ...dataTypeFields];
+      }
+      return dataTypeFields;
     }
     
-    console.log(`IntakeQ options for ${dataType}.${fieldName}:`, options);
-    return options;
+    // If we don't have discovered fields, just use the current field
+    return [currentField];
+    
   }, [availableFields.intakeq, dataType, fieldName, fieldSettings.intakeqField]);
 
   return (
