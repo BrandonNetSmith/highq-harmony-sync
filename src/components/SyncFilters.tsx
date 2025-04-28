@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { getApiKeys } from "@/services/apiKeys";
@@ -141,9 +142,10 @@ export const SyncFilters = ({
         return;
       }
 
+      // Fix the API endpoint URL - use the correct v2 API path
       const { data, error } = await supabase.functions.invoke('proxy', {
         body: {
-          url: 'https://intakeq.com/api/v1/forms/list',
+          url: 'https://intakeq.com/api/v2/forms',
           method: 'GET',
           headers: {
             'X-Auth-Key': intakeq_key

@@ -20,6 +20,10 @@ export const FieldControls = ({
   disabled,
   onFieldChange,
 }: FieldControlsProps) => {
+  // Ensure we have all field options available or use defaults
+  const ghlOptions = availableFields.ghl[dataType] || [fieldName];
+  const intakeqOptions = availableFields.intakeq[dataType] || [fieldName];
+
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 hover:bg-muted/10 transition-colors">
       {/* GHL Side */}
@@ -35,7 +39,7 @@ export const FieldControls = ({
             <SelectValue placeholder="Select GHL field" />
           </SelectTrigger>
           <SelectContent>
-            {availableFields.ghl[dataType]?.map((field: string) => (
+            {ghlOptions.map((field: string) => (
               <SelectItem key={field} value={field}>
                 {field}
               </SelectItem>
@@ -55,40 +59,38 @@ export const FieldControls = ({
           disabled={disabled}
         />
         
-        {fieldSettings.sync && (
-          <ToggleGroup
-            type="single"
-            size="sm"
-            value={fieldSettings.direction}
-            onValueChange={(value: any) => {
-              if (value) onFieldChange(dataType, fieldName, { direction: value });
-            }}
-            className="flex gap-0 border rounded-md overflow-hidden"
-            disabled={disabled || !fieldSettings.sync}
+        <ToggleGroup
+          type="single"
+          size="sm"
+          value={fieldSettings.direction}
+          onValueChange={(value: any) => {
+            if (value) onFieldChange(dataType, fieldName, { direction: value });
+          }}
+          className="flex gap-0 border rounded-md overflow-hidden"
+          disabled={disabled || !fieldSettings.sync}
+        >
+          <ToggleGroupItem 
+            value="one_way_intakeq_to_ghl"
+            aria-label="IntakeQ to GHL"
+            className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
           >
-            <ToggleGroupItem 
-              value="one_way_intakeq_to_ghl"
-              aria-label="IntakeQ to GHL"
-              className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem 
-              value="bidirectional"
-              aria-label="Bidirectional"
-              className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-            >
-              <ArrowLeftRight className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem 
-              value="one_way_ghl_to_intakeq"
-              aria-label="GHL to IntakeQ"
-              className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-            >
-              <ArrowRight className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
-        )}
+            <ArrowLeft className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem 
+            value="bidirectional"
+            aria-label="Bidirectional"
+            className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem 
+            value="one_way_ghl_to_intakeq"
+            aria-label="GHL to IntakeQ"
+            className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {/* IntakeQ Side */}
@@ -104,7 +106,7 @@ export const FieldControls = ({
             <SelectValue placeholder="Select IntakeQ field" />
           </SelectTrigger>
           <SelectContent>
-            {availableFields.intakeq[dataType]?.map((field: string) => (
+            {intakeqOptions.map((field: string) => (
               <SelectItem key={field} value={field}>
                 {field}
               </SelectItem>
