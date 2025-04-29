@@ -1,4 +1,3 @@
-
 /**
  * Functions for handling and validating incoming requests
  */
@@ -57,12 +56,9 @@ export const executeRequest = async (url: string, options: RequestInit) => {
     console.log(`Sending ${options.method || 'GET'} request to: ${url}`);
     console.log('Request headers:', [...options.headers.entries()]);
     
-    // Check if URL contains IntakeQ and ensure it uses v2 API
-    if (url.includes('intakeq.com/api/v1')) {
-      const updatedUrl = url.replace('/api/v1/', '/api/v2/');
-      console.log(`Updated IntakeQ URL from v1 to v2: ${updatedUrl}`);
-      url = updatedUrl;
-    }
+    // IntakeQ's API structure might be different than expected
+    // Instead of modifying URLs, let's keep them as provided by the client code
+    // This gives more flexibility for the client to handle API versions
     
     const response = await fetch(url, options);
     console.log(`Received response with status: ${response.status}`);

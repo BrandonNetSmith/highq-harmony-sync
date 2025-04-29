@@ -51,10 +51,10 @@ export const fieldDiscoveryService = {
             endpoint = 'clients';
         }
         
-        // Call IntakeQ API to get sample data
+        // Call IntakeQ API to get sample data (try v1 API)
         const { data, error } = await supabase.functions.invoke('proxy', {
           body: {
-            url: `https://intakeq.com/api/v2/${endpoint}?limit=1`,
+            url: `https://intakeq.com/api/v1/${endpoint}?limit=1`,
             method: 'GET',
             headers: {
               'X-Auth-Key': intakeq_key
@@ -98,6 +98,9 @@ export const fieldDiscoveryService = {
             console.warn(`No fields found in real IntakeQ ${dataType} data, using mock data`);
             fields = getIntakeQMockFields(dataType);
           }
+        } else if (data?._error || data?._statusCode >= 400) {
+          console.warn(`IntakeQ API error for ${dataType}: ${data?._errorMessage || 'Unknown error'}`);
+          fields = getIntakeQMockFields(dataType); // Fallback to mock data
         } else {
           console.warn(`No ${dataType} data returned from IntakeQ API, using mock data`);
           fields = getIntakeQMockFields(dataType); // Fallback to mock data

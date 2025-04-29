@@ -11,6 +11,7 @@ interface ApiErrorAlertProps {
 export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
   const isHtmlError = apiError.includes("HTML");
   const is404Error = apiError.includes("404");
+  const isNonJsonError = apiError.includes("JSON");
   
   return (
     <Alert variant="destructive">
@@ -26,11 +27,7 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
             <ul className="list-disc pl-5 mt-1 text-sm">
               <li>Your API key is invalid or expired</li>
               <li>IntakeQ requires an X-Auth-Key header instead of a Bearer token</li>
-              <li>You're using an API v2 key with the v1 endpoint or vice versa</li>
             </ul>
-            <p className="mt-2 text-sm font-medium">
-              Please check your API key in the API Configuration section below and try again.
-            </p>
           </>
         )}
         {is404Error && (
@@ -39,13 +36,24 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
               The API endpoint was not found (404). This likely means:
             </p>
             <ul className="list-disc pl-5 mt-1 text-sm">
-              <li>IntakeQ API version should be v2 instead of v1</li>
-              <li>IntakeQ has changed their API structure</li>
+              <li>IntakeQ may be using a different API path structure than expected</li>
               <li>Your account may not have access to this API endpoint</li>
+              <li>The API version (v1 or v2) may be incorrect for your account</li>
             </ul>
             <p className="mt-2 text-sm font-medium">
-              Please verify your IntakeQ API key and check the correct endpoints in the IntakeQ API documentation.
+              Please check with IntakeQ support about the correct API endpoints for your account.
             </p>
+          </>
+        )}
+        {isNonJsonError && (
+          <>
+            <p className="mt-2 text-sm font-medium">
+              The API is not returning valid JSON. This likely means:
+            </p>
+            <ul className="list-disc pl-5 mt-1 text-sm">
+              <li>The API key might not have the correct permissions</li>
+              <li>The API endpoint might be returning a different format than expected</li>
+            </ul>
           </>
         )}
         {debugInfo && (
