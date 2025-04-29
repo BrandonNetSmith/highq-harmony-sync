@@ -37,6 +37,7 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
                 <p>Content-Type: {debugInfo.contentType}</p>
                 <p>IsHTML: {debugInfo.isHtml ? 'Yes' : 'No'}</p>
                 <p>Parse Error: {debugInfo.hasParseError ? 'Yes' : 'No'}</p>
+                <p>URL: {debugInfo.requestUrl}</p>
               </div>
             )}
           </>

@@ -31,7 +31,6 @@ export const IntakeQFilterCard = ({
   disabled,
   debugInfo
 }: IntakeQFilterCardProps) => {
-
   const handleAddClientId = (clientId: string, clientEmail: string) => {
     if (clientId && !filters.clientIds.includes(clientId)) {
       onFiltersChange({
