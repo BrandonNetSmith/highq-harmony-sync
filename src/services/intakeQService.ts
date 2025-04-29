@@ -17,13 +17,13 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // Using the correct API endpoint for IntakeQ - using v2 of their API
+    // Using the correct API endpoint for IntakeQ - updated to use X-Auth-Key header instead of Bearer token
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://api.intakeq.com/v2/forms',
+        url: 'https://app.intakeq.com/api/v1/forms',
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${intakeq_key}`
+          'X-Auth-Key': intakeq_key
         }
       }
     });
@@ -92,13 +92,13 @@ export const fetchIntakeQData = async () => {
       }));
     }
 
-    // Using the correct API endpoint for IntakeQ clients
+    // Update clients API endpoint and authentication method
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://api.intakeq.com/v2/clients',
+        url: 'https://app.intakeq.com/api/v1/clients',
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${intakeq_key}`
+          'X-Auth-Key': intakeq_key
         }
       }
     });
@@ -121,6 +121,13 @@ export const fetchIntakeQData = async () => {
       console.warn(`Client fetch failed with status: ${clientsData._statusCode}`);
     } else if (clientsData._empty) {
       console.log("API returned an empty response for clients");
+    } else if (clientsData._isHtml) {
+      return {
+        forms,
+        clients: [],
+        error: "Received HTML instead of JSON for clients. This likely means the API key is invalid.",
+        debugInfo
+      };
     } else if (Array.isArray(clientsData)) {
       clients = clientsData
         .filter((client) => client.email || client.emailAddress) // Only include clients with email

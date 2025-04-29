@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
@@ -78,6 +79,7 @@ export const useWebhookConfig = () => {
         url = 'https://rest.gohighlevel.com/v1/contacts/';
         headers = { 'Authorization': `Bearer ${apiKey}` };
       } else {
+        // Updated to use the correct IntakeQ API v1 endpoint and header
         url = 'https://app.intakeq.com/api/v1/clients';
         headers = { 'X-Auth-Key': apiKey };
       }

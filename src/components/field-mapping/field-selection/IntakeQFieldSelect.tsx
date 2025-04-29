@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Select,
@@ -32,9 +33,9 @@ export const IntakeQFieldSelect = ({
   // If discovery has happened and we have options, show them
   // Otherwise show an appropriate placeholder
   const displayValue = value || "";
-  const placeholder = isDiscovered 
-    ? (hasOptions ? "Select IntakeQ field" : "No fields found") 
-    : "Click 'Discover IntakeQ Fields'";
+  const placeholder = !isDiscovered 
+    ? "Click 'Discover IntakeQ Fields'" 
+    : (hasOptions ? "Select IntakeQ field" : "No fields found");
 
   return (
     <div className="text-right">

@@ -25,8 +25,8 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
             </p>
             <ul className="list-disc pl-5 mt-1 text-sm">
               <li>Your API key is invalid or expired</li>
-              <li>The IntakeQ API endpoint URL may have changed</li>
-              <li>IntakeQ may be down or experiencing issues</li>
+              <li>IntakeQ requires an X-Auth-Key header instead of a Bearer token</li>
+              <li>You're using an API v2 key with the v1 endpoint or vice versa</li>
             </ul>
             <p className="mt-2 text-sm font-medium">
               Please check your API key in the API Configuration section below and try again.
@@ -39,12 +39,12 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
               The API endpoint was not found (404). This likely means:
             </p>
             <ul className="list-disc pl-5 mt-1 text-sm">
-              <li>The IntakeQ API endpoint URL is incorrect</li>
+              <li>You may be using the wrong IntakeQ API URL (should be https://app.intakeq.com/api/v1/)</li>
               <li>IntakeQ has changed their API structure</li>
               <li>Your account may not have access to this API endpoint</li>
             </ul>
             <p className="mt-2 text-sm font-medium">
-              We're attempting to connect to IntakeQ's v2 API. If you're using a legacy API key, you may need to upgrade.
+              Please verify your IntakeQ API key and the correct endpoint in the documentation.
             </p>
           </>
         )}
