@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Select,
@@ -36,13 +37,14 @@ export const IntakeQFieldSelect = ({
     ? "Click 'Discover IntakeQ Fields'" 
     : (hasOptions ? "Select IntakeQ field" : "No fields found");
 
-  // For debugging
+  // More detailed logging to help debug field discovery issues
   console.log(`IntakeQFieldSelect[${dataType}/${fieldName}]:`, { 
     isDiscovered, 
     hasOptions, 
     optionsCount: options?.length || 0,
     value: displayValue,
-    options
+    availableOptions: options,
+    selectedField: value || 'none'
   });
 
   return (

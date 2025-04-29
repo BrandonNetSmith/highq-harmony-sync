@@ -15,14 +15,19 @@ export const fieldDiscoveryService = {
     // Ensure a consistent delay to avoid UI flashing
     await new Promise(resolve => setTimeout(resolve, 1000));
     
+    // Use the corresponding mock data function based on the system
+    let fields: string[] = [];
+    
     if (system === 'ghl') {
-      const fields = getGHLMockFields(dataType);
-      console.log(`Discovered ${fields.length} GHL fields for ${dataType}`, fields);
-      return fields;
+      fields = getGHLMockFields(dataType);
     } else {
-      const fields = getIntakeQMockFields(dataType);
-      console.log(`Discovered ${fields.length} IntakeQ fields for ${dataType}`, fields);
-      return fields;
+      fields = getIntakeQMockFields(dataType);
     }
+    
+    // Log the results for debugging
+    console.log(`Discovered ${fields.length} ${system.toUpperCase()} fields for ${dataType}:`, fields);
+    
+    // Return all discovered fields
+    return fields;
   }
 };
