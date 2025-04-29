@@ -55,7 +55,7 @@ export const GHLFieldSelect = ({
               </SelectItem>
             ))
           ) : (
-            <SelectItem key="no-fields-placeholder" value="no-fields-placeholder">
+            <SelectItem key="no-fields-placeholder" value="no-fields-placeholder" disabled>
               {isDiscovered ? "No fields found" : "Click 'Discover GHL Fields' first"}
             </SelectItem>
           )}

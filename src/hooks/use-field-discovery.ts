@@ -99,7 +99,7 @@ export const useFieldDiscovery = () => {
       // Filter out any empty values
       const filteredFields = newFields.filter(field => !!field);
       
-      // Only update the fields for the specific system and dataType
+      // Update the fields for the specific system and dataType
       setAvailableFields(prev => {
         const updated = { ...prev };
         updated[system] = {

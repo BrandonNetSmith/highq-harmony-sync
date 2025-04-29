@@ -24,6 +24,13 @@ export const FieldMappingHeader = ({
   const isIntakeqFormDiscovering = isDiscovering['intakeq_form'] || false;
   const isAnyIntakeqDiscovering = isIntakeqContactDiscovering || isIntakeqAppointmentDiscovering || isIntakeqFormDiscovering;
 
+  // Function to handle discovery for all data types for a system
+  const handleDiscoverAll = (system: 'ghl' | 'intakeq') => {
+    onDiscoverFields(system, 'contact');
+    onDiscoverFields(system, 'appointment');
+    onDiscoverFields(system, 'form');
+  };
+
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] gap-4 mb-4">
       <div className="flex flex-col gap-2">
@@ -31,13 +38,13 @@ export const FieldMappingHeader = ({
         <Button
           variant={isAnyGhlDiscovering ? "secondary" : "outline"}
           size="sm"
-          onClick={() => onDiscoverFields('ghl', 'contact')}
+          onClick={() => handleDiscoverAll('ghl')}
           disabled={isAnyGhlDiscovering}
           className="flex items-center gap-2 self-start"
-          title="Discover available GoHighLevel contact fields"
+          title="Discover available GoHighLevel fields"
         >
-          <RefreshCw className={`h-4 w-4 ${isGhlContactDiscovering ? 'animate-spin' : ''}`} />
-          <span>{isGhlContactDiscovering ? "Discovering..." : "Discover GHL Fields"}</span>
+          <RefreshCw className={`h-4 w-4 ${isAnyGhlDiscovering ? 'animate-spin' : ''}`} />
+          <span>{isAnyGhlDiscovering ? "Discovering..." : "Discover GHL Fields"}</span>
         </Button>
       </div>
       <div className="flex items-center justify-center font-medium">Sync Direction</div>
@@ -46,13 +53,13 @@ export const FieldMappingHeader = ({
         <Button
           variant={isAnyIntakeqDiscovering ? "secondary" : "outline"}
           size="sm"
-          onClick={() => onDiscoverFields('intakeq', 'contact')}
+          onClick={() => handleDiscoverAll('intakeq')}
           disabled={isAnyIntakeqDiscovering}
           className="flex items-center gap-2"
-          title="Discover available IntakeQ contact fields"
+          title="Discover available IntakeQ fields"
         >
-          <RefreshCw className={`h-4 w-4 ${isIntakeqContactDiscovering ? 'animate-spin' : ''}`} />
-          <span>{isIntakeqContactDiscovering ? "Discovering..." : "Discover IntakeQ Fields"}</span>
+          <RefreshCw className={`h-4 w-4 ${isAnyIntakeqDiscovering ? 'animate-spin' : ''}`} />
+          <span>{isAnyIntakeqDiscovering ? "Discovering..." : "Discover IntakeQ Fields"}</span>
         </Button>
       </div>
     </div>
