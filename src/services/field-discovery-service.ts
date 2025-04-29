@@ -69,6 +69,9 @@ export const fieldDiscoveryService = {
           // Extract field names from the first item
           const sampleItem = data[0];
           
+          // Extra log to debug the structure of the data
+          console.log(`IntakeQ ${dataType} sample data:`, JSON.stringify(sampleItem).substring(0, 500) + "...");
+          
           // Extract all fields recursively from the object
           const extractFields = (obj: any, prefix = ''): string[] => {
             if (!obj || typeof obj !== 'object') return [];
@@ -91,9 +94,22 @@ export const fieldDiscoveryService = {
             }, []);
           };
           
-          fields = extractFields(sampleItem);
+          const extractedFields = extractFields(sampleItem);
+          console.log(`Extracted fields from IntakeQ ${dataType}:`, extractedFields);
           
-          // If we couldn't extract any fields, fall back to mock data
+          // Use the extracted fields if we found any
+          if (extractedFields.length > 0) {
+            fields = extractedFields;
+          } else {
+            // If we couldn't extract fields from the object structure, use the keys directly
+            // This is more of a fallback approach
+            fields = Object.keys(sampleItem)
+              .filter(key => !key.startsWith('_') && key !== 'id' && key !== 'client_id' && key !== 'form_id');
+            
+            console.log(`Using direct keys for IntakeQ ${dataType}:`, fields);
+          }
+          
+          // If we still couldn't extract any fields, fall back to mock data
           if (fields.length === 0) {
             console.warn(`No fields found in real IntakeQ ${dataType} data, using mock data`);
             fields = getIntakeQMockFields(dataType);

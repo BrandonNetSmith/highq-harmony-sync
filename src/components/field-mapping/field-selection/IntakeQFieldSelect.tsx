@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Select,
   SelectContent,
@@ -36,6 +36,22 @@ export const IntakeQFieldSelect = ({
   const placeholder = !isDiscovered 
     ? "Click 'Discover IntakeQ Fields'" 
     : (hasOptions ? "Select IntakeQ field" : "No fields found");
+
+  // Auto-apply matching fields when options change
+  useEffect(() => {
+    if (isDiscovered && hasOptions && !value && fieldName) {
+      // Check if we have a direct field name match in the options
+      const matchedField = options.find(field => 
+        field.toLowerCase() === fieldName.toLowerCase() ||
+        field.toLowerCase().includes(fieldName.toLowerCase())
+      );
+      
+      if (matchedField) {
+        console.log(`Auto-matching ${fieldName} to IntakeQ field: ${matchedField}`);
+        onChange(matchedField);
+      }
+    }
+  }, [options, isDiscovered, hasOptions, fieldName, value, onChange]);
 
   // More detailed logging to help debug field discovery issues
   console.log(`IntakeQFieldSelect[${dataType}/${fieldName}]:`, { 

@@ -59,8 +59,8 @@ export const useFieldDiscovery = () => {
       const newFields = await fieldDiscoveryService.discoverFields(system, dataType);
       console.log(`Discovery completed for ${system} ${dataType}:`, newFields);
       
-      // Filter out any empty values
-      const filteredFields = newFields.filter(field => !!field);
+      // Filter out any empty values and enforce uniqueness
+      const filteredFields = [...new Set(newFields.filter(field => !!field))];
       
       // Update the fields for the specific system and dataType
       setAvailableFields(prev => {
@@ -105,11 +105,6 @@ export const useFieldDiscovery = () => {
       }, 500);
     }
   };
-
-  /**
-   * This function has been removed since we're now handling individual field types
-   * directly in the UI with separate buttons for each data type
-   */
 
   return {
     isDiscovering,
