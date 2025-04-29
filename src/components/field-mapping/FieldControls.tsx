@@ -12,6 +12,7 @@ export const FieldControls = ({
   availableFields,
   disabled,
   onFieldChange,
+  discoveredFields = {},
 }: FieldControlsProps) => {
   // Memoize the GHL options to avoid recalculating on every render
   const ghlOptions = useMemo(() => {
@@ -25,6 +26,10 @@ export const FieldControls = ({
     return availableFields.intakeq[dataType] || [];
   }, [availableFields.intakeq, dataType]);
 
+  // Check if fields have been discovered for each system
+  const isGhlDiscovered = discoveredFields?.[`ghl_${dataType}`] || false;
+  const isIntakeqDiscovered = discoveredFields?.[`intakeq_${dataType}`] || false;
+
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 py-2 px-2 border-b border-border last:border-b-0">
       <div className="w-full">
@@ -37,6 +42,7 @@ export const FieldControls = ({
           disabled={disabled}
           dataType={dataType}
           fieldName={fieldName}
+          isDiscovered={isGhlDiscovered}
         />
       </div>
 
@@ -62,6 +68,7 @@ export const FieldControls = ({
           disabled={disabled}
           dataType={dataType}
           fieldName={fieldName}
+          isDiscovered={isIntakeqDiscovered}
         />
       </div>
     </div>

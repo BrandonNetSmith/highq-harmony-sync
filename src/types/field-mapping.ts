@@ -36,6 +36,7 @@ export interface FieldControlsProps {
     intakeq: { [key: string]: string[] };
   };
   disabled?: boolean;
+  discoveredFields?: Record<string, boolean>;
   onFieldChange: (
     dataType: string,
     fieldName: string,

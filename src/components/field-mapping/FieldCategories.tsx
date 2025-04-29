@@ -23,6 +23,7 @@ interface FieldCategoriesProps {
   onCategoryDirectionChange: (dataType: string, direction: SyncDirection) => void;
   getCategoryDirection: (dataType: string) => SyncDirection | null;
   getCategorySyncStatus: (dataType: string) => boolean;
+  discoveredFields?: Record<string, boolean>;
 }
 
 export const FieldCategories = ({
@@ -36,6 +37,7 @@ export const FieldCategories = ({
   onCategoryDirectionChange,
   getCategoryDirection,
   getCategorySyncStatus,
+  discoveredFields = {},
 }: FieldCategoriesProps) => {
   return (
     <Accordion type="multiple" className="w-full">
@@ -63,6 +65,7 @@ export const FieldCategories = ({
                     availableFields={availableFields}
                     disabled={disabled}
                     onFieldChange={onFieldChange}
+                    discoveredFields={discoveredFields}
                   />
                 ))}
               </div>

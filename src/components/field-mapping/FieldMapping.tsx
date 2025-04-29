@@ -16,7 +16,7 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
   const { toast } = useToast();
   const [isSyncingNow, setSyncingNow] = useState(false);
   const [isAutoSyncEnabled, setAutoSyncEnabled] = useState(false);
-  const { isDiscovering, availableFields, handleDiscoverFields } = useFieldDiscovery();
+  const { isDiscovering, availableFields, discoveredFields, handleDiscoverFields } = useFieldDiscovery();
 
   const handleFieldChange = (dataType: string, fieldName: string, updates: any) => {
     const newMapping = { ...fieldMapping };
@@ -133,6 +133,7 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
           onCategoryDirectionChange={handleCategoryDirectionChange}
           getCategoryDirection={getCategoryDirection}
           getCategorySyncStatus={getCategorySyncStatus}
+          discoveredFields={discoveredFields}
         />
       </CardContent>
     </Card>

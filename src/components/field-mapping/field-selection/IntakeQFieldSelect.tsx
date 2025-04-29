@@ -15,6 +15,7 @@ interface IntakeQFieldSelectProps {
   disabled?: boolean;
   dataType?: string;
   fieldName?: string;
+  isDiscovered?: boolean;
 }
 
 export const IntakeQFieldSelect = ({
@@ -23,30 +24,31 @@ export const IntakeQFieldSelect = ({
   onChange,
   disabled,
   dataType,
-  fieldName
+  fieldName,
+  isDiscovered = false
 }: IntakeQFieldSelectProps) => {
   // Make sure we always have valid options
   const validOptions = options.filter(Boolean);
   
-  // Check if fields have been discovered
-  const hasDiscoveredFields = validOptions.length > 0;
+  // Only show options if fields have been discovered
+  const hasOptions = isDiscovered && validOptions.length > 0;
   
-  // If there are no discovered fields, just show the field name or a placeholder
-  const displayValue = hasDiscoveredFields ? value : (fieldName || "");
-  const placeholder = hasDiscoveredFields ? "Select IntakeQ field" : "Click 'Discover IntakeQ Fields'";
+  // If there are no discovered fields, show placeholder
+  const displayValue = hasOptions ? value : "";
+  const placeholder = hasOptions ? "Select IntakeQ field" : "Click 'Discover IntakeQ Fields'";
 
   return (
     <div className="text-right">
       <Select
         value={displayValue}
         onValueChange={onChange}
-        disabled={disabled || !hasDiscoveredFields}
+        disabled={disabled || !hasOptions}
       >
         <SelectTrigger className="w-full">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {hasDiscoveredFields ? (
+          {hasOptions ? (
             // Show discovered fields if available
             validOptions.map((field: string) => (
               <SelectItem key={field} value={field}>

@@ -17,7 +17,7 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // Using the correct IntakeQ API endpoints with app.intakeq.com domain
+    // Using the correct API domain - app.intakeq.com
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
         url: 'https://app.intakeq.com/api/v1/forms',
@@ -66,7 +66,7 @@ export const fetchIntakeQData = async () => {
       };
     }
     
-    let forms: {id: string, name: string}[] = [];
+    let forms = [];
     
     if (formsData._empty) {
       console.log("API returned an empty response for forms");
@@ -85,7 +85,7 @@ export const fetchIntakeQData = async () => {
         debugInfo
       };
     } else if (Array.isArray(formsData)) {
-      forms = formsData.map((form: any) => ({
+      forms = formsData.map((form) => ({
         id: form.id || form.formId,
         name: form.name || form.title || `Form ${form.id}`
       }));
@@ -114,7 +114,7 @@ export const fetchIntakeQData = async () => {
     
     console.log("IntakeQ Clients API response:", clientsData);
     
-    let clients: {id: string, email: string}[] = [];
+    let clients = [];
     
     if (clientsData._statusCode >= 400) {
       console.warn(`Client fetch failed with status: ${clientsData._statusCode}`);
@@ -122,8 +122,8 @@ export const fetchIntakeQData = async () => {
       console.log("API returned an empty response for clients");
     } else if (Array.isArray(clientsData)) {
       clients = clientsData
-        .filter((client: any) => client.emailAddress) // Only include clients with email
-        .map((client: any) => ({
+        .filter((client) => client.emailAddress) // Only include clients with email
+        .map((client) => ({
           id: client.id,
           email: client.emailAddress
         }));

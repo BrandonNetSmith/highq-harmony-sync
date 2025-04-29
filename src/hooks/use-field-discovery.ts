@@ -8,6 +8,10 @@ type SyncDirection = Database["public"]["Enums"]["sync_direction"];
 export const useFieldDiscovery = () => {
   const { toast } = useToast();
   const [isDiscovering, setIsDiscovering] = useState<Record<string, boolean>>({});
+  const [discoveredFields, setDiscoveredFields] = useState<Record<string, boolean>>({
+    ghl_contact: false,
+    intakeq_contact: false
+  });
   const [availableFields, setAvailableFields] = useState({
     ghl: {
       contact: [] as string[],
@@ -78,7 +82,7 @@ export const useFieldDiscovery = () => {
     try {
       console.log(`Starting discovery for ${system} ${dataType}`);
       
-      // Mark the specific dataType as discovering within the specific system
+      // Mark the specific dataType as discovering
       setIsDiscovering(prev => ({ 
         ...prev, 
         [`${system}_${dataType}`]: true
@@ -88,23 +92,24 @@ export const useFieldDiscovery = () => {
       const newFields = await discoverFields(system, dataType);
       console.log(`Discovery completed for ${system} ${dataType}:`, newFields);
       
-      // Filter out any empty values to prevent blank spaces
+      // Filter out any empty values
       const filteredFields = newFields.filter(field => !!field);
       
-      // Update ONLY the selected system's fields without affecting the other system
+      // Only update the fields for the specific system
       setAvailableFields(prev => {
-        // Create a new object to avoid mutation
         const updated = { ...prev };
-        
-        // Only update the fields for the specific system and dataType
         updated[system] = {
           ...updated[system],
           [dataType]: filteredFields
         };
-        
-        console.log(`Updated available fields for ${system}.${dataType}:`, updated[system][dataType]);
         return updated;
       });
+
+      // Mark this system and dataType as having been discovered
+      setDiscoveredFields(prev => ({
+        ...prev,
+        [`${system}_${dataType}`]: true
+      }));
 
       toast({
         title: "Fields discovered",
@@ -129,6 +134,7 @@ export const useFieldDiscovery = () => {
   return {
     isDiscovering,
     availableFields,
+    discoveredFields,
     handleDiscoverFields
   };
 };
