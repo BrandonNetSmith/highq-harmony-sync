@@ -1,89 +1,27 @@
 
-import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import type { Database } from "@/integrations/supabase/types";
+import { fieldDiscoveryService } from "@/services/field-discovery-service";
+import { useDiscoveryState } from "./field-discovery/discovery-state";
+import type { DiscoverySystem, DataType } from "./field-discovery/types";
 
-type SyncDirection = Database["public"]["Enums"]["sync_direction"];
-
+/**
+ * Hook for discovering and managing fields from different systems
+ */
 export const useFieldDiscovery = () => {
   const { toast } = useToast();
-  const [isDiscovering, setIsDiscovering] = useState<Record<string, boolean>>({});
-  const [discoveredFields, setDiscoveredFields] = useState<Record<string, boolean>>({
-    ghl_contact: false,
-    ghl_appointment: false,
-    ghl_form: false,
-    intakeq_contact: false,
-    intakeq_appointment: false,
-    intakeq_form: false
-  });
-  const [availableFields, setAvailableFields] = useState({
-    ghl: {
-      contact: [] as string[],
-      appointment: [] as string[],
-      form: [] as string[]
-    },
-    intakeq: {
-      contact: [] as string[],
-      appointment: [] as string[],
-      form: [] as string[]
-    }
-  });
+  const {
+    isDiscovering,
+    setIsDiscovering,
+    discoveredFields,
+    setDiscoveredFields,
+    availableFields,
+    setAvailableFields
+  } = useDiscoveryState();
 
-  // This simulates an API call to discover fields
-  const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<string[]> => {
-    console.log(`Discovering fields for ${system} ${dataType}`);
-    
-    // Ensure a consistent delay to avoid UI flashing
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Hardcoded field mapping for both systems
-    if (system === 'ghl') {
-      switch(dataType) {
-        case 'contact':
-          return [
-            'firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zip',
-            'custom.preferredContactMethod', 'custom.leadSource', 'custom.insuranceProvider',
-            'dateOfBirth', 'companyName', 'tags', 'source', 'assignedTo', 'notes'
-          ];
-        case 'appointment':
-          return [
-            'startTime', 'endTime', 'title', 'description', 'location', 'status',
-            'notes', 'reminders', 'assignedTo', 'custom.appointmentType', 'custom.preAppointmentNotes'
-          ];
-        case 'form':
-          return [
-            'formName', 'createdDate', 'status', 'isActive', 'fields',
-            'custom.formCategory', 'custom.displayOrder', 'custom.requiredFields'
-          ];
-        default:
-          return [];
-      }
-    } else { // IntakeQ fields
-      switch(dataType) {
-        case 'contact':
-          return [
-            'firstName', 'lastName', 'email', 'phoneNumber', 'address', 'city', 'state', 'zipCode',
-            'dateOfBirth', 'gender', 'emergencyContact', 'insuranceInfo', 'clientNotes',
-            'custom.firstVisitDate', 'custom.patientID', 'custom.referralSource'
-          ];
-        case 'appointment':
-          return [
-            'appointmentDate', 'startTime', 'endTime', 'appointmentType', 'practitioner',
-            'location', 'roomNumber', 'status', 'notes', 'custom.followUpRequired',
-            'custom.appointmentPurpose', 'custom.visitNumber'
-          ];
-        case 'form':
-          return [
-            'formTitle', 'createdAt', 'updatedAt', 'status', 'formFields',
-            'isTemplate', 'custom.formCategory', 'custom.displayOrder', 'custom.requiredSignature'
-          ];
-        default:
-          return [];
-      }
-    }
-  };
-
-  const handleDiscoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<void> => {
+  /**
+   * Handles the discovery of fields for a specific system and data type
+   */
+  const handleDiscoverFields = async (system: DiscoverySystem, dataType: DataType): Promise<void> => {
     try {
       console.log(`Starting discovery for ${system} ${dataType}`);
       
@@ -94,7 +32,7 @@ export const useFieldDiscovery = () => {
       }));
       
       // Discover fields for the selected system and dataType
-      const newFields = await discoverFields(system, dataType);
+      const newFields = await fieldDiscoveryService.discoverFields(system, dataType);
       console.log(`Discovery completed for ${system} ${dataType}:`, newFields);
       
       // Filter out any empty values
@@ -142,7 +80,10 @@ export const useFieldDiscovery = () => {
     }
   };
 
-  const handleDiscoverAllFields = async (system: 'ghl' | 'intakeq'): Promise<void> => {
+  /**
+   * Handles the discovery of all fields for a specific system
+   */
+  const handleDiscoverAllFields = async (system: DiscoverySystem): Promise<void> => {
     try {
       console.log(`Starting discovery for all ${system} fields`);
       
@@ -156,9 +97,9 @@ export const useFieldDiscovery = () => {
       
       // Discover fields for all data types in parallel
       const [contactFields, appointmentFields, formFields] = await Promise.all([
-        discoverFields(system, 'contact'),
-        discoverFields(system, 'appointment'),
-        discoverFields(system, 'form')
+        fieldDiscoveryService.discoverFields(system, 'contact'),
+        fieldDiscoveryService.discoverFields(system, 'appointment'),
+        fieldDiscoveryService.discoverFields(system, 'form')
       ]);
       
       console.log(`Discovery completed for all ${system} fields`);
