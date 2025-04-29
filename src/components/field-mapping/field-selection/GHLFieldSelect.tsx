@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Select,
@@ -54,7 +55,7 @@ export const GHLFieldSelect = ({
               </SelectItem>
             ))
           ) : (
-            <SelectItem value="" disabled>
+            <SelectItem key="no-fields-placeholder" value="no-fields-placeholder">
               {isDiscovered ? "No fields found" : "Click 'Discover GHL Fields' first"}
             </SelectItem>
           )}
