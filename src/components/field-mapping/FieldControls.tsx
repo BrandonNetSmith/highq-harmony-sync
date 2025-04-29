@@ -25,7 +25,7 @@ export const FieldControls = ({
     if (dataTypeFields.length > 0) {
       // Include the current field to ensure it's always in the list
       if (!dataTypeFields.includes(currentField)) {
-        return [currentField, ...dataTypeFields];
+        return [...dataTypeFields, currentField];
       }
       return dataTypeFields;
     }
@@ -47,7 +47,7 @@ export const FieldControls = ({
     if (dataTypeFields.length > 0) {
       // Include the current field to ensure it's always in the list
       if (!dataTypeFields.includes(currentField)) {
-        return [currentField, ...dataTypeFields];
+        return [...dataTypeFields, currentField];
       }
       return dataTypeFields;
     }

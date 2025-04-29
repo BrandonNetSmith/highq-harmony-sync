@@ -27,11 +27,6 @@ export const GHLFieldSelect = ({
 }: GHLFieldSelectProps) => {
   // Make sure we always have valid options
   const validOptions = options.filter(Boolean);
-  
-  // Make sure the current value is always in the options list
-  if (value && !validOptions.includes(value)) {
-    validOptions.push(value);
-  }
 
   return (
     <div className="text-left">
@@ -51,7 +46,7 @@ export const GHLFieldSelect = ({
           ))}
           {validOptions.length === 0 && (
             <SelectItem value={value || fieldName || ""} disabled>
-              No fields available
+              Click "Discover GHL Fields" first
             </SelectItem>
           )}
         </SelectContent>
