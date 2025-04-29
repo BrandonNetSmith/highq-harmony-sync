@@ -31,6 +31,15 @@ export const IntakeQFilterCard = ({
   disabled,
   debugInfo
 }: IntakeQFilterCardProps) => {
+  // Convert the function to handle timeouts
+  const handleFetchClick = () => {
+    // Prevent double-clicks
+    if (isLoading) return;
+    
+    // Call the passed onFetchData function
+    onFetchData();
+  };
+
   const handleAddClientId = (clientId: string, clientEmail: string) => {
     if (clientId && !filters.clientIds.includes(clientId)) {
       onFiltersChange({
@@ -71,12 +80,12 @@ export const IntakeQFilterCard = ({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={onFetchData}
+            onClick={handleFetchClick}
             disabled={isLoading || disabled}
             className="flex items-center gap-2"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span>Fetch Options</span>
+            <span>{isLoading ? "Fetching..." : "Fetch Options"}</span>
           </Button>
         </CardTitle>
         <CardDescription>Filter which IntakeQ records to sync</CardDescription>
@@ -91,7 +100,7 @@ export const IntakeQFilterCard = ({
           availableClients={availableClients}
           onAddClient={handleAddClientId}
           onRemoveClient={handleRemoveClientId}
-          disabled={disabled}
+          disabled={disabled || isLoading}
         />
         
         <FormsFilter
@@ -99,7 +108,7 @@ export const IntakeQFilterCard = ({
           availableForms={availableForms}
           onAddForm={handleAddFormId}
           onRemoveForm={handleRemoveFormId}
-          disabled={disabled}
+          disabled={disabled || isLoading}
         />
       </CardContent>
     </Card>

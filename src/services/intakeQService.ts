@@ -20,7 +20,7 @@ export const fetchIntakeQData = async () => {
     // Updated endpoint based on IntakeQ API documentation
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/v2/forms', // Updated to v2 API path
+        url: 'https://intakeq.com/api/v2/forms', // Using v2 API with correct endpoint
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -41,15 +41,15 @@ export const fetchIntakeQData = async () => {
     console.log("IntakeQ Forms API response:", formsData);
     
     const debugInfo = {
-      statusCode: formsData._statusCode,
-      contentType: formsData._contentType,
-      isHtml: formsData._isHtml,
-      hasParseError: !!formsData._parseError,
-      requestUrl: formsData._requestUrl || 'Unknown URL',
-      errorMessage: formsData._errorMessage || null
+      statusCode: formsData?._statusCode,
+      contentType: formsData?._contentType,
+      isHtml: !!formsData?._isHtml,
+      hasParseError: !!formsData?._parseError,
+      requestUrl: formsData?._requestUrl || 'Unknown URL',
+      errorMessage: formsData?._errorMessage || null
     };
     
-    if (formsData._error) {
+    if (formsData?._error) {
       return {
         forms: [],
         clients: [],
@@ -58,7 +58,7 @@ export const fetchIntakeQData = async () => {
       };
     }
     
-    if (formsData._statusCode >= 400) {
+    if (formsData?._statusCode >= 400) {
       return {
         forms: [],
         clients: [],
@@ -69,16 +69,16 @@ export const fetchIntakeQData = async () => {
     
     let forms = [];
     
-    if (formsData._empty) {
+    if (formsData?._empty) {
       console.log("API returned an empty response for forms");
-    } else if (formsData._isHtml) {
+    } else if (formsData?._isHtml) {
       return {
         forms: [],
         clients: [],
         error: "Received HTML instead of JSON. This likely means the API key is invalid or the authentication failed.",
         debugInfo
       };
-    } else if (formsData._parseError) {
+    } else if (formsData?._parseError) {
       return {
         forms: [],
         clients: [],
@@ -92,10 +92,10 @@ export const fetchIntakeQData = async () => {
       }));
     }
 
-    // Updated endpoint for clients
+    // Updated endpoint for clients with v2 API
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/v2/clients', // Updated to v2 API path
+        url: 'https://intakeq.com/api/v2/clients',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -117,11 +117,11 @@ export const fetchIntakeQData = async () => {
     
     let clients = [];
     
-    if (clientsData._statusCode >= 400) {
+    if (clientsData?._statusCode >= 400) {
       console.warn(`Client fetch failed with status: ${clientsData._statusCode}`);
-    } else if (clientsData._empty) {
+    } else if (clientsData?._empty) {
       console.log("API returned an empty response for clients");
-    } else if (clientsData._isHtml) {
+    } else if (clientsData?._isHtml) {
       return {
         forms,
         clients: [],

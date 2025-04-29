@@ -1,3 +1,4 @@
+
 /**
  * Functions for handling and validating incoming requests
  */
@@ -55,6 +56,14 @@ export const executeRequest = async (url: string, options: RequestInit) => {
   try {
     console.log(`Sending ${options.method || 'GET'} request to: ${url}`);
     console.log('Request headers:', [...options.headers.entries()]);
+    
+    // Check if URL contains IntakeQ and ensure it uses v2 API
+    if (url.includes('intakeq.com/api/v1')) {
+      const updatedUrl = url.replace('/api/v1/', '/api/v2/');
+      console.log(`Updated IntakeQ URL from v1 to v2: ${updatedUrl}`);
+      url = updatedUrl;
+    }
+    
     const response = await fetch(url, options);
     console.log(`Received response with status: ${response.status}`);
     return { response, error: null };
