@@ -2,9 +2,6 @@
 import React from 'react';
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Database } from "@/integrations/supabase/types";
-
-type SyncDirection = Database["public"]["Enums"]["sync_direction"];
 
 interface FieldMappingHeaderProps {
   isDiscovering: Record<string, boolean>;
@@ -15,39 +12,47 @@ export const FieldMappingHeader = ({
   isDiscovering,
   onDiscoverFields
 }: FieldMappingHeaderProps) => {
-  // Check if discovering is happening for specific system and dataType
-  const isGhlDiscovering = isDiscovering['ghl_contact'] || false;
-  const isIntakeqDiscovering = isDiscovering['intakeq_contact'] || false;
+  // Check if discovering is happening for GHL contact fields
+  const isGhlContactDiscovering = isDiscovering['ghl_contact'] || false;
+  const isGhlAppointmentDiscovering = isDiscovering['ghl_appointment'] || false;
+  const isGhlFormDiscovering = isDiscovering['ghl_form'] || false;
+  const isAnyGhlDiscovering = isGhlContactDiscovering || isGhlAppointmentDiscovering || isGhlFormDiscovering;
+
+  // Check if discovering is happening for IntakeQ contact fields
+  const isIntakeqContactDiscovering = isDiscovering['intakeq_contact'] || false;
+  const isIntakeqAppointmentDiscovering = isDiscovering['intakeq_appointment'] || false;
+  const isIntakeqFormDiscovering = isDiscovering['intakeq_form'] || false;
+  const isAnyIntakeqDiscovering = isIntakeqContactDiscovering || isIntakeqAppointmentDiscovering || isIntakeqFormDiscovering;
 
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] gap-4 mb-4">
       <div className="flex flex-col gap-2">
         <div className="bg-muted/30 p-3 font-semibold text-center rounded-md">GoHighLevel Field</div>
         <Button
-          variant={isGhlDiscovering ? "secondary" : "outline"}
+          variant={isAnyGhlDiscovering ? "secondary" : "outline"}
           size="sm"
           onClick={() => onDiscoverFields('ghl', 'contact')}
-          disabled={isGhlDiscovering}
+          disabled={isAnyGhlDiscovering}
           className="flex items-center gap-2 self-start"
-          title="Discover available GoHighLevel fields"
+          title="Discover available GoHighLevel contact fields"
         >
-          <RefreshCw className={`h-4 w-4 ${isGhlDiscovering ? 'animate-spin' : ''}`} />
-          <span>{isGhlDiscovering ? "Discovering..." : "Discover GHL Fields"}</span>
+          <RefreshCw className={`h-4 w-4 ${isGhlContactDiscovering ? 'animate-spin' : ''}`} />
+          <span>{isGhlContactDiscovering ? "Discovering..." : "Discover GHL Fields"}</span>
         </Button>
       </div>
       <div className="flex items-center justify-center font-medium">Sync Direction</div>
       <div className="flex flex-col gap-2 items-end">
         <div className="bg-muted/30 p-3 font-semibold text-center rounded-md w-full">IntakeQ Field</div>
         <Button
-          variant={isIntakeqDiscovering ? "secondary" : "outline"}
+          variant={isAnyIntakeqDiscovering ? "secondary" : "outline"}
           size="sm"
           onClick={() => onDiscoverFields('intakeq', 'contact')}
-          disabled={isIntakeqDiscovering}
+          disabled={isAnyIntakeqDiscovering}
           className="flex items-center gap-2"
-          title="Discover available IntakeQ fields"
+          title="Discover available IntakeQ contact fields"
         >
-          <RefreshCw className={`h-4 w-4 ${isIntakeqDiscovering ? 'animate-spin' : ''}`} />
-          <span>{isIntakeqDiscovering ? "Discovering..." : "Discover IntakeQ Fields"}</span>
+          <RefreshCw className={`h-4 w-4 ${isIntakeqContactDiscovering ? 'animate-spin' : ''}`} />
+          <span>{isIntakeqContactDiscovering ? "Discovering..." : "Discover IntakeQ Fields"}</span>
         </Button>
       </div>
     </div>

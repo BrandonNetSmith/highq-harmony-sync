@@ -14,21 +14,27 @@ export const FieldControls = ({
   onFieldChange,
   discoveredFields = {},
 }: FieldControlsProps) => {
+  // Get discovery state for this specific dataType
+  const isGhlDiscovered = discoveredFields[`ghl_${dataType}`] || false;
+  const isIntakeqDiscovered = discoveredFields[`intakeq_${dataType}`] || false;
+  
   // Memoize the GHL options to avoid recalculating on every render
   const ghlOptions = useMemo(() => {
+    // Only return options if discovery has happened
+    if (!isGhlDiscovered) return [];
+    
     // Get available fields for this dataType, or empty array if none
     return availableFields.ghl[dataType] || [];
-  }, [availableFields.ghl, dataType]);
+  }, [availableFields.ghl, dataType, isGhlDiscovered]);
 
   // Memoize the IntakeQ options to avoid recalculating on every render
   const intakeqOptions = useMemo(() => {
+    // Only return options if discovery has happened
+    if (!isIntakeqDiscovered) return [];
+    
     // Get available fields for this dataType, or empty array if none
     return availableFields.intakeq[dataType] || [];
-  }, [availableFields.intakeq, dataType]);
-
-  // Check if fields have been discovered for each system
-  const isGhlDiscovered = discoveredFields?.[`ghl_${dataType}`] || false;
-  const isIntakeqDiscovered = discoveredFields?.[`intakeq_${dataType}`] || false;
+  }, [availableFields.intakeq, dataType, isIntakeqDiscovered]);
 
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 py-2 px-2 border-b border-border last:border-b-0">

@@ -10,7 +10,11 @@ export const useFieldDiscovery = () => {
   const [isDiscovering, setIsDiscovering] = useState<Record<string, boolean>>({});
   const [discoveredFields, setDiscoveredFields] = useState<Record<string, boolean>>({
     ghl_contact: false,
-    intakeq_contact: false
+    ghl_appointment: false,
+    ghl_form: false,
+    intakeq_contact: false,
+    intakeq_appointment: false,
+    intakeq_form: false
   });
   const [availableFields, setAvailableFields] = useState({
     ghl: {
@@ -95,7 +99,7 @@ export const useFieldDiscovery = () => {
       // Filter out any empty values
       const filteredFields = newFields.filter(field => !!field);
       
-      // Only update the fields for the specific system
+      // Only update the fields for the specific system and dataType
       setAvailableFields(prev => {
         const updated = { ...prev };
         updated[system] = {

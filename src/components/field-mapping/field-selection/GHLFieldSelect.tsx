@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Select,
@@ -27,15 +26,15 @@ export const GHLFieldSelect = ({
   fieldName,
   isDiscovered = false
 }: GHLFieldSelectProps) => {
-  // Make sure we always have valid options
-  const validOptions = options.filter(Boolean);
+  // Only display options if fields have been discovered
+  const hasOptions = isDiscovered && options && options.length > 0;
   
-  // Only show options if fields have been discovered
-  const hasOptions = isDiscovered && validOptions.length > 0;
-  
-  // If there are no discovered fields, show placeholder
-  const displayValue = hasOptions ? value : "";
-  const placeholder = hasOptions ? "Select GHL field" : "Click 'Discover GHL Fields'";
+  // If discovery has happened and we have options, show them
+  // Otherwise show an appropriate placeholder
+  const displayValue = hasOptions && value ? value : "";
+  const placeholder = isDiscovered 
+    ? (hasOptions ? "Select GHL field" : "No fields found") 
+    : "Click 'Discover GHL Fields'";
 
   return (
     <div className="text-left">
@@ -49,16 +48,14 @@ export const GHLFieldSelect = ({
         </SelectTrigger>
         <SelectContent>
           {hasOptions ? (
-            // Show discovered fields if available
-            validOptions.map((field: string) => (
+            options.map((field: string) => (
               <SelectItem key={field} value={field}>
                 {field}
               </SelectItem>
             ))
           ) : (
-            // Show instruction if no fields are discovered
             <SelectItem value="" disabled>
-              Click "Discover GHL Fields" first
+              {isDiscovered ? "No fields found" : "Click 'Discover GHL Fields' first"}
             </SelectItem>
           )}
         </SelectContent>

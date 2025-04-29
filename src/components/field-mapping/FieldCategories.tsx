@@ -58,7 +58,7 @@ export const FieldCategories = ({
               <div className="space-y-0">                    
                 {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
                   <FieldControls
-                    key={fieldName}
+                    key={`${dataType}_${fieldName}`}
                     dataType={dataType}
                     fieldName={fieldName}
                     fieldSettings={fieldSettings}
