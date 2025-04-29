@@ -74,9 +74,10 @@ export const IntakeQFilterCard = ({
             size="sm"
             onClick={onFetchData}
             disabled={isLoading || disabled}
+            className="flex items-center gap-2"
           >
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Fetch Options
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <span>Fetch Options</span>
           </Button>
         </CardTitle>
         <CardDescription>Filter which IntakeQ records to sync</CardDescription>

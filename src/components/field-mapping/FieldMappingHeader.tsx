@@ -24,6 +24,18 @@ export const FieldMappingHeader = ({
   const isIntakeqFormDiscovering = isDiscovering['intakeq_form'] || false;
   const isAnyIntakeqDiscovering = isIntakeqContactDiscovering || isIntakeqAppointmentDiscovering || isIntakeqFormDiscovering;
 
+  const handleDiscoverAllGhlFields = () => {
+    onDiscoverFields('ghl', 'contact');
+    onDiscoverFields('ghl', 'appointment');
+    onDiscoverFields('ghl', 'form');
+  };
+
+  const handleDiscoverAllIntakeqFields = () => {
+    onDiscoverFields('intakeq', 'contact');
+    onDiscoverFields('intakeq', 'appointment');
+    onDiscoverFields('intakeq', 'form');
+  };
+
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] gap-4 mb-4">
       <div className="flex flex-col gap-2">
@@ -31,11 +43,7 @@ export const FieldMappingHeader = ({
         <Button
           variant={isAnyGhlDiscovering ? "secondary" : "outline"}
           size="sm"
-          onClick={() => {
-            onDiscoverFields('ghl', 'contact');
-            onDiscoverFields('ghl', 'appointment');
-            onDiscoverFields('ghl', 'form');
-          }}
+          onClick={handleDiscoverAllGhlFields}
           disabled={isAnyGhlDiscovering}
           className="flex items-center gap-2 self-start"
           title="Discover available GoHighLevel fields"
@@ -50,11 +58,7 @@ export const FieldMappingHeader = ({
         <Button
           variant={isAnyIntakeqDiscovering ? "secondary" : "outline"}
           size="sm"
-          onClick={() => {
-            onDiscoverFields('intakeq', 'contact');
-            onDiscoverFields('intakeq', 'appointment');
-            onDiscoverFields('intakeq', 'form');
-          }}
+          onClick={handleDiscoverAllIntakeqFields}
           disabled={isAnyIntakeqDiscovering}
           className="flex items-center gap-2"
           title="Discover available IntakeQ fields"
