@@ -40,12 +40,39 @@ export const IntakeQFieldSelect = ({
   // Auto-apply matching fields when options change
   useEffect(() => {
     if (isDiscovered && hasOptions && !value && fieldName) {
-      // Check if we have a direct field name match in the options
-      const matchedField = options.find(field => 
-        field.toLowerCase() === fieldName.toLowerCase() ||
-        field.toLowerCase().includes(fieldName.toLowerCase())
+      // For better field matching, normalize both for comparison
+      const normalizedFieldName = fieldName.toLowerCase().replace(/[_\s]/g, '');
+      
+      // Try different matching strategies in order of preference
+      let matchedField = null;
+      
+      // Strategy 1: Exact match (case-insensitive)
+      matchedField = options.find(field => 
+        field.toLowerCase() === fieldName.toLowerCase()
       );
       
+      // Strategy 2: Field contains our field name or vice versa
+      if (!matchedField) {
+        matchedField = options.find(field => {
+          const normalizedOption = field.toLowerCase().replace(/[_\s]/g, '');
+          return normalizedOption.includes(normalizedFieldName) || 
+                 normalizedFieldName.includes(normalizedOption);
+        });
+      }
+      
+      // Strategy 3: Try matching parts of compound names (firstName -> first_name or first name)
+      if (!matchedField) {
+        // Camel case to separate words: firstName -> first name
+        const parts = fieldName.replace(/([A-Z])/g, ' $1').trim().toLowerCase().split(' ');
+        if (parts.length > 1) {
+          matchedField = options.find(field => {
+            const normalizedOption = field.toLowerCase();
+            return parts.every(part => normalizedOption.includes(part));
+          });
+        }
+      }
+      
+      // If we found a match using any strategy, apply it
       if (matchedField) {
         console.log(`Auto-matching ${fieldName} to IntakeQ field: ${matchedField}`);
         onChange(matchedField);

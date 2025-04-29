@@ -31,8 +31,15 @@ serve(async (req) => {
     }
     const requestOptions = createRequestOptions(method, requestHeaders, body);
 
-    // Execute request with automatic redirect handling (set in requestOptions)
-    const { response, error } = await executeRequest(url, requestOptions);
+    // For IntakeQ, ensure we try v1 API first (v2 often gives 404s)
+    let currentUrl = url;
+    if (url.includes('intakeq.com/api/v2/')) {
+      currentUrl = url.replace('/api/v2/', '/api/v1/');
+      console.log(`Converting IntakeQ v2 API to v1: ${currentUrl}`);
+    }
+
+    // Execute request with automatic redirect handling
+    const { response, error } = await executeRequest(currentUrl, requestOptions);
     
     // Handle network errors
     if (error) {
@@ -40,7 +47,7 @@ serve(async (req) => {
     }
     
     // Process the response and return
-    const responseData = await processResponse(response, url);
+    const responseData = await processResponse(response, currentUrl);
     
     // If the response is in a nested format like data.results[], flatten it
     if (responseData && !responseData._error && !responseData._statusCode) {

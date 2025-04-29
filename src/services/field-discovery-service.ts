@@ -51,10 +51,10 @@ export const fieldDiscoveryService = {
             endpoint = 'clients';
         }
         
-        // Call IntakeQ API to get sample data (using v1 API)
+        // Call IntakeQ API to get sample data (using v1 API), get more than one record for better field coverage
         const { data, error } = await supabase.functions.invoke('proxy', {
           body: {
-            url: `https://intakeq.com/api/v1/${endpoint}?limit=1`,
+            url: `https://intakeq.com/api/v1/${endpoint}?limit=5`, // Increased limit to get more fields
             method: 'GET',
             headers: {
               'X-Auth-Key': intakeq_key
@@ -66,48 +66,59 @@ export const fieldDiscoveryService = {
           console.error(`Error fetching IntakeQ ${dataType} fields:`, error);
           fields = getIntakeQMockFields(dataType); // Fallback to mock data
         } else if (Array.isArray(data) && data.length > 0) {
-          // Extract field names from the first item
-          const sampleItem = data[0];
+          // Combine fields from multiple items to get a more complete set
+          const allFields = new Set<string>();
           
-          // Extra log to debug the structure of the data
-          console.log(`IntakeQ ${dataType} sample data:`, JSON.stringify(sampleItem).substring(0, 500) + "...");
-          
-          // Extract all fields recursively from the object
-          const extractFields = (obj: any, prefix = ''): string[] => {
-            if (!obj || typeof obj !== 'object') return [];
+          // Process each item in the response
+          for (const item of data.slice(0, 5)) { // Process up to 5 items
+            // Extract field names from each item
+            console.log(`Processing IntakeQ ${dataType} item:`, JSON.stringify(item).substring(0, 200) + "...");
             
-            return Object.entries(obj).reduce((acc: string[], [key, value]) => {
-              // Skip metadata fields and _underscore fields
-              if (key.startsWith('_') || key === 'id' || key === 'client_id' || key === 'form_id') {
+            // Extract all fields recursively from the object
+            const extractFieldsFromItem = (obj: any, prefix = ''): string[] => {
+              if (!obj || typeof obj !== 'object') return [];
+              
+              return Object.entries(obj).reduce((acc: string[], [key, value]) => {
+                // Skip metadata fields and _underscore fields
+                if (key.startsWith('_') || key === 'id' || key === 'client_id' || key === 'form_id') {
+                  return acc;
+                }
+                
+                const fieldName = prefix ? `${prefix}.${key}` : key;
+                
+                // Add the current field
+                acc.push(fieldName);
+                
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                  // If it's an object, extract nested fields
+                  const nestedFields = extractFieldsFromItem(value, fieldName);
+                  acc.push(...nestedFields);
+                }
+                
                 return acc;
-              }
-              
-              const fieldName = prefix ? `${prefix}.${key}` : key;
-              
-              if (value && typeof value === 'object' && !Array.isArray(value)) {
-                // If it's an object, extract nested fields
-                return [...acc, ...extractFields(value, fieldName)];
-              } else {
-                // It's a leaf field
-                return [...acc, fieldName];
-              }
-            }, []);
-          };
-          
-          const extractedFields = extractFields(sampleItem);
-          console.log(`Extracted fields from IntakeQ ${dataType}:`, extractedFields);
-          
-          // Use the extracted fields if we found any
-          if (extractedFields.length > 0) {
-            fields = extractedFields;
-          } else {
-            // If we couldn't extract fields from the object structure, use the keys directly
-            // This is more of a fallback approach
-            fields = Object.keys(sampleItem)
-              .filter(key => !key.startsWith('_') && key !== 'id' && key !== 'client_id' && key !== 'form_id');
+              }, []);
+            };
             
-            console.log(`Using direct keys for IntakeQ ${dataType}:`, fields);
+            // Extract fields and add them to the set
+            const itemFields = extractFieldsFromItem(item);
+            itemFields.forEach(field => allFields.add(field));
+            
+            // Also add direct keys as fields (especially for contacts)
+            Object.keys(item)
+              .filter(key => !key.startsWith('_') && key !== 'id')
+              .forEach(key => allFields.add(key));
           }
+          
+          // For contacts specifically, add some common fields that might not be in the sample data
+          if (dataType === 'contact') {
+            ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 
+             'zipCode', 'dateOfBirth', 'gender', 'notes', 'customFields', 'Name', 
+             'Email', 'Phone', 'Address', 'DateOfBirth'].forEach(field => allFields.add(field));
+          }
+          
+          // Convert the set to an array
+          fields = Array.from(allFields);
+          console.log(`Extracted ${fields.length} fields from IntakeQ ${dataType} items:`, fields);
           
           // If we still couldn't extract any fields, fall back to mock data
           if (fields.length === 0) {

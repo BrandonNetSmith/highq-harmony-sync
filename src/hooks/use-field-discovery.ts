@@ -78,9 +78,10 @@ export const useFieldDiscovery = () => {
         [key]: true
       }));
 
+      const fieldCount = filteredFields.length;
       toast({
         title: "Fields discovered",
-        description: `${filteredFields.length} fields found for ${system} ${dataType}`,
+        description: `${fieldCount} fields found for ${system} ${dataType}${fieldCount < 10 ? ". Try again for more fields." : ""}`,
       });
       
       // Log the current state after update
