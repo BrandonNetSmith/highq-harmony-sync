@@ -37,6 +37,14 @@ export const IntakeQFieldSelect = ({
     ? "Click 'Discover IntakeQ Fields'" 
     : (hasOptions ? "Select IntakeQ field" : "No fields found");
 
+  // For debugging
+  console.log(`IntakeQFieldSelect[${dataType}/${fieldName}]:`, { 
+    isDiscovered, 
+    hasOptions, 
+    optionsCount: options?.length || 0,
+    options
+  });
+
   return (
     <div className="text-right">
       <Select

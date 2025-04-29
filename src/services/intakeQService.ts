@@ -17,10 +17,10 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // Using the correct API endpoint for IntakeQ - updated to use X-Auth-Key header instead of Bearer token
+    // Try the correct IntakeQ API endpoint - documentation suggests this structure
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://app.intakeq.com/api/v1/forms',
+        url: 'https://intakeq.com/api/v1/forms',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -92,10 +92,10 @@ export const fetchIntakeQData = async () => {
       }));
     }
 
-    // Update clients API endpoint and authentication method
+    // Try the same endpoint for clients
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://app.intakeq.com/api/v1/clients',
+        url: 'https://intakeq.com/api/v1/clients',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key

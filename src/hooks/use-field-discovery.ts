@@ -29,8 +29,8 @@ export const useFieldDiscovery = () => {
     }
   });
 
+  // This simulates an API call to discover fields
   const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<string[]> => {
-    // Simulating API call to discover fields
     console.log(`Discovering fields for ${system} ${dataType}`);
     
     // Ensure a consistent delay to avoid UI flashing
@@ -119,6 +119,12 @@ export const useFieldDiscovery = () => {
       toast({
         title: "Fields discovered",
         description: `${filteredFields.length} fields found for ${system} ${dataType}`,
+      });
+      
+      // Log the current state after update
+      console.log(`After discovery for ${system}_${dataType}:`, {
+        availableFields: filteredFields,
+        isDiscovered: true
       });
     } catch (error) {
       console.error(`Error discovering fields for ${system} ${dataType}:`, error);
