@@ -16,7 +16,13 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
   const { toast } = useToast();
   const [isSyncingNow, setSyncingNow] = useState(false);
   const [isAutoSyncEnabled, setAutoSyncEnabled] = useState(false);
-  const { isDiscovering, availableFields, discoveredFields, handleDiscoverFields } = useFieldDiscovery();
+  const { 
+    isDiscovering, 
+    availableFields, 
+    discoveredFields, 
+    handleDiscoverFields,
+    handleDiscoverAllFields 
+  } = useFieldDiscovery();
 
   const handleFieldChange = (dataType: string, fieldName: string, updates: any) => {
     const newMapping = { ...fieldMapping };

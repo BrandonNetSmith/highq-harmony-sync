@@ -12,24 +12,17 @@ export const FieldMappingHeader = ({
   isDiscovering,
   onDiscoverFields
 }: FieldMappingHeaderProps) => {
-  // Check if discovering is happening for GHL contact fields
+  // Check if discovering is happening for GHL fields
   const isGhlContactDiscovering = isDiscovering['ghl_contact'] || false;
   const isGhlAppointmentDiscovering = isDiscovering['ghl_appointment'] || false;
   const isGhlFormDiscovering = isDiscovering['ghl_form'] || false;
   const isAnyGhlDiscovering = isGhlContactDiscovering || isGhlAppointmentDiscovering || isGhlFormDiscovering;
 
-  // Check if discovering is happening for IntakeQ contact fields
+  // Check if discovering is happening for IntakeQ fields
   const isIntakeqContactDiscovering = isDiscovering['intakeq_contact'] || false;
   const isIntakeqAppointmentDiscovering = isDiscovering['intakeq_appointment'] || false;
   const isIntakeqFormDiscovering = isDiscovering['intakeq_form'] || false;
   const isAnyIntakeqDiscovering = isIntakeqContactDiscovering || isIntakeqAppointmentDiscovering || isIntakeqFormDiscovering;
-
-  // Function to handle discovery for all data types for a system
-  const handleDiscoverAll = (system: 'ghl' | 'intakeq') => {
-    onDiscoverFields(system, 'contact');
-    onDiscoverFields(system, 'appointment');
-    onDiscoverFields(system, 'form');
-  };
 
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] gap-4 mb-4">
@@ -38,7 +31,11 @@ export const FieldMappingHeader = ({
         <Button
           variant={isAnyGhlDiscovering ? "secondary" : "outline"}
           size="sm"
-          onClick={() => handleDiscoverAll('ghl')}
+          onClick={() => {
+            onDiscoverFields('ghl', 'contact');
+            onDiscoverFields('ghl', 'appointment');
+            onDiscoverFields('ghl', 'form');
+          }}
           disabled={isAnyGhlDiscovering}
           className="flex items-center gap-2 self-start"
           title="Discover available GoHighLevel fields"
@@ -53,7 +50,11 @@ export const FieldMappingHeader = ({
         <Button
           variant={isAnyIntakeqDiscovering ? "secondary" : "outline"}
           size="sm"
-          onClick={() => handleDiscoverAll('intakeq')}
+          onClick={() => {
+            onDiscoverFields('intakeq', 'contact');
+            onDiscoverFields('intakeq', 'appointment');
+            onDiscoverFields('intakeq', 'form');
+          }}
           disabled={isAnyIntakeqDiscovering}
           className="flex items-center gap-2"
           title="Discover available IntakeQ fields"
