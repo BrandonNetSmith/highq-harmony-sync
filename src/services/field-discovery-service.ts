@@ -15,11 +15,14 @@ export const fieldDiscoveryService = {
     // Ensure a consistent delay to avoid UI flashing
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Get fields based on the system
     if (system === 'ghl') {
-      return getGHLMockFields(dataType);
+      const fields = getGHLMockFields(dataType);
+      console.log(`Discovered ${fields.length} GHL fields for ${dataType}`, fields);
+      return fields;
     } else {
-      return getIntakeQMockFields(dataType);
+      const fields = getIntakeQMockFields(dataType);
+      console.log(`Discovered ${fields.length} IntakeQ fields for ${dataType}`, fields);
+      return fields;
     }
   }
 };

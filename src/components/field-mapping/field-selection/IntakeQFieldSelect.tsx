@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Select,
@@ -42,6 +41,7 @@ export const IntakeQFieldSelect = ({
     isDiscovered, 
     hasOptions, 
     optionsCount: options?.length || 0,
+    value: displayValue,
     options
   });
 

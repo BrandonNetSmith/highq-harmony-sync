@@ -79,7 +79,7 @@ export const useWebhookConfig = () => {
         url = 'https://rest.gohighlevel.com/v1/contacts/';
         headers = { 'Authorization': `Bearer ${apiKey}` };
       } else {
-        // Try this endpoint for testing IntakeQ API
+        // Updated IntakeQ API endpoint
         url = 'https://intakeq.com/api/v1/clients';
         headers = { 'X-Auth-Key': apiKey };
       }
