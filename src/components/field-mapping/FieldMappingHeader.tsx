@@ -24,7 +24,7 @@ export const FieldMappingHeader = ({
       <div className="flex flex-col gap-2">
         <div className="bg-muted/30 p-3 font-semibold text-center rounded-md">GoHighLevel Field</div>
         <Button
-          variant="outline"
+          variant={isGhlDiscovering ? "secondary" : "outline"}
           size="sm"
           onClick={() => onDiscoverFields('ghl', 'contact')}
           disabled={isGhlDiscovering}
@@ -32,14 +32,14 @@ export const FieldMappingHeader = ({
           title="Discover available GoHighLevel fields"
         >
           <RefreshCw className={`h-4 w-4 ${isGhlDiscovering ? 'animate-spin' : ''}`} />
-          <span>Discover GHL Fields</span>
+          <span>{isGhlDiscovering ? "Discovering..." : "Discover GHL Fields"}</span>
         </Button>
       </div>
       <div className="flex items-center justify-center font-medium">Sync Direction</div>
       <div className="flex flex-col gap-2 items-end">
         <div className="bg-muted/30 p-3 font-semibold text-center rounded-md w-full">IntakeQ Field</div>
         <Button
-          variant="outline"
+          variant={isIntakeqDiscovering ? "secondary" : "outline"}
           size="sm"
           onClick={() => onDiscoverFields('intakeq', 'contact')}
           disabled={isIntakeqDiscovering}
@@ -47,7 +47,7 @@ export const FieldMappingHeader = ({
           title="Discover available IntakeQ fields"
         >
           <RefreshCw className={`h-4 w-4 ${isIntakeqDiscovering ? 'animate-spin' : ''}`} />
-          <span>Discover IntakeQ Fields</span>
+          <span>{isIntakeqDiscovering ? "Discovering..." : "Discover IntakeQ Fields"}</span>
         </Button>
       </div>
     </div>

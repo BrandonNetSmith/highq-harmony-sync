@@ -24,6 +24,8 @@ export const useFieldDiscovery = () => {
   const discoverFields = async (system: 'ghl' | 'intakeq', dataType: string): Promise<string[]> => {
     // Simulating API call to discover fields
     console.log(`Discovering fields for ${system} ${dataType}`);
+    
+    // Ensure a consistent delay to avoid UI flashing
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     if (system === 'ghl') {
@@ -86,6 +88,9 @@ export const useFieldDiscovery = () => {
       const newFields = await discoverFields(system, dataType);
       console.log(`Discovery completed for ${system} ${dataType}:`, newFields);
       
+      // Filter out any empty values to prevent blank spaces
+      const filteredFields = newFields.filter(field => !!field);
+      
       // Update ONLY the selected system's fields without affecting the other system
       setAvailableFields(prev => {
         // Create a new object to avoid mutation
@@ -94,7 +99,7 @@ export const useFieldDiscovery = () => {
         // Only update the fields for the specific system and dataType
         updated[system] = {
           ...updated[system],
-          [dataType]: newFields
+          [dataType]: filteredFields
         };
         
         console.log(`Updated available fields for ${system}.${dataType}:`, updated[system][dataType]);
@@ -103,7 +108,7 @@ export const useFieldDiscovery = () => {
 
       toast({
         title: "Fields discovered",
-        description: `${newFields.length} fields found for ${system} ${dataType}`,
+        description: `${filteredFields.length} fields found for ${system} ${dataType}`,
       });
     } catch (error) {
       console.error(`Error discovering fields for ${system} ${dataType}:`, error);

@@ -29,35 +29,33 @@ export const IntakeQFieldSelect = ({
   const validOptions = options.filter(Boolean);
   
   // Check if fields have been discovered
-  const hasDiscoveredFields = validOptions.length > 1 || (validOptions.length === 1 && validOptions[0] !== value);
+  const hasDiscoveredFields = validOptions.length > 0;
+  
+  // If there are no discovered fields, just show the field name or a placeholder
+  const displayValue = hasDiscoveredFields ? value : (fieldName || "");
+  const placeholder = hasDiscoveredFields ? "Select IntakeQ field" : "Click 'Discover IntakeQ Fields'";
 
   return (
     <div className="text-right">
       <Select
-        value={value}
+        value={displayValue}
         onValueChange={onChange}
-        disabled={disabled}
+        disabled={disabled || !hasDiscoveredFields}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder={hasDiscoveredFields ? "Select IntakeQ field" : "Discover IntakeQ Fields first"} />
+          <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {/* Only show the current value if we haven't discovered fields yet */}
-          {!hasDiscoveredFields && (
-            <SelectItem key={value} value={value}>
-              {value}
-            </SelectItem>
-          )}
-          
-          {/* Show discovered fields if available */}
-          {hasDiscoveredFields && validOptions.map((field: string) => (
-            <SelectItem key={field} value={field}>
-              {field}
-            </SelectItem>
-          ))}
-          
-          {validOptions.length === 0 && (
-            <SelectItem value={value || fieldName || ""} disabled>
+          {hasDiscoveredFields ? (
+            // Show discovered fields if available
+            validOptions.map((field: string) => (
+              <SelectItem key={field} value={field}>
+                {field}
+              </SelectItem>
+            ))
+          ) : (
+            // Show instruction if no fields are discovered
+            <SelectItem value="" disabled>
               Click "Discover IntakeQ Fields" first
             </SelectItem>
           )}
