@@ -31,17 +31,40 @@ serve(async (req) => {
     }
     const requestOptions = createRequestOptions(method, requestHeaders, body);
 
-    // Execute request
-    const { response, error } = await executeRequest(url, requestOptions);
+    // Execute request with redirect handling
+    let currentUrl = url;
+    let redirectCount = 0;
+    const MAX_REDIRECTS = 5;
     
-    // Handle network errors
-    if (error) {
-      return createSuccessResponse(error);
+    while (redirectCount < MAX_REDIRECTS) {
+      // Execute request
+      const { response, error } = await executeRequest(currentUrl, requestOptions);
+      
+      // Handle network errors
+      if (error) {
+        return createSuccessResponse(error);
+      }
+      
+      // Check for redirect
+      if (response.status === 301 || response.status === 302 || response.status === 307 || response.status === 308) {
+        const location = response.headers.get('Location');
+        if (location) {
+          console.log(`Following redirect ${redirectCount + 1} to: ${location}`);
+          currentUrl = location;
+          redirectCount++;
+          // Continue to the next iteration of the loop to follow the redirect
+          continue;
+        }
+      }
+      
+      // If we reach here, it's not a redirect or we couldn't follow it
+      // Process the response and return
+      const responseData = await processResponse(response, currentUrl);
+      return createSuccessResponse(responseData);
     }
-
-    // Process response
-    const responseData = await processResponse(response!, url);
-    return createSuccessResponse(responseData);
+    
+    // If we reached the maximum number of redirects
+    return createErrorResponse(`Exceeded maximum number of redirects (${MAX_REDIRECTS})`, 200);
     
   } catch (error) {
     console.error('Proxy error:', error);
