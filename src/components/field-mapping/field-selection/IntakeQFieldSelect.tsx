@@ -27,6 +27,9 @@ export const IntakeQFieldSelect = ({
 }: IntakeQFieldSelectProps) => {
   // Make sure we always have valid options
   const validOptions = options.filter(Boolean);
+  
+  // Check if fields have been discovered
+  const hasDiscoveredFields = validOptions.length > 1 || (validOptions.length === 1 && validOptions[0] !== value);
 
   return (
     <div className="text-right">
@@ -36,14 +39,23 @@ export const IntakeQFieldSelect = ({
         disabled={disabled}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select IntakeQ field" />
+          <SelectValue placeholder={hasDiscoveredFields ? "Select IntakeQ field" : "Discover IntakeQ Fields first"} />
         </SelectTrigger>
         <SelectContent>
-          {validOptions.map((field: string) => (
+          {/* Only show the current value if we haven't discovered fields yet */}
+          {!hasDiscoveredFields && (
+            <SelectItem key={value} value={value}>
+              {value}
+            </SelectItem>
+          )}
+          
+          {/* Show discovered fields if available */}
+          {hasDiscoveredFields && validOptions.map((field: string) => (
             <SelectItem key={field} value={field}>
               {field}
             </SelectItem>
           ))}
+          
           {validOptions.length === 0 && (
             <SelectItem value={value || fieldName || ""} disabled>
               Click "Discover IntakeQ Fields" first

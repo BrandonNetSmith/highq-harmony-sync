@@ -21,12 +21,8 @@ export const FieldControls = ({
     // Get available fields for this dataType, or empty array if none
     const dataTypeFields = availableFields.ghl[dataType] || [];
     
-    // If we have discovered fields, use them
+    // If we have discovered fields, use them and add the current field if needed
     if (dataTypeFields.length > 0) {
-      // Include the current field to ensure it's always in the list
-      if (!dataTypeFields.includes(currentField)) {
-        return [...dataTypeFields, currentField];
-      }
       return dataTypeFields;
     }
     
@@ -43,12 +39,8 @@ export const FieldControls = ({
     // Get available fields for this dataType, or empty array if none
     const dataTypeFields = availableFields.intakeq[dataType] || [];
     
-    // If we have discovered fields, use them
+    // If we have discovered fields, use them and add the current field if needed
     if (dataTypeFields.length > 0) {
-      // Include the current field to ensure it's always in the list
-      if (!dataTypeFields.includes(currentField)) {
-        return [...dataTypeFields, currentField];
-      }
       return dataTypeFields;
     }
     
