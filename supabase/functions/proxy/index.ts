@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders, createErrorResponse, createSuccessResponse } from "./utils.ts";
-import { validateRequest, prepareRequestHeaders, createRequestOptions, executeRequest } from "./requestHandlers.ts";
+import { validateRequest, prepareRequestHeaders, createRequestOptions, executeRequest, formatResponseData } from "./requestHandlers.ts";
 import { processResponse } from "./responseHandlers.ts";
 
 serve(async (req) => {
@@ -31,43 +31,27 @@ serve(async (req) => {
     }
     const requestOptions = createRequestOptions(method, requestHeaders, body);
 
-    // Execute request with redirect handling
-    let currentUrl = url;
-    let redirectCount = 0;
-    const MAX_REDIRECTS = 5;
+    // Execute request with automatic redirect handling (set in requestOptions)
+    const { response, error } = await executeRequest(url, requestOptions);
     
-    while (redirectCount < MAX_REDIRECTS) {
-      // Execute request
-      const { response, error } = await executeRequest(currentUrl, requestOptions);
-      
-      // Handle network errors
-      if (error) {
-        return createSuccessResponse(error);
-      }
-      
-      // Check for redirect
-      if (response.status === 301 || response.status === 302 || response.status === 307 || response.status === 308) {
-        const location = response.headers.get('Location');
-        if (location) {
-          console.log(`Following redirect ${redirectCount + 1} to: ${location}`);
-          currentUrl = location;
-          redirectCount++;
-          // Continue to the next iteration of the loop to follow the redirect
-          continue;
-        }
-      }
-      
-      // If we reach here, it's not a redirect or we couldn't follow it
-      // Process the response and return
-      const responseData = await processResponse(response, currentUrl);
-      return createSuccessResponse(responseData);
+    // Handle network errors
+    if (error) {
+      return createSuccessResponse(error);
     }
     
-    // If we reached the maximum number of redirects
-    return createErrorResponse(`Exceeded maximum number of redirects (${MAX_REDIRECTS})`, 200);
+    // Process the response and return
+    const responseData = await processResponse(response, url);
+    
+    // If the response is in a nested format like data.results[], flatten it
+    if (responseData && !responseData._error && !responseData._statusCode) {
+      const formattedData = formatResponseData(responseData);
+      return createSuccessResponse(formattedData);
+    }
+    
+    return createSuccessResponse(responseData);
     
   } catch (error) {
     console.error('Proxy error:', error);
-    return createErrorResponse(error.message || 'Proxy server error', 200);
+    return createErrorResponse(error instanceof Error ? error.message : String(error), 200);
   }
 });

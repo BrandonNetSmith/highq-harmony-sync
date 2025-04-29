@@ -17,13 +17,13 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // Using the correct API endpoint for IntakeQ based on their documentation
+    // Using the correct API endpoint for IntakeQ - using v2 of their API
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/v1/forms',
+        url: 'https://api.intakeq.com/v2/forms',
         method: 'GET',
         headers: {
-          'X-Auth-Key': intakeq_key
+          'Authorization': `Bearer ${intakeq_key}`
         }
       }
     });
@@ -45,7 +45,8 @@ export const fetchIntakeQData = async () => {
       contentType: formsData._contentType,
       isHtml: formsData._isHtml,
       hasParseError: !!formsData._parseError,
-      requestUrl: formsData._requestUrl || 'Unknown URL'
+      requestUrl: formsData._requestUrl || 'Unknown URL',
+      errorMessage: formsData._errorMessage || null
     };
     
     if (formsData._error) {
@@ -86,18 +87,18 @@ export const fetchIntakeQData = async () => {
       };
     } else if (Array.isArray(formsData)) {
       forms = formsData.map((form) => ({
-        id: form.id || form.formId,
-        name: form.name || form.title || `Form ${form.id}`
+        id: form.id || form.formId || form.form_id,
+        name: form.name || form.title || form.form_name || `Form ${form.id}`
       }));
     }
 
-    // Using the correct API endpoint for IntakeQ clients based on their documentation
+    // Using the correct API endpoint for IntakeQ clients
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/v1/clients',
+        url: 'https://api.intakeq.com/v2/clients',
         method: 'GET',
         headers: {
-          'X-Auth-Key': intakeq_key
+          'Authorization': `Bearer ${intakeq_key}`
         }
       }
     });
@@ -122,10 +123,10 @@ export const fetchIntakeQData = async () => {
       console.log("API returned an empty response for clients");
     } else if (Array.isArray(clientsData)) {
       clients = clientsData
-        .filter((client) => client.emailAddress) // Only include clients with email
+        .filter((client) => client.email || client.emailAddress) // Only include clients with email
         .map((client) => ({
-          id: client.id,
-          email: client.emailAddress
+          id: client.id || client.clientId || client.client_id,
+          email: client.email || client.emailAddress || client.email_address
         }));
     }
     

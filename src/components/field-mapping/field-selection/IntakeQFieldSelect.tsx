@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Select,
@@ -27,12 +26,12 @@ export const IntakeQFieldSelect = ({
   fieldName,
   isDiscovered = false
 }: IntakeQFieldSelectProps) => {
-  // Only display options if fields have been discovered
+  // Only display options if fields have been discovered and we have options
   const hasOptions = isDiscovered && options && options.length > 0;
   
   // If discovery has happened and we have options, show them
   // Otherwise show an appropriate placeholder
-  const displayValue = hasOptions && value ? value : "";
+  const displayValue = value || "";
   const placeholder = isDiscovered 
     ? (hasOptions ? "Select IntakeQ field" : "No fields found") 
     : "Click 'Discover IntakeQ Fields'";

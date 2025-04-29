@@ -1,4 +1,3 @@
-
 /**
  * Functions for handling and validating incoming requests
  */
@@ -38,7 +37,8 @@ export const createRequestOptions = (method: string, headers: Headers, body: any
   const options: RequestInit = {
     method: method || 'GET',
     headers,
-    redirect: 'manual',
+    // Always follow redirects automatically
+    redirect: 'follow',
   };
 
   if (body && method !== 'GET') {
@@ -54,6 +54,7 @@ export const createRequestOptions = (method: string, headers: Headers, body: any
 export const executeRequest = async (url: string, options: RequestInit) => {
   try {
     console.log(`Sending ${options.method || 'GET'} request to: ${url}`);
+    console.log('Request headers:', [...options.headers.entries()]);
     const response = await fetch(url, options);
     console.log(`Received response with status: ${response.status}`);
     return { response, error: null };
@@ -63,10 +64,32 @@ export const executeRequest = async (url: string, options: RequestInit) => {
       response: null, 
       error: {
         _error: 'Network request failed',
-        _errorDetails: fetchError.message,
+        _errorDetails: fetchError instanceof Error ? fetchError.message : String(fetchError),
         _statusCode: 0,
         _requestUrl: url
       }
     };
   }
+};
+
+/**
+ * Converts API response data to a consistent format
+ */
+export const formatResponseData = (data: any) => {
+  // If data is already an array, return it
+  if (Array.isArray(data)) {
+    return data;
+  }
+  
+  // If data has a results or data property that is an array, return that
+  if (data && Array.isArray(data.results)) {
+    return data.results;
+  }
+  
+  if (data && Array.isArray(data.data)) {
+    return data.data;
+  }
+  
+  // Otherwise, return the data as is
+  return data;
 };

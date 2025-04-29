@@ -14,7 +14,7 @@ export const processResponse = async (response: Response, requestUrl: string) =>
   console.log(`Response status code: ${statusCode}`);
   console.log(`Response content-type: ${contentType}`);
   
-  // Check if the response is a redirect
+  // Check if the response is a redirect - shouldn't happen with redirect: 'follow'
   if ([301, 302, 307, 308].includes(statusCode)) {
     const location = response.headers.get('Location');
     console.log(`Detected redirect to: ${location}`);
@@ -23,7 +23,7 @@ export const processResponse = async (response: Response, requestUrl: string) =>
       _location: location,
       _statusCode: statusCode,
       _requestUrl: requestUrl,
-      _message: "Redirect detected. This proxy does not follow redirects automatically."
+      _message: "Redirect detected"
     };
   }
 
@@ -32,6 +32,7 @@ export const processResponse = async (response: Response, requestUrl: string) =>
     try {
       const text = await response.text();
       console.log(`Response text length: ${text.length}`);
+      console.log(`Response text (first 200 chars): ${text.substring(0, 200)}`);
       
       // Try to parse the text as JSON
       try {
@@ -41,7 +42,7 @@ export const processResponse = async (response: Response, requestUrl: string) =>
           _statusCode: statusCode,
           _contentType: contentType,
           _headers: headers,
-          _errorMessage: json.message || json.error || `HTTP Error ${statusCode}`,
+          _errorMessage: json.message || json.error || json.Message || `HTTP Error ${statusCode}`,
           _requestUrl: requestUrl
         };
       } catch (parseError) {
@@ -58,7 +59,7 @@ export const processResponse = async (response: Response, requestUrl: string) =>
       }
     } catch (readError) {
       return {
-        _error: `Error reading response: ${readError.message}`,
+        _error: `Error reading response: ${readError instanceof Error ? readError.message : String(readError)}`,
         _statusCode: statusCode,
         _contentType: contentType,
         _headers: headers,
@@ -67,12 +68,13 @@ export const processResponse = async (response: Response, requestUrl: string) =>
     }
   }
 
-  // Try to parse as JSON for successful responses
+  // Process successful responses
   try {
     // Check if the response is empty
     const clone = response.clone();
     const text = await clone.text();
     console.log(`Response text length: ${text.length}`);
+    console.log(`Response text beginning: ${text.substring(0, 100)}`);
     
     if (!text.trim()) {
       return {
@@ -103,11 +105,12 @@ export const processResponse = async (response: Response, requestUrl: string) =>
     // Try to parse as JSON
     try {
       const json = JSON.parse(text);
+      // Return the parsed JSON directly for successful responses
       return json;
     } catch (parseError) {
       // Return the parsing error and the first part of the text
       return {
-        _parseError: parseError.message,
+        _parseError: parseError instanceof Error ? parseError.message : String(parseError),
         _statusCode: statusCode,
         _contentType: contentType,
         _headers: headers,
@@ -117,7 +120,7 @@ export const processResponse = async (response: Response, requestUrl: string) =>
     }
   } catch (error) {
     return {
-      _error: `Error processing response: ${error.message}`,
+      _error: `Error processing response: ${error instanceof Error ? error.message : String(error)}`,
       _statusCode: statusCode,
       _contentType: contentType,
       _headers: headers,

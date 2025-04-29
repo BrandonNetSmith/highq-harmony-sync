@@ -36,6 +36,7 @@ export const useFieldDiscovery = () => {
     // Ensure a consistent delay to avoid UI flashing
     await new Promise(resolve => setTimeout(resolve, 1000));
     
+    // Hardcoded field mapping for both systems
     if (system === 'ghl') {
       switch(dataType) {
         case 'contact':
@@ -57,7 +58,7 @@ export const useFieldDiscovery = () => {
         default:
           return [];
       }
-    } else {
+    } else { // IntakeQ fields
       switch(dataType) {
         case 'contact':
           return [
