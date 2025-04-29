@@ -51,7 +51,7 @@ export const fieldDiscoveryService = {
             endpoint = 'clients';
         }
         
-        // Call IntakeQ API to get sample data (try v1 API)
+        // Call IntakeQ API to get sample data (using v1 API)
         const { data, error } = await supabase.functions.invoke('proxy', {
           body: {
             url: `https://intakeq.com/api/v1/${endpoint}?limit=1`,

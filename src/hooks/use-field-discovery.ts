@@ -107,83 +107,14 @@ export const useFieldDiscovery = () => {
   };
 
   /**
-   * Handles the discovery of all fields for a specific system
+   * This function has been removed since we're now handling individual field types
+   * directly in the UI with separate buttons for each data type
    */
-  const handleDiscoverAllFields = async (system: DiscoverySystem): Promise<void> => {
-    try {
-      console.log(`Starting discovery for all ${system} fields`);
-      
-      // Mark all data types for this system as discovering
-      setIsDiscovering(prev => ({ 
-        ...prev, 
-        [`${system}_contact`]: true,
-        [`${system}_appointment`]: true,
-        [`${system}_form`]: true
-      }));
-      
-      // Discover fields for all data types in parallel
-      const [contactFields, appointmentFields, formFields] = await Promise.all([
-        fieldDiscoveryService.discoverFields(system, 'contact'),
-        fieldDiscoveryService.discoverFields(system, 'appointment'),
-        fieldDiscoveryService.discoverFields(system, 'form')
-      ]);
-      
-      console.log(`Discovery completed for all ${system} fields`);
-      
-      // Filter out any empty values
-      const filteredContactFields = contactFields.filter(field => !!field);
-      const filteredAppointmentFields = appointmentFields.filter(field => !!field);
-      const filteredFormFields = formFields.filter(field => !!field);
-      
-      // Update the fields for all data types at once
-      setAvailableFields(prev => {
-        const updated = { ...prev };
-        updated[system] = {
-          ...updated[system],
-          contact: filteredContactFields,
-          appointment: filteredAppointmentFields,
-          form: filteredFormFields
-        };
-        return updated;
-      });
-
-      // Mark all data types as having been discovered
-      setDiscoveredFields(prev => ({
-        ...prev,
-        [`${system}_contact`]: true,
-        [`${system}_appointment`]: true,
-        [`${system}_form`]: true
-      }));
-
-      toast({
-        title: "Fields discovered",
-        description: `Successfully discovered all field types for ${system}`,
-      });
-    } catch (error) {
-      console.error(`Error discovering all fields for ${system}:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to discover fields for ${system}`,
-        variant: "destructive",
-      });
-    } finally {
-      // Clear all discovering states for this system with a slight delay
-      setTimeout(() => {
-        setIsDiscovering(prev => ({ 
-          ...prev, 
-          [`${system}_contact`]: false,
-          [`${system}_appointment`]: false,
-          [`${system}_form`]: false
-        }));
-      }, 500);
-    }
-  };
 
   return {
     isDiscovering,
     availableFields,
     discoveredFields,
     handleDiscoverFields,
-    handleDiscoverAllFields
   };
 };

@@ -21,7 +21,6 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     availableFields, 
     discoveredFields, 
     handleDiscoverFields,
-    handleDiscoverAllFields 
   } = useFieldDiscovery();
 
   const handleFieldChange = (dataType: string, fieldName: string, updates: any) => {

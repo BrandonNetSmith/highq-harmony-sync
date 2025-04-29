@@ -1,3 +1,4 @@
+
 /**
  * Functions for handling and validating incoming requests
  */
@@ -56,12 +57,36 @@ export const executeRequest = async (url: string, options: RequestInit) => {
     console.log(`Sending ${options.method || 'GET'} request to: ${url}`);
     console.log('Request headers:', [...options.headers.entries()]);
     
-    // IntakeQ's API structure might be different than expected
-    // Instead of modifying URLs, let's keep them as provided by the client code
-    // This gives more flexibility for the client to handle API versions
-    
+    // Make the actual request
     const response = await fetch(url, options);
     console.log(`Received response with status: ${response.status}`);
+    
+    // If the endpoint is IntakeQ and returns a 404 for v1 or v2, try other version
+    if (url.includes('intakeq.com/api/') && response.status === 404) {
+      // Check if we're using v1 or v2
+      const isV1 = url.includes('/api/v1/');
+      const isV2 = url.includes('/api/v2/');
+      
+      if (isV1 || isV2) {
+        // Try the other version by replacing v1 with v2 or vice versa
+        const alternateUrl = isV1 
+          ? url.replace('/api/v1/', '/api/v2/') 
+          : url.replace('/api/v2/', '/api/v1/');
+          
+        console.log(`IntakeQ API version error. Attempting alternate API version: ${alternateUrl}`);
+        
+        const alternateResponse = await fetch(alternateUrl, options);
+        console.log(`Alternate endpoint response status: ${alternateResponse.status}`);
+        
+        if (alternateResponse.status !== 404) {
+          // The alternate version worked, return this response
+          return { response: alternateResponse, error: null };
+        }
+        
+        // If both versions failed with 404, continue with the original response
+      }
+    }
+    
     return { response, error: null };
   } catch (fetchError) {
     console.error('Fetch error:', fetchError);

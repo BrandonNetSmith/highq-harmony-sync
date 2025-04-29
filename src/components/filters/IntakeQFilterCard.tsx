@@ -48,7 +48,7 @@ export const IntakeQFilterCard = ({
     // Set a timeout to clear the loading state after a reasonable time if the fetch doesn't complete
     setTimeout(() => {
       setLocalLoading(false);
-    }, 10000); // 10 seconds timeout
+    }, 15000); // 15 seconds timeout
   };
   
   // Clear local loading state when isLoading changes to false
@@ -57,6 +57,21 @@ export const IntakeQFilterCard = ({
       setLocalLoading(false);
     }
   }, [isLoading]);
+  
+  // Add a forced timeout to ensure the loading state doesn't get stuck
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    if (localLoading) {
+      timeoutId = setTimeout(() => {
+        setLocalLoading(false);
+      }, 15000); // Force reset after 15 seconds
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [localLoading]);
 
   const handleAddClientId = (clientId: string, clientEmail: string) => {
     if (clientId && !filters.clientIds.includes(clientId)) {
