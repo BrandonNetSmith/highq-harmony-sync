@@ -15,6 +15,7 @@ export const AutoSyncToggle = ({ isEnabled, disabled, onToggle }: AutoSyncToggle
         checked={isEnabled}
         onCheckedChange={onToggle}
         disabled={disabled}
+        className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
       />
       <span className="text-sm font-medium">
         {isEnabled ? "Auto-Sync On" : "Auto-Sync Off"}

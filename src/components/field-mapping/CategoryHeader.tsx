@@ -14,18 +14,29 @@ export const CategoryHeader = ({
   onCategoryDirectionChange,
 }: CategoryHeaderProps) => {
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] gap-4 bg-muted/30 rounded-t-md">
-      <CategoryTitle label={label} position="left" />
+    <div className="flex flex-col bg-muted/30 rounded-t-md">
+      {/* Centered label row */}
+      <div className="text-center py-2">
+        <h3 className="text-lg font-medium capitalize">{label}</h3>
+      </div>
       
-      <SyncToggleControls
-        isEnabled={isCategoryEnabled}
-        direction={categoryDirection}
-        disabled={disabled}
-        onToggle={onCategorySyncChange}
-        onDirectionChange={onCategoryDirectionChange}
-      />
-      
-      <CategoryTitle label={label} position="right" />
+      {/* Controls row */}
+      <div className="grid grid-cols-[auto_1fr_auto] gap-4 px-4 pb-2">
+        {/* Toggle controls moved to left */}
+        <SyncToggleControls
+          isEnabled={isCategoryEnabled}
+          direction={categoryDirection}
+          disabled={disabled}
+          onToggle={onCategorySyncChange}
+          onDirectionChange={onCategoryDirectionChange}
+        />
+        
+        {/* Empty middle section */}
+        <div></div>
+        
+        {/* Right side - empty or can be used for other controls */}
+        <div></div>
+      </div>
     </div>
   );
 };

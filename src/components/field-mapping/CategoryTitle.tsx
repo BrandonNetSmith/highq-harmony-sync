@@ -8,6 +8,8 @@ interface CategoryTitleProps {
 }
 
 export const CategoryTitle = ({ label, position }: CategoryTitleProps) => {
+  // Since we moved the title to be centered in CategoryHeader, 
+  // these position-specific elements might be used for other UI elements
   if (position === 'right') {
     return (
       <div className="p-4 flex justify-end items-center">
@@ -19,7 +21,7 @@ export const CategoryTitle = ({ label, position }: CategoryTitleProps) => {
   return (
     <div className="p-4">
       <AccordionTrigger className="hover:no-underline w-full text-left">
-        <h3 className="text-lg font-medium capitalize text-left">{label}</h3>
+        <span className="text-lg font-medium capitalize text-left">{label}</span>
       </AccordionTrigger>
     </div>
   );
