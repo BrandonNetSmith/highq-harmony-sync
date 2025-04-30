@@ -124,12 +124,39 @@ const Index = () => {
         ...syncConfig,
         [type === 'ghl' ? 'ghl_filters' : 'intakeq_filters']: filters
       };
-      await saveSyncConfig(newConfig);
-      setSyncConfig(newConfig);
-      toast({
-        title: "Success",
-        description: "Filters updated successfully",
-      });
+      
+      // Provide feedback about what this filter configuration means
+      if (type === 'intakeq') {
+        const intakeqFilters = filters as typeof syncConfig.intakeq_filters;
+        let message = "Filter settings updated: ";
+        
+        if (intakeqFilters.clientIds.length === 0 && intakeqFilters.formIds.length === 0) {
+          message += "All IntakeQ data will be synchronized";
+        } else {
+          const parts = [];
+          if (intakeqFilters.clientIds.length > 0) {
+            parts.push(`${intakeqFilters.clientIds.length} specific client(s)`);
+          }
+          if (intakeqFilters.formIds.length > 0) {
+            parts.push(`${intakeqFilters.formIds.length} specific form(s)`);
+          }
+          message += "Only synchronizing " + parts.join(" and ");
+        }
+        
+        await saveSyncConfig(newConfig);
+        setSyncConfig(newConfig);
+        toast({
+          title: "Filters Updated",
+          description: message,
+        });
+      } else {
+        await saveSyncConfig(newConfig);
+        setSyncConfig(newConfig);
+        toast({
+          title: "Success",
+          description: "Filters updated successfully",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",

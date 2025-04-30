@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, User, FileText } from "lucide-react";
+import { Loader2, User, FileText, InfoIcon } from "lucide-react";
 import { IntakeQFilters } from "@/types/sync-filters";
 import { ApiErrorAlert } from './intakeq/ApiErrorAlert';
 import { ClientsFilter } from './intakeq/ClientsFilter';
 import { FormsFilter } from './intakeq/FormsFilter';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface IntakeQFilterCardProps {
   filters: IntakeQFilters;
@@ -49,6 +50,35 @@ export const IntakeQFilterCard = ({
       });
     };
   }, []);
+  
+  // Generate a summary of current filter settings
+  const getFilterSummary = () => {
+    if (filters.clientIds.length === 0 && filters.formIds.length === 0) {
+      return "No filters applied - all IntakeQ data will be synchronized";
+    }
+    
+    let summary = [];
+    
+    if (filters.clientIds.length > 0) {
+      const clientText = filters.clientIds.length === 1 
+        ? "1 specific client" 
+        : `${filters.clientIds.length} specific clients`;
+      summary.push(clientText);
+    }
+    
+    if (filters.formIds.length > 0) {
+      const formText = filters.formIds.length === 1 
+        ? "1 specific form" 
+        : `${filters.formIds.length} specific forms`;
+      summary.push(formText);
+    }
+    
+    if (summary.length === 0) {
+      return "No filters applied";
+    }
+    
+    return `Only synchronizing: ${summary.join(" and ")}`;
+  };
   
   // Handle fetch for a specific data type
   const handleFetchClick = (dataType: 'client' | 'form') => {
@@ -174,6 +204,15 @@ export const IntakeQFilterCard = ({
           onRemoveForm={handleRemoveFormId}
           disabled={disabled || isLoading || loadingStates.form}
         />
+
+        {(filters.clientIds.length > 0 || filters.formIds.length > 0) && (
+          <Alert className="mt-4">
+            <InfoIcon className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              <strong>Current filter settings:</strong> {getFilterSummary()}
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

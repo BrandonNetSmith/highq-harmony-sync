@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Label } from "@/components/ui/label";
-import { FilterDropdown } from "../common/FilterDropdown";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { FilterBadges } from "../common/FilterBadges";
 import { IntakeQForm } from "@/types/sync-filters";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { Search } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface FormsFilterProps {
   formIds: string[];
@@ -22,41 +23,91 @@ export const FormsFilter = ({
   onRemoveForm,
   disabled
 }: FormsFilterProps) => {
-  const [selectedFormName, setSelectedFormName] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const { toast } = useToast();
   
   const getFormNameById = (id: string) => {
     const form = availableForms.find(form => form.id === id);
     return form ? form.name : id;
   };
-
-  const hasNoForms = availableForms.length === 0;
+  
+  const handleSearch = () => {
+    if (!searchTerm.trim()) return;
+    
+    // Case insensitive search
+    const normalizedSearchTerm = searchTerm.toLowerCase();
+    const matchingForms = availableForms.filter(form => 
+      form.name.toLowerCase().includes(normalizedSearchTerm)
+    );
+    
+    if (matchingForms.length > 0) {
+      const form = matchingForms[0];
+      onAddForm(form.id, form.name);
+      
+      toast({
+        title: "Form found",
+        description: `Added "${form.name}" to filters. Only this form will be synchronized.`,
+      });
+      
+      setSearchTerm("");
+    } else {
+      toast({
+        title: "Form not found",
+        description: `No form found with name containing "${searchTerm}"`,
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
   
   return (
     <div>
-      <Label htmlFor="intakeq-forms">Form Names</Label>
+      <Label htmlFor="intakeq-forms">Forms</Label>
       <div className="space-y-2">
-        {hasNoForms ? (
-          <Alert variant="destructive" className="py-2">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            <AlertDescription>
-              No forms available. Try clicking the "Fetch Forms" button or check your IntakeQ API access.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <div className="flex gap-2">
-            <FilterDropdown
-              items={availableForms}
-              selectedValue={selectedFormName}
-              displayProperty="name"
-              idProperty="id"
-              onSelect={(formId, formName) => {
-                setSelectedFormName(formName);
-                onAddForm(formId, formName);
-              }}
-              placeholder="Select form..."
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Input
+              type="text"
+              placeholder="Search for form name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyDown}
               disabled={disabled}
+              className="pr-10"
             />
+            {searchTerm && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                onClick={() => setSearchTerm("")}
+                disabled={disabled}
+              >
+                ×
+              </Button>
+            )}
           </div>
+          <Button 
+            onClick={handleSearch} 
+            disabled={disabled || !searchTerm.trim()}
+            className="shrink-0"
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search
+          </Button>
+        </div>
+        
+        {availableForms.length === 0 && (
+          <p className="text-sm text-muted-foreground mt-1">
+            No forms loaded. Click "Fetch Forms" to load form data.
+          </p>
         )}
         
         <FilterBadges
@@ -65,6 +116,12 @@ export const FormsFilter = ({
           onRemove={onRemoveForm}
           disabled={disabled}
         />
+
+        {formIds.length > 0 && (
+          <p className="text-sm text-muted-foreground mt-2">
+            <strong>Note:</strong> When forms are selected, only these forms will sync. If combined with client selection, only these forms for those clients will sync.
+          </p>
+        )}
       </div>
     </div>
   );

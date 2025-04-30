@@ -53,7 +53,7 @@ export const ClientsFilter = ({
       // Show success toast
       toast({
         title: "Client found",
-        description: `Added ${client.email} to filters`,
+        description: `Added ${client.email} to filters. Only data for this client will be synchronized.`,
       });
       
       setSearchTerm("");
@@ -130,6 +130,12 @@ export const ClientsFilter = ({
           onRemove={onRemoveClient}
           disabled={disabled}
         />
+
+        {clientIds.length > 0 && (
+          <p className="text-sm text-muted-foreground mt-2">
+            <strong>Note:</strong> When a client is selected, only data for this client will sync. Combined with form selection, only that form for this client will sync.
+          </p>
+        )}
       </div>
     </div>
   );
