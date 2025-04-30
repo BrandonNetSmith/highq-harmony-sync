@@ -21,21 +21,27 @@ export const CategoryHeader = ({
       </div>
       
       {/* Controls row */}
-      <div className="grid grid-cols-[auto_1fr_auto] gap-4 px-4 pb-2">
-        {/* Toggle controls moved to left */}
-        <SyncToggleControls
-          isEnabled={isCategoryEnabled}
-          direction={categoryDirection}
-          disabled={disabled}
-          onToggle={onCategorySyncChange}
-          onDirectionChange={onCategoryDirectionChange}
-        />
+      <div className="grid grid-cols-3 gap-4 px-4 pb-2">
+        {/* Toggle controls on the left */}
+        <div className="flex justify-start">
+          <SyncToggleControls
+            isEnabled={isCategoryEnabled}
+            direction={categoryDirection}
+            disabled={disabled}
+            onToggle={onCategorySyncChange}
+            onDirectionChange={onCategoryDirectionChange}
+          />
+        </div>
         
-        {/* Empty middle section */}
-        <div></div>
+        {/* Middle section - empty to maintain spacing */}
+        <div className="flex justify-center">
+          {/* This empty div helps maintain the grid structure */}
+        </div>
         
-        {/* Right side - empty or can be used for other controls */}
-        <div></div>
+        {/* Right side - for other controls or empty to maintain spacing */}
+        <div className="flex justify-end">
+          {/* This empty div helps maintain the grid structure */}
+        </div>
       </div>
     </div>
   );

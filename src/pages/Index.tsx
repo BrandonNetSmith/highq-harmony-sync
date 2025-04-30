@@ -189,8 +189,8 @@ const Index = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="mb-8 border-b pb-6">
-        <h1 className="text-4xl font-bold mb-2 flex items-center gap-2">
+      <div className="mb-8 border-b pb-6 text-center">
+        <h1 className="text-4xl font-bold mb-2 flex items-center justify-center gap-2">
           GoHighLevel <span className="inline-block mx-1">↔</span> IntakeQ Sync
         </h1>
         <p className="text-muted-foreground text-lg">

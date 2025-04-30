@@ -37,7 +37,7 @@ export const SyncToggleControls = ({
       </div>
       
       {isEnabled && (
-        <div className="flex flex-col w-full gap-1">
+        <div>
           <div className="text-sm font-medium mb-1">Sync Direction</div>
           <ToggleGroup
             type="single"
