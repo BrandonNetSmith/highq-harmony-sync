@@ -54,13 +54,13 @@ export const useFilterData = () => {
     }
   };
 
-  const handleFetchIntakeQData = async () => {
+  const handleFetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointment') => {
     setIsLoadingIntakeQ(true);
     setIntakeqApiError(null);
     setIntakeqDebugInfo(null);
     
     try {
-      const { forms, clients, error, debugInfo } = await fetchIntakeQData();
+      const { forms, clients, error, debugInfo } = await fetchIntakeQData(dataType);
       
       if (debugInfo) {
         setIntakeqDebugInfo(debugInfo);
@@ -70,26 +70,53 @@ export const useFilterData = () => {
         throw new Error(error);
       }
       
-      setAvailableForms(forms);
-      setAvailableClients(clients);
+      // Only update the state for the data types we fetched
+      if (dataType === undefined || dataType === 'form') {
+        setAvailableForms(forms);
+        if (forms && forms.length > 0) {
+          toast({
+            title: "Success",
+            description: `Retrieved ${forms.length} forms from IntakeQ`,
+          });
+        } else if (dataType === 'form') {
+          toast({
+            title: "Note",
+            description: "No forms found in your IntakeQ account",
+          });
+        }
+      }
       
-      if (forms.length > 0) {
+      if (dataType === undefined || dataType === 'client') {
+        setAvailableClients(clients);
+        if (clients && clients.length > 0) {
+          toast({
+            title: "Success",
+            description: `Retrieved ${clients.length} clients from IntakeQ`,
+          });
+        } else if (dataType === 'client') {
+          toast({
+            title: "Note",
+            description: "No clients found in your IntakeQ account",
+          });
+        }
+      }
+      
+      if (dataType === 'appointment') {
         toast({
-          title: "Success",
-          description: `Retrieved ${forms.length} forms from IntakeQ`,
-        });
-      } else {
-        toast({
-          title: "Note",
-          description: "No forms found in your IntakeQ account",
+          title: "Info",
+          description: "Appointment data fetching is not fully implemented yet",
         });
       }
+      
     } catch (error) {
       console.error('Error fetching IntakeQ data:', error);
       setIntakeqApiError(error instanceof Error ? error.message : "Failed to fetch IntakeQ data");
+      
+      // Show a more specific error message based on the data type
+      const dataTypeText = dataType ? `IntakeQ ${dataType}s` : "IntakeQ data";
       toast({
         title: "IntakeQ API Error",
-        description: error instanceof Error ? error.message : "Failed to fetch IntakeQ data",
+        description: `Failed to fetch ${dataTypeText}: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: "destructive",
       });
     } finally {

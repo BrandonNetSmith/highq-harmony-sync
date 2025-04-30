@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, User, FileText, Calendar } from "lucide-react";
 import { IntakeQFilters } from "@/types/sync-filters";
 import { ApiErrorAlert } from './intakeq/ApiErrorAlert';
 import { ClientsFilter } from './intakeq/ClientsFilter';
@@ -15,7 +15,7 @@ interface IntakeQFilterCardProps {
   apiError: string | null;
   availableForms: {id: string, name: string}[];
   availableClients: {id: string, email: string}[];
-  onFetchData: () => void;
+  onFetchData: (dataType?: 'client' | 'form' | 'appointment') => void;
   disabled?: boolean;
   debugInfo?: any;
 }
@@ -31,47 +31,64 @@ export const IntakeQFilterCard = ({
   disabled,
   debugInfo
 }: IntakeQFilterCardProps) => {
-  // Add state to track local loading timeout
-  const [localLoading, setLocalLoading] = React.useState(false);
-  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  // Track separate loading states for each data type
+  const [loadingStates, setLoadingStates] = React.useState({
+    client: false,
+    form: false,
+    appointment: false
+  });
+  const timeoutRef = React.useRef<Record<string, NodeJS.Timeout | null>>({
+    client: null,
+    form: null,
+    appointment: null
+  });
   
-  // Clean up timeout on unmount
+  // Clean up timeouts on unmount
   React.useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      Object.values(timeoutRef.current).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
     };
   }, []);
   
-  // Convert the function to handle timeouts
-  const handleFetchClick = () => {
-    // Prevent double-clicks
-    if (isLoading || localLoading) return;
+  // Handle fetch for a specific data type
+  const handleFetchClick = (dataType: 'client' | 'form' | 'appointment') => {
+    // Prevent double-clicks and respect global loading/disabled state
+    if (isLoading || loadingStates[dataType] || disabled) return;
     
-    // Set local loading state with a timeout to ensure UI feedback even if fetch is quick
-    setLocalLoading(true);
+    // Set local loading state for this specific data type
+    setLoadingStates(prev => ({ ...prev, [dataType]: true }));
     
-    // Call the passed onFetchData function
-    onFetchData();
+    // Call the passed onFetchData function with the specific data type
+    onFetchData(dataType);
     
     // Set a timeout to clear the loading state after a reasonable time if the fetch doesn't complete
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+    if (timeoutRef.current[dataType]) {
+      clearTimeout(timeoutRef.current[dataType]!);
     }
     
-    timeoutRef.current = setTimeout(() => {
-      setLocalLoading(false);
-      console.log("Force reset IntakeQ fetch loading state after timeout");
+    timeoutRef.current[dataType] = setTimeout(() => {
+      setLoadingStates(prev => ({ ...prev, [dataType]: false }));
+      console.log(`Force reset IntakeQ ${dataType} fetch loading state after timeout`);
     }, 10000); // 10 seconds timeout
   };
   
-  // Clear local loading state when isLoading changes to false
+  // Clear loading state when isLoading changes to false
   React.useEffect(() => {
-    if (!isLoading && timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-      setLocalLoading(false);
+    if (!isLoading) {
+      Object.keys(timeoutRef.current).forEach(key => {
+        const dataType = key as 'client' | 'form' | 'appointment';
+        if (timeoutRef.current[dataType]) {
+          clearTimeout(timeoutRef.current[dataType]!);
+          timeoutRef.current[dataType] = null;
+        }
+      });
+      setLoadingStates({
+        client: false,
+        form: false,
+        appointment: false
+      });
     }
   }, [isLoading]);
 
@@ -112,16 +129,43 @@ export const IntakeQFilterCard = ({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>IntakeQ Filters</span>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleFetchClick}
-            disabled={isLoading || localLoading || disabled}
-            className="flex items-center gap-2"
-          >
-            {(isLoading || localLoading) ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            <span>{(isLoading || localLoading) ? "Fetching..." : "Fetch Options"}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleFetchClick('client')}
+              disabled={isLoading || loadingStates.client || disabled}
+              className="flex items-center gap-2"
+              title="Fetch client data from IntakeQ"
+            >
+              {loadingStates.client ? <Loader2 className="h-4 w-4 animate-spin" /> : <User className="h-4 w-4" />}
+              <span>{loadingStates.client ? "Fetching..." : "Fetch Clients"}</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleFetchClick('form')}
+              disabled={isLoading || loadingStates.form || disabled}
+              className="flex items-center gap-2"
+              title="Fetch form data from IntakeQ"
+            >
+              {loadingStates.form ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              <span>{loadingStates.form ? "Fetching..." : "Fetch Forms"}</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleFetchClick('appointment')}
+              disabled={isLoading || loadingStates.appointment || disabled}
+              className="flex items-center gap-2"
+              title="Fetch appointment data from IntakeQ"
+            >
+              {loadingStates.appointment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
+              <span>{loadingStates.appointment ? "Fetching..." : "Fetch Appointments"}</span>
+            </Button>
+          </div>
         </CardTitle>
         <CardDescription>Filter which IntakeQ records to sync</CardDescription>
       </CardHeader>
@@ -135,7 +179,7 @@ export const IntakeQFilterCard = ({
           availableClients={availableClients}
           onAddClient={handleAddClientId}
           onRemoveClient={handleRemoveClientId}
-          disabled={disabled || isLoading || localLoading}
+          disabled={disabled || isLoading || loadingStates.client}
         />
         
         <FormsFilter
@@ -143,7 +187,7 @@ export const IntakeQFilterCard = ({
           availableForms={availableForms}
           onAddForm={handleAddFormId}
           onRemoveForm={handleRemoveFormId}
-          disabled={disabled || isLoading || localLoading}
+          disabled={disabled || isLoading || loadingStates.form}
         />
       </CardContent>
     </Card>
