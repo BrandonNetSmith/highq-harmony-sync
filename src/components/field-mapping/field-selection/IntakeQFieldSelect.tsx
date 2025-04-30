@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import {
   Select,
@@ -30,6 +29,85 @@ export const IntakeQFieldSelect = ({
   // Only display options if fields have been discovered and we have options
   const hasOptions = isDiscovered && options && options.length > 0;
   
+  // Process options to remove duplicates and organize fields
+  const processedOptions = React.useMemo(() => {
+    if (!options || options.length === 0) return [];
+    
+    // Create a map to track field variations by their lowercase normalized form
+    const fieldMap = new Map();
+    
+    options.forEach(field => {
+      // Skip empty fields
+      if (!field || field.trim() === '') return;
+      
+      // Normalize the field name for comparison (lowercase, no special chars)
+      const normalizedKey = field.toLowerCase().replace(/[_\s]/g, '');
+      
+      if (!fieldMap.has(normalizedKey)) {
+        // First occurrence of this field
+        fieldMap.set(normalizedKey, {
+          variations: [field],
+          // Prefer camelCase or simple field names for display
+          preferred: field
+        });
+      } else {
+        // Add this variation to existing field
+        const current = fieldMap.get(normalizedKey);
+        current.variations.push(field);
+        
+        // Update preferred variation based on preference order:
+        // 1. camelCase (e.g., firstName)
+        // 2. Simple field name (e.g., firstname)
+        // 3. PascalCase (e.g., FirstName)
+        // 4. snake_case (e.g., first_name)
+        
+        if (
+          // If current field is camelCase (first char lowercase, contains uppercase)
+          (field.charAt(0).toLowerCase() === field.charAt(0) && 
+           /[A-Z]/.test(field))
+        ) {
+          current.preferred = field;
+        } 
+        // Keep simple field names if we don't already have a camelCase
+        else if (
+          !/[._]/.test(field) && 
+          !/[A-Z]/.test(field) &&
+          (/_/.test(current.preferred) || current.preferred.charAt(0).toUpperCase() === current.preferred.charAt(0))
+        ) {
+          current.preferred = field;
+        }
+      }
+    });
+    
+    // Create sorted array of preferred field names
+    const preferredFields = Array.from(fieldMap.values())
+      .map(item => item.preferred)
+      .sort((a, b) => {
+        // Sort common fields like name, email at the top
+        const commonFields = ['name', 'email', 'phone', 'firstName', 'lastName', 'address'];
+        
+        // Check if fields are in common fields list
+        const aCommonIndex = commonFields.findIndex(f => a.toLowerCase().includes(f.toLowerCase()));
+        const bCommonIndex = commonFields.findIndex(f => b.toLowerCase().includes(f.toLowerCase()));
+        
+        // Both are common fields, sort by position in common fields list
+        if (aCommonIndex !== -1 && bCommonIndex !== -1) {
+          return aCommonIndex - bCommonIndex;
+        }
+        
+        // Only a is common, a comes first
+        if (aCommonIndex !== -1) return -1;
+        
+        // Only b is common, b comes first
+        if (bCommonIndex !== -1) return 1;
+        
+        // Neither is common, sort alphabetically
+        return a.localeCompare(b);
+      });
+    
+    return preferredFields;
+  }, [options]);
+  
   // If discovery has happened and we have options, show them
   // Otherwise show an appropriate placeholder
   const displayValue = value || "";
@@ -47,13 +125,13 @@ export const IntakeQFieldSelect = ({
       let matchedField = null;
       
       // Strategy 1: Exact match (case-insensitive)
-      matchedField = options.find(field => 
+      matchedField = processedOptions.find(field => 
         field.toLowerCase() === fieldName.toLowerCase()
       );
       
       // Strategy 2: Field contains our field name or vice versa
       if (!matchedField) {
-        matchedField = options.find(field => {
+        matchedField = processedOptions.find(field => {
           const normalizedOption = field.toLowerCase().replace(/[_\s]/g, '');
           return normalizedOption.includes(normalizedFieldName) || 
                  normalizedFieldName.includes(normalizedOption);
@@ -65,7 +143,7 @@ export const IntakeQFieldSelect = ({
         // Camel case to separate words: firstName -> first name
         const parts = fieldName.replace(/([A-Z])/g, ' $1').trim().toLowerCase().split(' ');
         if (parts.length > 1) {
-          matchedField = options.find(field => {
+          matchedField = processedOptions.find(field => {
             const normalizedOption = field.toLowerCase();
             return parts.every(part => normalizedOption.includes(part));
           });
@@ -78,15 +156,15 @@ export const IntakeQFieldSelect = ({
         onChange(matchedField);
       }
     }
-  }, [options, isDiscovered, hasOptions, fieldName, value, onChange]);
+  }, [processedOptions, isDiscovered, hasOptions, fieldName, value, onChange]);
 
-  // More detailed logging to help debug field discovery issues
+  // Log field information with processed options
   console.log(`IntakeQFieldSelect[${dataType}/${fieldName}]:`, { 
     isDiscovered, 
     hasOptions, 
-    optionsCount: options?.length || 0,
+    optionsCount: processedOptions?.length || 0,
     value: displayValue,
-    availableOptions: options,
+    availableOptionsPreview: processedOptions?.slice(0, 10),
     selectedField: value || 'none'
   });
 
@@ -102,7 +180,7 @@ export const IntakeQFieldSelect = ({
         </SelectTrigger>
         <SelectContent>
           {hasOptions ? (
-            options.map((field: string) => (
+            processedOptions.map((field: string) => (
               <SelectItem key={field} value={field}>
                 {field}
               </SelectItem>
