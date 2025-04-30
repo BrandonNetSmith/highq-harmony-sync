@@ -33,6 +33,16 @@ export const IntakeQFilterCard = ({
 }: IntakeQFilterCardProps) => {
   // Add state to track local loading timeout
   const [localLoading, setLocalLoading] = React.useState(false);
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // Clean up timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
   
   // Convert the function to handle timeouts
   const handleFetchClick = () => {
@@ -46,32 +56,24 @@ export const IntakeQFilterCard = ({
     onFetchData();
     
     // Set a timeout to clear the loading state after a reasonable time if the fetch doesn't complete
-    setTimeout(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
       setLocalLoading(false);
-    }, 15000); // 15 seconds timeout
+      console.log("Force reset IntakeQ fetch loading state after timeout");
+    }, 10000); // 10 seconds timeout
   };
   
   // Clear local loading state when isLoading changes to false
   React.useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
       setLocalLoading(false);
     }
   }, [isLoading]);
-  
-  // Add a forced timeout to ensure the loading state doesn't get stuck
-  React.useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    if (localLoading) {
-      timeoutId = setTimeout(() => {
-        setLocalLoading(false);
-      }, 15000); // Force reset after 15 seconds
-    }
-    
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [localLoading]);
 
   const handleAddClientId = (clientId: string, clientEmail: string) => {
     if (clientId && !filters.clientIds.includes(clientId)) {

@@ -74,7 +74,9 @@ export const processResponse = async (response: Response, requestUrl: string) =>
     const clone = response.clone();
     const text = await clone.text();
     console.log(`Response text length: ${text.length}`);
-    console.log(`Response text beginning: ${text.substring(0, 100)}`);
+    if (text.length > 0) {
+      console.log(`Response text beginning: ${text.substring(0, 100)}`);
+    }
     
     if (!text.trim()) {
       return {
@@ -109,6 +111,9 @@ export const processResponse = async (response: Response, requestUrl: string) =>
       return json;
     } catch (parseError) {
       // Return the parsing error and the first part of the text
+      console.error(`JSON parse error for ${requestUrl}:`, parseError);
+      console.error(`Response that couldn't be parsed:`, text.substring(0, 200));
+      
       return {
         _parseError: parseError instanceof Error ? parseError.message : String(parseError),
         _statusCode: statusCode,

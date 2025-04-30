@@ -5,7 +5,6 @@ import { getApiKeys } from "@/services/apiKeys";
 
 /**
  * Service responsible for discovering fields from different systems
- * Currently uses mock data for GHL, but can fetch real field data from IntakeQ
  */
 export const fieldDiscoveryService = {
   /**
@@ -51,10 +50,10 @@ export const fieldDiscoveryService = {
             endpoint = 'clients';
         }
         
-        // Call IntakeQ API to get sample data (using v1 API), get more than one record for better field coverage
+        // Call IntakeQ API to get sample data (try v1 API first, with a higher limit for more field coverage)
         const { data, error } = await supabase.functions.invoke('proxy', {
           body: {
-            url: `https://intakeq.com/api/v1/${endpoint}?limit=5`, // Increased limit to get more fields
+            url: `https://intakeq.com/api/v1/${endpoint}?limit=10`, // Increased limit to get more fields
             method: 'GET',
             headers: {
               'X-Auth-Key': intakeq_key
@@ -70,17 +69,17 @@ export const fieldDiscoveryService = {
           const allFields = new Set<string>();
           
           // Process each item in the response
-          for (const item of data.slice(0, 5)) { // Process up to 5 items
+          for (const item of data) {
             // Extract field names from each item
             console.log(`Processing IntakeQ ${dataType} item:`, JSON.stringify(item).substring(0, 200) + "...");
             
-            // Extract all fields recursively from the object
-            const extractFieldsFromItem = (obj: any, prefix = ''): string[] => {
-              if (!obj || typeof obj !== 'object') return [];
+            // Extract all fields recursively from the object, up to a certain depth
+            const extractFieldsFromItem = (obj: any, prefix = '', depth = 0): string[] => {
+              if (!obj || typeof obj !== 'object' || depth > 3) return []; // Limit recursion depth
               
               return Object.entries(obj).reduce((acc: string[], [key, value]) => {
-                // Skip metadata fields and _underscore fields
-                if (key.startsWith('_') || key === 'id' || key === 'client_id' || key === 'form_id') {
+                // Skip metadata fields and _underscore fields and empty/null values
+                if (key.startsWith('_') || key === 'id' || key === 'client_id' || key === 'form_id' || value === null || value === undefined) {
                   return acc;
                 }
                 
@@ -89,10 +88,18 @@ export const fieldDiscoveryService = {
                 // Add the current field
                 acc.push(fieldName);
                 
-                if (value && typeof value === 'object' && !Array.isArray(value)) {
-                  // If it's an object, extract nested fields
-                  const nestedFields = extractFieldsFromItem(value, fieldName);
-                  acc.push(...nestedFields);
+                if (value && typeof value === 'object') {
+                  if (Array.isArray(value)) {
+                    // If it's an array with objects, extract fields from the first item
+                    if (value.length > 0 && typeof value[0] === 'object') {
+                      const arrayItemFields = extractFieldsFromItem(value[0], `${fieldName}[0]`, depth + 1);
+                      acc.push(...arrayItemFields);
+                    }
+                  } else {
+                    // If it's an object, extract nested fields
+                    const nestedFields = extractFieldsFromItem(value, fieldName, depth + 1);
+                    acc.push(...nestedFields);
+                  }
                 }
                 
                 return acc;
@@ -105,16 +112,43 @@ export const fieldDiscoveryService = {
             
             // Also add direct keys as fields (especially for contacts)
             Object.keys(item)
-              .filter(key => !key.startsWith('_') && key !== 'id')
+              .filter(key => !key.startsWith('_') && key !== 'id' && item[key] !== null)
               .forEach(key => allFields.add(key));
           }
           
-          // For contacts specifically, add some common fields that might not be in the sample data
+          // For contacts specifically, add common fields that might not be in the sample data
           if (dataType === 'contact') {
             ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 
-             'zipCode', 'dateOfBirth', 'gender', 'notes', 'customFields', 'Name', 
-             'Email', 'Phone', 'Address', 'DateOfBirth'].forEach(field => allFields.add(field));
+             'zipCode', 'postalCode', 'dateOfBirth', 'dob', 'gender', 'notes', 'customFields', 
+             'Name', 'Email', 'Phone', 'Address', 'DateOfBirth', 'clientName', 'clientEmail',
+             'emailAddress', 'phoneNumber', 'mobilePhone', 'homePhone', 'workPhone',
+             'addressLine1', 'addressLine2', 'country', 'createdAt', 'updatedAt'].forEach(field => allFields.add(field));
           }
+          
+          // Also include fields with common case variations (camelCase, PascalCase, snake_case)
+          const addCaseVariations = (field: string) => {
+            // Only add variations for simple field names (not paths with dots)
+            if (!field.includes('.')) {
+              // camelCase to PascalCase
+              if (field.charAt(0).toLowerCase() === field.charAt(0)) {
+                const pascalCase = field.charAt(0).toUpperCase() + field.slice(1);
+                allFields.add(pascalCase);
+              }
+              
+              // PascalCase to camelCase
+              if (field.charAt(0).toUpperCase() === field.charAt(0)) {
+                const camelCase = field.charAt(0).toLowerCase() + field.slice(1);
+                allFields.add(camelCase);
+              }
+              
+              // Convert to snake_case
+              const snakeCase = field.replace(/([A-Z])/g, '_$1').toLowerCase();
+              if (snakeCase !== field) allFields.add(snakeCase);
+            }
+          };
+          
+          // Add case variations for all fields
+          Array.from(allFields).forEach(addCaseVariations);
           
           // Convert the set to an array
           fields = Array.from(allFields);

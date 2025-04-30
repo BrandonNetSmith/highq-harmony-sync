@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { fieldDiscoveryService } from "@/services/field-discovery-service";
 import { useDiscoveryState } from "./field-discovery/discovery-state";
 import type { DiscoverySystem, DataType } from "./field-discovery/types";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 /**
  * Hook for discovering and managing fields from different systems
@@ -25,7 +25,7 @@ export const useFieldDiscovery = () => {
   /**
    * Handles the discovery of fields for a specific system and data type
    */
-  const handleDiscoverFields = async (system: DiscoverySystem, dataType: DataType): Promise<void> => {
+  const handleDiscoverFields = useCallback(async (system: DiscoverySystem, dataType: DataType): Promise<void> => {
     try {
       const key = `${system}_${dataType}`;
       
@@ -39,12 +39,16 @@ export const useFieldDiscovery = () => {
       const attempts = (discoveryAttempts[key] || 0) + 1;
       setDiscoveryAttempts(prev => ({ ...prev, [key]: attempts }));
       
-      if (attempts > 3) {
+      if (attempts > 5) {
         toast({
           title: "Warning",
           description: `Multiple discovery attempts for ${system} ${dataType}. Using fallback data.`,
           variant: "default",
         });
+        
+        // Mark as discovered with fallback data to prevent further attempts
+        setDiscoveredFields(prev => ({ ...prev, [key]: true }));
+        return;
       }
       
       console.log(`Starting discovery for ${system} ${dataType} (attempt ${attempts})`);
@@ -65,6 +69,9 @@ export const useFieldDiscovery = () => {
       // Update the fields for the specific system and dataType
       setAvailableFields(prev => {
         const updated = { ...prev };
+        if (!updated[system]) {
+          updated[system] = {};
+        }
         updated[system] = {
           ...updated[system],
           [dataType]: filteredFields
@@ -105,7 +112,7 @@ export const useFieldDiscovery = () => {
         }));
       }, 500);
     }
-  };
+  }, [isDiscovering, discoveryAttempts, setIsDiscovering, setDiscoveredFields, setAvailableFields, toast]);
 
   return {
     isDiscovering,

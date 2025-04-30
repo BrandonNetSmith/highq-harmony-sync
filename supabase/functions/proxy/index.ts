@@ -31,15 +31,50 @@ serve(async (req) => {
     }
     const requestOptions = createRequestOptions(method, requestHeaders, body);
 
-    // For IntakeQ, ensure we try v1 API first (v2 often gives 404s)
+    // For IntakeQ API calls, try different API versions if needed
     let currentUrl = url;
-    if (url.includes('intakeq.com/api/v2/')) {
-      currentUrl = url.replace('/api/v2/', '/api/v1/');
-      console.log(`Converting IntakeQ v2 API to v1: ${currentUrl}`);
+    let response = null;
+    let error = null;
+    
+    // Handle IntakeQ API version detection
+    if (url.includes('intakeq.com/api/')) {
+      // Try v1 API first as it's more stable
+      if (url.includes('/api/v2/')) {
+        currentUrl = url.replace('/api/v2/', '/api/v1/');
+        console.log(`First attempt with IntakeQ v1 API: ${currentUrl}`);
+        
+        const result = await executeRequest(currentUrl, requestOptions);
+        response = result.response;
+        error = result.error;
+        
+        // If v1 fails with 404, fall back to v2
+        if (response && response.status === 404) {
+          console.log(`v1 API returned 404, falling back to v2: ${url}`);
+          const v2Result = await executeRequest(url, requestOptions);
+          response = v2Result.response;
+          error = v2Result.error;
+        }
+      } else {
+        // Already using v1 API, try it first
+        const result = await executeRequest(url, requestOptions);
+        response = result.response;
+        error = result.error;
+        
+        // If v1 fails with 404, try v2
+        if (response && response.status === 404) {
+          const v2Url = url.replace('/api/v1/', '/api/v2/');
+          console.log(`v1 API returned 404, trying v2: ${v2Url}`);
+          const v2Result = await executeRequest(v2Url, requestOptions);
+          response = v2Result.response;
+          error = v2Result.error;
+        }
+      }
+    } else {
+      // Non-IntakeQ request, execute directly
+      const result = await executeRequest(url, requestOptions);
+      response = result.response;
+      error = result.error;
     }
-
-    // Execute request with automatic redirect handling
-    const { response, error } = await executeRequest(currentUrl, requestOptions);
     
     // Handle network errors
     if (error) {

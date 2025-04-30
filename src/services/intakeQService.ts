@@ -17,10 +17,10 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // Try with v1 API first, which seems to be the commonly used version
+    // Always use v1 API first, which seems more reliable
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/v1/forms', // Using v1 API
+        url: 'https://intakeq.com/api/v1/forms?limit=20', // Using v1 API with higher limit
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -87,15 +87,15 @@ export const fetchIntakeQData = async () => {
       };
     } else if (Array.isArray(formsData)) {
       forms = formsData.map((form) => ({
-        id: form.id || form.formId || form.form_id,
-        name: form.name || form.title || form.form_name || `Form ${form.id}`
+        id: form.id || form.formId || form.form_id || form.Id,
+        name: form.name || form.title || form.form_name || form.formTitle || form.formName || `Form ${form.id || form.Id}`
       }));
     }
 
-    // Try clients with v1 API
+    // Try clients with v1 API with higher limit
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/v1/clients',
+        url: 'https://intakeq.com/api/v1/clients?limit=20',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -130,10 +130,10 @@ export const fetchIntakeQData = async () => {
       };
     } else if (Array.isArray(clientsData)) {
       clients = clientsData
-        .filter((client) => client.email || client.emailAddress) // Only include clients with email
+        .filter((client) => client.email || client.emailAddress || client.Email) // Only include clients with email
         .map((client) => ({
-          id: client.id || client.clientId || client.client_id,
-          email: client.email || client.emailAddress || client.email_address
+          id: client.id || client.clientId || client.client_id || client.Id || client.ClientId,
+          email: client.email || client.emailAddress || client.Email || client.ClientEmail || client.emailAddress || client.clientEmail
         }));
     }
     

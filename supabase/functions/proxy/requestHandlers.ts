@@ -1,4 +1,3 @@
-
 /**
  * Functions for handling and validating incoming requests
  */
@@ -57,37 +56,36 @@ export const executeRequest = async (url: string, options: RequestInit) => {
     console.log(`Sending ${options.method || 'GET'} request to: ${url}`);
     console.log('Request headers:', [...options.headers.entries()]);
     
-    // Make the actual request
-    const response = await fetch(url, options);
-    console.log(`Received response with status: ${response.status}`);
+    // Make the actual request with timeout
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 20000); // 20 second timeout
     
-    // If the endpoint is IntakeQ and returns a 404 for v1 or v2, try other version
-    if (url.includes('intakeq.com/api/') && response.status === 404) {
-      // Check if we're using v1 or v2
-      const isV1 = url.includes('/api/v1/');
-      const isV2 = url.includes('/api/v2/');
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: abortController.signal
+      });
       
-      if (isV1 || isV2) {
-        // Try the other version by replacing v1 with v2 or vice versa
-        const alternateUrl = isV1 
-          ? url.replace('/api/v1/', '/api/v2/') 
-          : url.replace('/api/v2/', '/api/v1/');
-          
-        console.log(`IntakeQ API version error. Attempting alternate API version: ${alternateUrl}`);
-        
-        const alternateResponse = await fetch(alternateUrl, options);
-        console.log(`Alternate endpoint response status: ${alternateResponse.status}`);
-        
-        if (alternateResponse.status !== 404) {
-          // The alternate version worked, return this response
-          return { response: alternateResponse, error: null };
-        }
-        
-        // If both versions failed with 404, continue with the original response
+      clearTimeout(timeoutId);
+      console.log(`Received response with status: ${response.status}`);
+      return { response, error: null };
+      
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('Request timed out after 20 seconds:', url);
+        return {
+          response: null,
+          error: {
+            _error: 'Request timeout',
+            _errorDetails: 'The request took too long to complete and was aborted',
+            _statusCode: 408,
+            _requestUrl: url
+          }
+        };
       }
+      throw fetchError;
     }
-    
-    return { response, error: null };
   } catch (fetchError) {
     console.error('Fetch error:', fetchError);
     return { 
@@ -118,6 +116,14 @@ export const formatResponseData = (data: any) => {
   
   if (data && Array.isArray(data.data)) {
     return data.data;
+  }
+  
+  if (data && Array.isArray(data.contacts)) {
+    return data.contacts;
+  }
+  
+  if (data && Array.isArray(data.items)) {
+    return data.items;
   }
   
   // Otherwise, return the data as is
