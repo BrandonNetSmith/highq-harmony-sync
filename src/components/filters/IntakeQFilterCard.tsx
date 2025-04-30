@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, User, FileText, Calendar } from "lucide-react";
+import { Loader2, User, FileText } from "lucide-react";
 import { IntakeQFilters } from "@/types/sync-filters";
 import { ApiErrorAlert } from './intakeq/ApiErrorAlert';
 import { ClientsFilter } from './intakeq/ClientsFilter';
@@ -34,13 +34,11 @@ export const IntakeQFilterCard = ({
   // Track separate loading states for each data type
   const [loadingStates, setLoadingStates] = React.useState({
     client: false,
-    form: false,
-    appointment: false
+    form: false
   });
   const timeoutRef = React.useRef<Record<string, NodeJS.Timeout | null>>({
     client: null,
-    form: null,
-    appointment: null
+    form: null
   });
   
   // Clean up timeouts on unmount
@@ -53,7 +51,7 @@ export const IntakeQFilterCard = ({
   }, []);
   
   // Handle fetch for a specific data type
-  const handleFetchClick = (dataType: 'client' | 'form' | 'appointment') => {
+  const handleFetchClick = (dataType: 'client' | 'form') => {
     // Prevent double-clicks and respect global loading/disabled state
     if (isLoading || loadingStates[dataType] || disabled) return;
     
@@ -78,7 +76,7 @@ export const IntakeQFilterCard = ({
   React.useEffect(() => {
     if (!isLoading) {
       Object.keys(timeoutRef.current).forEach(key => {
-        const dataType = key as 'client' | 'form' | 'appointment';
+        const dataType = key as 'client' | 'form';
         if (timeoutRef.current[dataType]) {
           clearTimeout(timeoutRef.current[dataType]!);
           timeoutRef.current[dataType] = null;
@@ -86,8 +84,7 @@ export const IntakeQFilterCard = ({
       });
       setLoadingStates({
         client: false,
-        form: false,
-        appointment: false
+        form: false
       });
     }
   }, [isLoading]);
@@ -152,18 +149,6 @@ export const IntakeQFilterCard = ({
             >
               {loadingStates.form ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               <span>{loadingStates.form ? "Fetching..." : "Fetch Forms"}</span>
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleFetchClick('appointment')}
-              disabled={isLoading || loadingStates.appointment || disabled}
-              className="flex items-center gap-2"
-              title="Fetch appointment data from IntakeQ"
-            >
-              {loadingStates.appointment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
-              <span>{loadingStates.appointment ? "Fetching..." : "Fetch Appointments"}</span>
             </Button>
           </div>
         </CardTitle>

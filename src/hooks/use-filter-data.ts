@@ -54,7 +54,7 @@ export const useFilterData = () => {
     }
   };
 
-  const handleFetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointment') => {
+  const handleFetchIntakeQData = async (dataType?: 'client' | 'form') => {
     setIsLoadingIntakeQ(true);
     setIntakeqApiError(null);
     setIntakeqDebugInfo(null);
@@ -93,6 +93,9 @@ export const useFilterData = () => {
             title: "Success",
             description: `Retrieved ${clients.length} clients from IntakeQ`,
           });
+          
+          // Log clients for troubleshooting
+          console.log("Fetched clients:", clients);
         } else if (dataType === 'client') {
           toast({
             title: "Note",
@@ -100,14 +103,6 @@ export const useFilterData = () => {
           });
         }
       }
-      
-      if (dataType === 'appointment') {
-        toast({
-          title: "Info",
-          description: "Appointment data fetching is not fully implemented yet",
-        });
-      }
-      
     } catch (error) {
       console.error('Error fetching IntakeQ data:', error);
       setIntakeqApiError(error instanceof Error ? error.message : "Failed to fetch IntakeQ data");

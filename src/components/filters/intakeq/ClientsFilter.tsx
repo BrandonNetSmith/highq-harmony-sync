@@ -37,9 +37,12 @@ export const ClientsFilter = ({
     
     setIsSearching(true);
     
-    // Search for matching clients
+    // Case insensitive search, trimming whitespace
+    const normalizedSearchTerm = searchTerm.toLowerCase().trim();
+    
+    // Search for matching clients - using more flexible matching
     const matchingClients = availableClients.filter(client => 
-      client.email.toLowerCase().includes(searchTerm.toLowerCase())
+      client.email.toLowerCase().includes(normalizedSearchTerm)
     );
     
     if (matchingClients.length > 0) {
@@ -55,12 +58,16 @@ export const ClientsFilter = ({
       
       setSearchTerm("");
     } else {
-      // Show not found toast
+      // Show not found toast with more helpful info
       toast({
         title: "Client not found",
-        description: `No client with email containing "${searchTerm}" was found`,
+        description: `No client found with email containing "${searchTerm}". Try using partial email or fetch more clients first.`,
         variant: "destructive"
       });
+      
+      // Log available clients for debugging
+      console.log("Available clients:", availableClients);
+      console.log("Search term:", normalizedSearchTerm);
     }
     
     setIsSearching(false);
@@ -110,6 +117,12 @@ export const ClientsFilter = ({
             Search
           </Button>
         </div>
+        
+        {availableClients.length === 0 && (
+          <p className="text-sm text-muted-foreground mt-1">
+            No clients loaded. Click "Fetch Clients" to load client data.
+          </p>
+        )}
         
         <FilterBadges
           items={clientIds}

@@ -43,7 +43,7 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
         
         const result = await supabase.functions.invoke('proxy', {
           body: {
-            url: `${apiUrl}?limit=20`,
+            url: `${apiUrl}?limit=100`,
             method: 'GET',
             headers: {
               'X-Auth-Key': intakeq_key,
@@ -100,12 +100,13 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
       ];
       
       // Try each API format for clients until one works
+      // Increased the client limit to 200 to get more results
       for (const apiUrl of clientApiFormats) {
         console.log(`Attempting to fetch clients from: ${apiUrl}`);
         
         const result = await supabase.functions.invoke('proxy', {
           body: {
-            url: `${apiUrl}?limit=100`,
+            url: `${apiUrl}?limit=200&offset=0`,
             method: 'GET',
             headers: {
               'X-Auth-Key': intakeq_key,
@@ -203,6 +204,9 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
     if (Array.isArray(clientsData) && clientsData.length > 0) {
       console.log("IntakeQ Clients API response:", clientsData);
       clients = processClientData(clientsData);
+      
+      // Log normalized client data for troubleshooting
+      console.log("Normalized client data:", clients);
     }
     
     return {
@@ -227,9 +231,31 @@ function processClientData(clientsData: any[]) {
   if (!Array.isArray(clientsData)) return [];
   
   return clientsData
-    .filter((client) => client.email || client.emailAddress || client.Email) // Only include clients with email
-    .map((client) => ({
-      id: client.id || client.Id || client.clientId || client.ClientId || client.client_id,
-      email: client.email || client.Email || client.emailAddress || client.EmailAddress || client.ClientEmail || client.emailAddress || client.clientEmail
-    }));
+    .filter((client) => {
+      // Make sure we only include clients with valid email
+      const hasEmail = client.email || client.emailAddress || client.Email || client.EmailAddress;
+      if (!hasEmail) {
+        console.log("Skipping client without email:", client);
+      }
+      return hasEmail; 
+    })
+    .map((client) => {
+      // Extract the email using various possible field names
+      const email = client.email || client.Email || client.emailAddress || 
+                   client.EmailAddress || client.ClientEmail || client.clientEmail || '';
+      
+      // Extract the ID using various possible field names
+      const id = client.id || client.Id || client.clientId || client.ClientId || 
+                client.client_id || client._id || '';
+      
+      // Log any unusual clients that might cause search issues
+      if (!email || !id) {
+        console.log("Warning: Client with missing data:", { client, extracted: { id, email }});
+      }
+      
+      return {
+        id,
+        email: email.trim().toLowerCase() // Normalize emails to lowercase and trim whitespace
+      };
+    });
 }
