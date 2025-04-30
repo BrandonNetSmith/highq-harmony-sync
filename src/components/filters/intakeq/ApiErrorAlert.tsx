@@ -12,7 +12,9 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
   const isHtmlError = apiError.includes("HTML");
   const is404Error = apiError.includes("404") || apiError.includes("No HTTP resource");
   const isNonJsonError = apiError.includes("JSON");
-  const isFormsError = apiError.toLowerCase().includes("forms") || (debugInfo?.requestUrl && debugInfo.requestUrl.includes("forms"));
+  const isFormsError = apiError.toLowerCase().includes("forms") || (debugInfo?.requestUrl && debugInfo.requestUrl.toLowerCase().includes("form"));
+  const isQuestionnairesError = apiError.toLowerCase().includes("questionnaires") || (debugInfo?.requestUrl && debugInfo.requestUrl.toLowerCase().includes("questionnaire"));
+  const isFormRelatedError = isFormsError || isQuestionnairesError;
   
   return (
     <Alert variant="destructive">
@@ -31,7 +33,7 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
             </ul>
           </>
         )}
-        {is404Error && isFormsError && (
+        {is404Error && isFormRelatedError && (
           <>
             <p className="mt-2 text-sm font-medium">
               The forms API endpoint was not found (404). This likely means:
@@ -51,7 +53,7 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
             </ul>
           </>
         )}
-        {is404Error && !isFormsError && (
+        {is404Error && !isFormRelatedError && (
           <>
             <p className="mt-2 text-sm font-medium">
               The API endpoint was not found (404). This likely means:

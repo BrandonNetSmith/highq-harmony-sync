@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FilterBadges } from "../common/FilterBadges";
 import { IntakeQClient } from "@/types/sync-filters";
 import { Loader2, Search } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ClientsFilterProps {
   clientIds: string[];
@@ -24,6 +25,7 @@ export const ClientsFilter = ({
 }: ClientsFilterProps) => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const { toast } = useToast();
   
   const getClientEmailById = (id: string) => {
     const client = availableClients.find(client => client.id === id);
@@ -44,7 +46,21 @@ export const ClientsFilter = ({
       // Add the first matching client if found
       const client = matchingClients[0];
       onAddClient(client.id, client.email);
+      
+      // Show success toast
+      toast({
+        title: "Client found",
+        description: `Added ${client.email} to filters`,
+      });
+      
       setSearchTerm("");
+    } else {
+      // Show not found toast
+      toast({
+        title: "Client not found",
+        description: `No client with email containing "${searchTerm}" was found`,
+        variant: "destructive"
+      });
     }
     
     setIsSearching(false);

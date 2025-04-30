@@ -28,11 +28,13 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
     if (!dataType || dataType === 'form') {
       // IntakeQ API endpoints - try different formats if one fails
       const formApiFormats = [
-        'https://intakeq.com/api/forms',
-        'https://intakeq.com/api/v1/forms',
-        'https://intakeq.com/v1/forms',
+        'https://intakeq.com/api/v1/questionnaires',
         'https://intakeq.com/api/questionnaires',
-        'https://intakeq.com/api/v1/questionnaires'
+        'https://intakeq.com/api/v1/forms',
+        'https://intakeq.com/api/forms',
+        'https://intakeq.com/v1/forms',
+        'https://intakeq.com/api/v1/templates',
+        'https://intakeq.com/api/templates',
       ];
       
       // Try each API format until one works
@@ -50,25 +52,40 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
           }
         });
         
-        const resultData = result.data || {};
-        const hasError = result.error || resultData._error || (resultData._statusCode && resultData._statusCode >= 400);
+        // Check for errors or null results
+        if (!result.data) {
+          console.log(`Failed with API endpoint (null data): ${apiUrl}`);
+          continue;
+        }
         
-        if (!hasError && Array.isArray(result.data)) {
-          formsData = result.data;
+        const resultData = result.data;
+        const hasError = result.error || 
+                        (resultData && typeof resultData === 'object' && '_error' in resultData) || 
+                        (resultData && typeof resultData === 'object' && '_statusCode' in resultData && resultData._statusCode >= 400);
+        
+        if (!hasError && Array.isArray(resultData)) {
+          formsData = resultData;
           console.log(`Success with API endpoint: ${apiUrl}`);
           break;
         } else {
-          console.log(`Failed with API endpoint: ${apiUrl}`, result.data?._statusCode || result.error);
+          console.log(`Failed with API endpoint: ${apiUrl}`, 
+                    resultData && typeof resultData === 'object' && '_statusCode' in resultData ? resultData._statusCode : result.error);
+          
           formsError = result.error || {
-            message: resultData._errorMessage || `Failed with ${apiUrl}`
+            message: resultData && typeof resultData === 'object' && '_errorMessage' in resultData 
+                    ? resultData._errorMessage 
+                    : `Failed with ${apiUrl}`
           };
+          
           debugInfo = {
-            statusCode: resultData._statusCode,
-            contentType: resultData._contentType,
-            isHtml: !!resultData._isHtml,
-            hasParseError: !!resultData._parseError,
+            statusCode: resultData && typeof resultData === 'object' && '_statusCode' in resultData ? resultData._statusCode : 404,
+            contentType: resultData && typeof resultData === 'object' && '_contentType' in resultData ? resultData._contentType : 'unknown',
+            isHtml: resultData && typeof resultData === 'object' && '_isHtml' in resultData ? resultData._isHtml : false,
+            hasParseError: resultData && typeof resultData === 'object' && '_parseError' in resultData ? resultData._parseError : false,
             requestUrl: apiUrl,
-            errorMessage: resultData._errorMessage || null
+            errorMessage: resultData && typeof resultData === 'object' && '_errorMessage' in resultData 
+                        ? resultData._errorMessage 
+                        : null
           };
         }
       }
@@ -97,27 +114,42 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
           }
         });
         
-        const resultData = result.data || {};
-        const hasError = result.error || resultData._error || (resultData._statusCode && resultData._statusCode >= 400);
+        // Check for errors or null results
+        if (!result.data) {
+          console.log(`Failed with API endpoint (null data): ${apiUrl}`);
+          continue;
+        }
         
-        if (!hasError && Array.isArray(result.data)) {
-          clientsData = result.data;
+        const resultData = result.data;
+        const hasError = result.error || 
+                        (resultData && typeof resultData === 'object' && '_error' in resultData) || 
+                        (resultData && typeof resultData === 'object' && '_statusCode' in resultData && resultData._statusCode >= 400);
+        
+        if (!hasError && Array.isArray(resultData)) {
+          clientsData = resultData;
           console.log(`Success with API endpoint: ${apiUrl}`);
           break;
         } else {
-          console.log(`Failed with API endpoint: ${apiUrl}`, resultData._statusCode || result.error);
+          console.log(`Failed with API endpoint: ${apiUrl}`, 
+                    resultData && typeof resultData === 'object' && '_statusCode' in resultData ? resultData._statusCode : result.error);
+          
           clientsError = result.error || {
-            message: resultData._errorMessage || `Failed with ${apiUrl}`
+            message: resultData && typeof resultData === 'object' && '_errorMessage' in resultData 
+                    ? resultData._errorMessage 
+                    : `Failed with ${apiUrl}`
           };
+          
           // Only set debug info if we don't have it yet
           if (!debugInfo) {
             debugInfo = {
-              statusCode: resultData._statusCode,
-              contentType: resultData._contentType,
-              isHtml: !!resultData._isHtml,
-              hasParseError: !!resultData._parseError,
+              statusCode: resultData && typeof resultData === 'object' && '_statusCode' in resultData ? resultData._statusCode : 404,
+              contentType: resultData && typeof resultData === 'object' && '_contentType' in resultData ? resultData._contentType : 'unknown',
+              isHtml: resultData && typeof resultData === 'object' && '_isHtml' in resultData ? resultData._isHtml : false, 
+              hasParseError: resultData && typeof resultData === 'object' && '_parseError' in resultData ? resultData._parseError : false,
               requestUrl: apiUrl,
-              errorMessage: resultData._errorMessage || null
+              errorMessage: resultData && typeof resultData === 'object' && '_errorMessage' in resultData 
+                          ? resultData._errorMessage 
+                          : null
             };
           }
         }
@@ -158,33 +190,19 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
     
     // Process form data if we have it
     let forms = [];
-    if (Array.isArray(formsData)) {
+    if (Array.isArray(formsData) && formsData.length > 0) {
       console.log("IntakeQ Forms API response:", formsData);
-      forms = formsData.map((form) => ({
-        id: form.id || form.formId || form.form_id || form.Id,
-        name: form.name || form.title || form.form_name || form.formTitle || form.formName || `Form ${form.id || form.Id}`
+      forms = formsData.map((form: any) => ({
+        id: form.id || form.Id || form.formId || form.form_id,
+        name: form.name || form.Name || form.title || form.Title || form.form_name || form.formTitle || form.formName || `Form ${form.id || form.Id}`
       }));
-    } else if (formsData && typeof formsData === 'object' && formsData._isHtml && (dataType === 'form' || !dataType)) {
-      return {
-        forms: [],
-        clients: clientsData ? processClientData(clientsData) : [],
-        error: "Received HTML instead of JSON for forms. This likely means the API key is invalid or the authentication failed.",
-        debugInfo
-      };
     }
     
     // Process client data if we have it
     let clients = [];
-    if (Array.isArray(clientsData)) {
+    if (Array.isArray(clientsData) && clientsData.length > 0) {
       console.log("IntakeQ Clients API response:", clientsData);
       clients = processClientData(clientsData);
-    } else if (clientsData && typeof clientsData === 'object' && clientsData._isHtml && (dataType === 'client' || !dataType)) {
-      return {
-        forms: formsData ? forms : [],
-        clients: [],
-        error: "Received HTML instead of JSON for clients. This likely means the API key is invalid.",
-        debugInfo
-      };
     }
     
     return {
@@ -205,13 +223,13 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
 };
 
 // Helper function to process client data
-function processClientData(clientsData) {
+function processClientData(clientsData: any[]) {
   if (!Array.isArray(clientsData)) return [];
   
   return clientsData
     .filter((client) => client.email || client.emailAddress || client.Email) // Only include clients with email
     .map((client) => ({
-      id: client.id || client.clientId || client.client_id || client.Id || client.ClientId,
-      email: client.email || client.emailAddress || client.Email || client.ClientEmail || client.emailAddress || client.clientEmail
+      id: client.id || client.Id || client.clientId || client.ClientId || client.client_id,
+      email: client.email || client.Email || client.emailAddress || client.EmailAddress || client.ClientEmail || client.emailAddress || client.clientEmail
     }));
 }
