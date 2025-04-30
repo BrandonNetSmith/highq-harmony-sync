@@ -1,4 +1,3 @@
-
 import { getApiKeys } from "@/services/apiKeys";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,10 +16,10 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // IntakeQ API endpoint without /api prefix
+    // IntakeQ API endpoint with correct format /api/v1/
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/v1/forms?limit=20',
+        url: 'https://intakeq.com/api/v1/forms?limit=20',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -94,7 +93,7 @@ export const fetchIntakeQData = async () => {
 
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/v1/clients?limit=20',
+        url: 'https://intakeq.com/api/v1/clients?limit=20',
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
