@@ -22,8 +22,8 @@ export const CategoryHeader = ({
       
       {/* Controls row with grid layout */}
       <div className="grid grid-cols-3 px-4 pb-2">
-        {/* Toggle controls on the left */}
-        <div className="flex items-center justify-start">
+        {/* Toggle and direction controls on the left */}
+        <div className="flex flex-col items-start justify-start">
           <SyncToggleControls
             isEnabled={isCategoryEnabled}
             direction={categoryDirection}
@@ -33,12 +33,12 @@ export const CategoryHeader = ({
           />
         </div>
         
-        {/* Direction controls centered */}
+        {/* Middle section - empty for spacing */}
         <div className="flex items-center justify-center">
-          {/* Direction toggle will be rendered by SyncToggleControls when enabled */}
+          {/* This area is intentionally left empty for spacing */}
         </div>
         
-        {/* Right side - possibly for other controls */}
+        {/* Right side - for other controls if needed */}
         <div className="flex items-center justify-end">
           {/* This area can be used for additional controls if needed */}
         </div>

@@ -36,41 +36,43 @@ export const SyncControls = ({
         </span>
       </div>
       
-      <div className="flex flex-col w-full gap-1">
-        <div className="text-sm font-medium mb-1">Sync Direction</div>
-        <ToggleGroup
-          type="single"
-          size="sm"
-          value={direction}
-          onValueChange={(value: any) => {
-            if (value) onDirectionChange(value);
-          }}
-          className="flex gap-0 border rounded-md overflow-hidden shadow-sm"
-          disabled={disabled || !isEnabled}
-        >
-          <ToggleGroupItem 
-            value="one_way_intakeq_to_ghl"
-            aria-label="IntakeQ to GHL"
-            className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+      {isEnabled && (
+        <div className="ml-1">
+          <div className="text-sm font-medium mb-1">Sync Direction</div>
+          <ToggleGroup
+            type="single"
+            size="sm"
+            value={direction}
+            onValueChange={(value: any) => {
+              if (value) onDirectionChange(value);
+            }}
+            className="flex gap-0 border rounded-md overflow-hidden shadow-sm"
+            disabled={disabled || !isEnabled}
           >
-            <ArrowLeft className="h-4 w-4" />
-          </ToggleGroupItem>
-          <ToggleGroupItem 
-            value="bidirectional"
-            aria-label="Bidirectional"
-            className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-          >
-            <ArrowLeftRight className="h-4 w-4" />
-          </ToggleGroupItem>
-          <ToggleGroupItem 
-            value="one_way_ghl_to_intakeq"
-            aria-label="GHL to IntakeQ"
-            className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-          >
-            <ArrowRight className="h-4 w-4" />
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+            <ToggleGroupItem 
+              value="one_way_intakeq_to_ghl"
+              aria-label="IntakeQ to GHL"
+              className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem 
+              value="bidirectional"
+              aria-label="Bidirectional"
+              className="px-2 rounded-none border-r data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem 
+              value="one_way_ghl_to_intakeq"
+              aria-label="GHL to IntakeQ"
+              className="px-2 rounded-none data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      )}
     </div>
   );
 };

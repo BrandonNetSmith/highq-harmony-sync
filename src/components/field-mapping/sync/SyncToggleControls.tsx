@@ -37,9 +37,9 @@ export const SyncToggleControls = ({
         </span>
       </div>
       
-      {/* Direction controls in the center column via positioning in CategoryHeader */}
+      {/* Direction controls directly underneath the toggle */}
       {isEnabled && (
-        <>
+        <div className="ml-1">
           <div className="text-sm font-medium mb-1">Sync Direction</div>
           <ToggleGroup
             type="single"
@@ -73,7 +73,7 @@ export const SyncToggleControls = ({
               <ArrowRight className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
-        </>
+        </div>
       )}
     </div>
   );
