@@ -15,10 +15,11 @@ export const CategoryHeader = ({
 }: CategoryHeaderProps) => {
   return (
     <div className="flex flex-col bg-muted/30 rounded-t-md">
-      {/* Centered label row with accordion trigger */}
-      <AccordionTrigger className="flex flex-col w-full py-2">
+      {/* Header row with accordion trigger and label */}
+      <div className="flex items-center justify-between w-full py-3 px-4">
         <h3 className="text-lg font-medium capitalize">{label}</h3>
-      </AccordionTrigger>
+        <AccordionTrigger className="ml-auto h-4" />
+      </div>
       
       {/* Controls row with grid layout */}
       <div className="grid grid-cols-3 px-4 pb-2">
