@@ -31,16 +31,10 @@ serve(async (req) => {
     }
     const requestOptions = createRequestOptions(method, requestHeaders, body);
 
-    // For IntakeQ API calls, handle API version properly
     // Execute the request with the exact URL provided by the client
-    let currentUrl = url;
-    let response = null;
-    let error = null;
-    
-    // No automatic version switching - just use the URL exactly as provided
-    const result = await executeRequest(currentUrl, requestOptions);
-    response = result.response;
-    error = result.error;
+    const result = await executeRequest(url, requestOptions);
+    const response = result.response;
+    const error = result.error;
     
     // Handle network errors
     if (error) {
@@ -48,7 +42,7 @@ serve(async (req) => {
     }
     
     // Process the response and return
-    const responseData = await processResponse(response, currentUrl);
+    const responseData = await processResponse(response, url);
     
     // If the response is in a nested format like data.results[], flatten it
     if (responseData && !responseData._error && !responseData._statusCode) {
