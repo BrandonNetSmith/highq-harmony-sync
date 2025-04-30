@@ -28,6 +28,7 @@ export const SyncToggleControls = ({
         checked={isEnabled}
         onCheckedChange={onToggle}
         disabled={disabled}
+        className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
       />
       
       {isEnabled && (
@@ -38,7 +39,7 @@ export const SyncToggleControls = ({
           onValueChange={(value: any) => {
             if (value) onDirectionChange(value);
           }}
-          className="flex gap-0 border rounded-md overflow-hidden"
+          className="flex gap-0 border rounded-md overflow-hidden shadow-sm"
           disabled={disabled || !isEnabled}
         >
           <ToggleGroupItem 

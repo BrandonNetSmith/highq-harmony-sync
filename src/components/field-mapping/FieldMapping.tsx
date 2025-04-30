@@ -102,11 +102,13 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card className="shadow-sm border">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
-          <CardTitle>Field Level Mapping</CardTitle>
-          <CardDescription>Configure which fields to sync between GoHighLevel and IntakeQ</CardDescription>
+          <CardTitle className="text-2xl">Field Level Mapping</CardTitle>
+          <CardDescription className="text-base">
+            Configure which fields to sync between GoHighLevel and IntakeQ
+          </CardDescription>
         </div>
         <div className="flex items-center gap-2">
           <AutoSyncToggle

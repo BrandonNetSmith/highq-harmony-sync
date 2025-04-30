@@ -14,7 +14,7 @@ export const CategoryHeader = ({
   onCategoryDirectionChange,
 }: CategoryHeaderProps) => {
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] gap-4 bg-muted/30">
+    <div className="grid grid-cols-[1fr_auto_1fr] gap-4 bg-muted/30 rounded-t-md">
       <CategoryTitle label={label} position="left" />
       
       <SyncToggleControls

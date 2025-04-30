@@ -67,12 +67,13 @@ export const FormsFilter = ({
   };
   
   return (
-    <div>
-      <Label htmlFor="intakeq-forms">Forms</Label>
+    <div className="space-y-2">
+      <Label htmlFor="intakeq-forms" className="font-medium">Forms</Label>
       <div className="space-y-2">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Input
+              id="intakeq-forms"
               type="text"
               placeholder="Search for form name..."
               value={searchTerm}
