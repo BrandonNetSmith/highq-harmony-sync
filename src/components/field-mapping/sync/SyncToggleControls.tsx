@@ -23,7 +23,8 @@ export const SyncToggleControls = ({
   onDirectionChange,
 }: SyncToggleControlsProps) => {
   return (
-    <div className="flex flex-col items-start justify-center gap-2">
+    <div className="flex flex-col gap-2">
+      {/* Toggle switch and label */}
       <div className="flex items-center gap-2">
         <Switch
           checked={isEnabled}
@@ -36,8 +37,9 @@ export const SyncToggleControls = ({
         </span>
       </div>
       
+      {/* Direction controls in the center column via positioning in CategoryHeader */}
       {isEnabled && (
-        <div>
+        <>
           <div className="text-sm font-medium mb-1">Sync Direction</div>
           <ToggleGroup
             type="single"
@@ -71,7 +73,7 @@ export const SyncToggleControls = ({
               <ArrowRight className="h-4 w-4" />
             </ToggleGroupItem>
           </ToggleGroup>
-        </div>
+        </>
       )}
     </div>
   );

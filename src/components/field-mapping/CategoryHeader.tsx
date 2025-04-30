@@ -20,10 +20,10 @@ export const CategoryHeader = ({
         <h3 className="text-lg font-medium capitalize">{label}</h3>
       </div>
       
-      {/* Controls row */}
-      <div className="grid grid-cols-3 gap-4 px-4 pb-2">
+      {/* Controls row with grid layout */}
+      <div className="grid grid-cols-3 px-4 pb-2">
         {/* Toggle controls on the left */}
-        <div className="flex justify-start">
+        <div className="flex items-center justify-start">
           <SyncToggleControls
             isEnabled={isCategoryEnabled}
             direction={categoryDirection}
@@ -33,14 +33,14 @@ export const CategoryHeader = ({
           />
         </div>
         
-        {/* Middle section - empty to maintain spacing */}
-        <div className="flex justify-center">
-          {/* This empty div helps maintain the grid structure */}
+        {/* Direction controls centered */}
+        <div className="flex items-center justify-center">
+          {/* Direction toggle will be rendered by SyncToggleControls when enabled */}
         </div>
         
-        {/* Right side - for other controls or empty to maintain spacing */}
-        <div className="flex justify-end">
-          {/* This empty div helps maintain the grid structure */}
+        {/* Right side - possibly for other controls */}
+        <div className="flex items-center justify-end">
+          {/* This area can be used for additional controls if needed */}
         </div>
       </div>
     </div>

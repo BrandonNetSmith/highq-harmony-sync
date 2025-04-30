@@ -23,7 +23,7 @@ export const SyncControls = ({
   disabled
 }: SyncControlsProps) => {
   return (
-    <div className="flex flex-col items-start justify-center gap-2 py-2">
+    <div className="flex flex-col gap-2 py-2">
       <div className="flex items-center gap-2">
         <Switch
           checked={isEnabled}
