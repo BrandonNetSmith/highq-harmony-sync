@@ -36,9 +36,9 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
               The API endpoint was not found (404). This likely means:
             </p>
             <ul className="list-disc pl-5 mt-1 text-sm">
-              <li>IntakeQ may be using a different API URL structure</li>
-              <li>Try using "/api/v1/" in the URL format (e.g., "https://intakeq.com/api/v1/clients")</li>
-              <li>Your account may not have access to this API endpoint</li>
+              <li>IntakeQ may have changed their API URL structure</li>
+              <li>The system will try multiple URL formats automatically</li>
+              <li>Your account may not have access to this specific API endpoint</li>
               <li>Check IntakeQ API documentation for the correct endpoints for your account type</li>
             </ul>
             <p className="mt-2 text-sm font-medium">

@@ -50,26 +50,50 @@ export const fieldDiscoveryService = {
             endpoint = 'clients';
         }
         
-        // Call IntakeQ API with correct format /api/v1/
-        const { data, error } = await supabase.functions.invoke('proxy', {
-          body: {
-            url: `https://intakeq.com/api/v1/${endpoint}?limit=10`,
-            method: 'GET',
-            headers: {
-              'X-Auth-Key': intakeq_key
-            }
-          }
-        });
+        // Try multiple API formats for greater compatibility
+        const apiFormats = [
+          `https://intakeq.com/api/v1/${endpoint}`,
+          `https://intakeq.com/api/${endpoint}`,
+          `https://intakeq.com/v1/${endpoint}`
+        ];
         
-        if (error) {
-          console.error(`Error fetching IntakeQ ${dataType} fields:`, error);
+        let discoveredData = null;
+        let apiError = null;
+        
+        // Try each API format until one works
+        for (const apiUrl of apiFormats) {
+          console.log(`Attempting to discover fields from: ${apiUrl}`);
+          
+          const { data, error } = await supabase.functions.invoke('proxy', {
+            body: {
+              url: `${apiUrl}?limit=10`,
+              method: 'GET',
+              headers: {
+                'X-Auth-Key': intakeq_key,
+                'Accept': 'application/json'
+              }
+            }
+          });
+          
+          if (!error && Array.isArray(data) && data.length > 0) {
+            console.log(`Success with API endpoint: ${apiUrl}`);
+            discoveredData = data;
+            break;
+          } else {
+            console.log(`Failed with API endpoint: ${apiUrl}`, error);
+            apiError = error;
+          }
+        }
+        
+        if (apiError && !discoveredData) {
+          console.error(`Error fetching IntakeQ ${dataType} fields:`, apiError);
           fields = getIntakeQMockFields(dataType); // Fallback to mock data
-        } else if (Array.isArray(data) && data.length > 0) {
+        } else if (Array.isArray(discoveredData) && discoveredData.length > 0) {
           // Combine fields from multiple items to get a more complete set
           const allFields = new Set<string>();
           
           // Process each item in the response
-          for (const item of data) {
+          for (const item of discoveredData) {
             // Extract field names from each item
             console.log(`Processing IntakeQ ${dataType} item:`, JSON.stringify(item).substring(0, 200) + "...");
             
@@ -159,8 +183,8 @@ export const fieldDiscoveryService = {
             console.warn(`No fields found in real IntakeQ ${dataType} data, using mock data`);
             fields = getIntakeQMockFields(dataType);
           }
-        } else if (data?._error || data?._statusCode >= 400) {
-          console.warn(`IntakeQ API error for ${dataType}: ${data?._errorMessage || 'Unknown error'}`);
+        } else if (discoveredData?._error || discoveredData?._statusCode >= 400) {
+          console.warn(`IntakeQ API error for ${dataType}: ${discoveredData?._errorMessage || 'Unknown error'}`);
           fields = getIntakeQMockFields(dataType); // Fallback to mock data
         } else {
           console.warn(`No ${dataType} data returned from IntakeQ API, using mock data`);

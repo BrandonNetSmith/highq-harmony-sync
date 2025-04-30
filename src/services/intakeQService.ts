@@ -1,3 +1,4 @@
+
 import { getApiKeys } from "@/services/apiKeys";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,37 +17,75 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // IntakeQ API endpoint with correct format /api/v1/
-    const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
-      body: {
-        url: 'https://intakeq.com/api/v1/forms?limit=20',
-        method: 'GET',
-        headers: {
-          'X-Auth-Key': intakeq_key
-        }
-      }
-    });
+    // IntakeQ API endpoints - try different formats if one fails
+    const apiFormats = [
+      'https://intakeq.com/api/v1/forms',
+      'https://intakeq.com/api/forms',
+      'https://intakeq.com/v1/forms'
+    ];
     
-    if (formsError) {
+    let formsData = null;
+    let formsError = null;
+    let debugInfo = null;
+    
+    // Try each API format until one works
+    for (const apiUrl of apiFormats) {
+      console.log(`Attempting to fetch forms from: ${apiUrl}`);
+      
+      const result = await supabase.functions.invoke('proxy', {
+        body: {
+          url: `${apiUrl}?limit=20`,
+          method: 'GET',
+          headers: {
+            'X-Auth-Key': intakeq_key,
+            'Accept': 'application/json'
+          }
+        }
+      });
+      
+      if (!result.error && !result.data?._error && !result.data?._statusCode || 
+          (result.data?._statusCode && result.data._statusCode < 400)) {
+        formsData = result.data;
+        console.log(`Success with API endpoint: ${apiUrl}`);
+        break;
+      } else {
+        console.log(`Failed with API endpoint: ${apiUrl}`, result.data?._statusCode || result.error);
+        formsError = result.error || {
+          message: result.data?._errorMessage || `Failed with ${apiUrl}`
+        };
+        debugInfo = {
+          statusCode: result.data?._statusCode,
+          contentType: result.data?._contentType,
+          isHtml: !!result.data?._isHtml,
+          hasParseError: !!result.data?._parseError,
+          requestUrl: apiUrl,
+          errorMessage: result.data?._errorMessage || null
+        };
+      }
+    }
+    
+    if (formsError && !formsData) {
       console.error('IntakeQ Forms API error:', formsError);
       return {
         forms: [],
         clients: [],
         error: `Failed to fetch forms: ${formsError.message}`,
-        debugInfo: null
+        debugInfo
       };
     }
     
     console.log("IntakeQ Forms API response:", formsData);
     
-    const debugInfo = {
-      statusCode: formsData?._statusCode,
-      contentType: formsData?._contentType,
-      isHtml: !!formsData?._isHtml,
-      hasParseError: !!formsData?._parseError,
-      requestUrl: formsData?._requestUrl || 'Unknown URL',
-      errorMessage: formsData?._errorMessage || null
-    };
+    if (!debugInfo && formsData?._statusCode) {
+      debugInfo = {
+        statusCode: formsData._statusCode,
+        contentType: formsData._contentType,
+        isHtml: !!formsData._isHtml,
+        hasParseError: !!formsData._parseError,
+        requestUrl: formsData._requestUrl || 'Unknown URL',
+        errorMessage: formsData._errorMessage || null
+      };
+    }
     
     if (formsData?._error) {
       return {
@@ -91,17 +130,45 @@ export const fetchIntakeQData = async () => {
       }));
     }
 
-    const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
-      body: {
-        url: 'https://intakeq.com/api/v1/clients?limit=20',
-        method: 'GET',
-        headers: {
-          'X-Auth-Key': intakeq_key
-        }
-      }
-    });
+    // Now for clients, try different API formats as well
+    const clientApiFormats = [
+      'https://intakeq.com/api/v1/clients',
+      'https://intakeq.com/api/clients',
+      'https://intakeq.com/v1/clients'
+    ];
     
-    if (clientsError) {
+    let clientsData = null;
+    let clientsError = null;
+    
+    // Try each API format for clients until one works
+    for (const apiUrl of clientApiFormats) {
+      console.log(`Attempting to fetch clients from: ${apiUrl}`);
+      
+      const result = await supabase.functions.invoke('proxy', {
+        body: {
+          url: `${apiUrl}?limit=20`,
+          method: 'GET',
+          headers: {
+            'X-Auth-Key': intakeq_key,
+            'Accept': 'application/json'
+          }
+        }
+      });
+      
+      if (!result.error && !result.data?._error && !result.data?._statusCode || 
+          (result.data?._statusCode && result.data._statusCode < 400)) {
+        clientsData = result.data;
+        console.log(`Success with API endpoint: ${apiUrl}`);
+        break;
+      } else {
+        console.log(`Failed with API endpoint: ${apiUrl}`, result.data?._statusCode || result.error);
+        clientsError = result.error || {
+          message: result.data?._errorMessage || `Failed with ${apiUrl}`
+        };
+      }
+    }
+    
+    if (clientsError && !clientsData) {
       console.error('IntakeQ Clients API error:', clientsError);
       return {
         forms,
