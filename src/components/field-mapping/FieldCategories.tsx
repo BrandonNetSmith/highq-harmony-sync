@@ -43,34 +43,32 @@ export const FieldCategories = ({
     <Accordion type="multiple" className="w-full">
       {dataTypes.map(dataType => (
         <AccordionItem key={dataType} value={dataType} className="border rounded-md mb-4">
-          <div className="flex flex-col">
-            <CategoryHeader
-              dataType={dataType}
-              label={dataTypeLabels[dataType] || dataType}
-              isCategoryEnabled={getCategorySyncStatus(dataType)}
-              categoryDirection={getCategoryDirection(dataType)}
-              disabled={disabled}
-              onCategorySyncChange={(checked) => onCategorySyncChange(dataType, checked)}
-              onCategoryDirectionChange={(direction) => onCategoryDirectionChange(dataType, direction)}
-            />
+          <CategoryHeader
+            dataType={dataType}
+            label={dataTypeLabels[dataType] || dataType}
+            isCategoryEnabled={getCategorySyncStatus(dataType)}
+            categoryDirection={getCategoryDirection(dataType)}
+            disabled={disabled}
+            onCategorySyncChange={(checked) => onCategorySyncChange(dataType, checked)}
+            onCategoryDirectionChange={(direction) => onCategoryDirectionChange(dataType, direction)}
+          />
           
-            <AccordionContent className="p-2">
-              <div className="space-y-0">                    
-                {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
-                  <FieldControls
-                    key={`${dataType}_${fieldName}`}
-                    dataType={dataType}
-                    fieldName={fieldName}
-                    fieldSettings={fieldSettings}
-                    availableFields={availableFields}
-                    disabled={disabled}
-                    onFieldChange={onFieldChange}
-                    discoveredFields={discoveredFields}
-                  />
-                ))}
-              </div>
-            </AccordionContent>
-          </div>
+          <AccordionContent className="p-2">
+            <div className="space-y-0">                    
+              {fieldMapping[dataType] && Object.entries(fieldMapping[dataType].fields).map(([fieldName, fieldSettings]) => (
+                <FieldControls
+                  key={`${dataType}_${fieldName}`}
+                  dataType={dataType}
+                  fieldName={fieldName}
+                  fieldSettings={fieldSettings}
+                  availableFields={availableFields}
+                  disabled={disabled}
+                  onFieldChange={onFieldChange}
+                  discoveredFields={discoveredFields}
+                />
+              ))}
+            </div>
+          </AccordionContent>
         </AccordionItem>
       ))}
     </Accordion>

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CategoryTitle } from './CategoryTitle';
+import { AccordionTrigger } from "@/components/ui/accordion";
 import { SyncToggleControls } from './sync/SyncToggleControls';
 import type { CategoryHeaderProps } from "@/types/field-mapping";
 
@@ -15,10 +15,10 @@ export const CategoryHeader = ({
 }: CategoryHeaderProps) => {
   return (
     <div className="flex flex-col bg-muted/30 rounded-t-md">
-      {/* Centered label row */}
-      <div className="text-center py-2">
+      {/* Centered label row with accordion trigger */}
+      <AccordionTrigger className="flex flex-col w-full py-2">
         <h3 className="text-lg font-medium capitalize">{label}</h3>
-      </div>
+      </AccordionTrigger>
       
       {/* Controls row with grid layout */}
       <div className="grid grid-cols-3 px-4 pb-2">
