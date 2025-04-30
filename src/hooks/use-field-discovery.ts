@@ -69,13 +69,23 @@ export const useFieldDiscovery = () => {
       // Update the fields for the specific system and dataType
       setAvailableFields(prev => {
         const updated = { ...prev };
+        
+        // Fix: Ensure we maintain the structure of AvailableFields by properly initializing
         if (!updated[system]) {
-          updated[system] = {};
+          // Initialize with empty arrays for all required properties
+          updated[system] = {
+            contact: [...(prev[system]?.contact || [])],
+            appointment: [...(prev[system]?.appointment || [])],
+            form: [...(prev[system]?.form || [])]
+          };
         }
+        
+        // Now we can safely update the specific dataType
         updated[system] = {
           ...updated[system],
           [dataType]: filteredFields
         };
+        
         return updated;
       });
 
