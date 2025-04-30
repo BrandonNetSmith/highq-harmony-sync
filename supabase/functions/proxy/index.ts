@@ -31,50 +31,16 @@ serve(async (req) => {
     }
     const requestOptions = createRequestOptions(method, requestHeaders, body);
 
-    // For IntakeQ API calls, try different API versions if needed
+    // For IntakeQ API calls, handle API version properly
+    // Execute the request with the exact URL provided by the client
     let currentUrl = url;
     let response = null;
     let error = null;
     
-    // Handle IntakeQ API version detection
-    if (url.includes('intakeq.com/api/')) {
-      // Try v1 API first as it's more stable
-      if (url.includes('/api/v2/')) {
-        currentUrl = url.replace('/api/v2/', '/api/v1/');
-        console.log(`First attempt with IntakeQ v1 API: ${currentUrl}`);
-        
-        const result = await executeRequest(currentUrl, requestOptions);
-        response = result.response;
-        error = result.error;
-        
-        // If v1 fails with 404, fall back to v2
-        if (response && response.status === 404) {
-          console.log(`v1 API returned 404, falling back to v2: ${url}`);
-          const v2Result = await executeRequest(url, requestOptions);
-          response = v2Result.response;
-          error = v2Result.error;
-        }
-      } else {
-        // Already using v1 API, try it first
-        const result = await executeRequest(url, requestOptions);
-        response = result.response;
-        error = result.error;
-        
-        // If v1 fails with 404, try v2
-        if (response && response.status === 404) {
-          const v2Url = url.replace('/api/v1/', '/api/v2/');
-          console.log(`v1 API returned 404, trying v2: ${v2Url}`);
-          const v2Result = await executeRequest(v2Url, requestOptions);
-          response = v2Result.response;
-          error = v2Result.error;
-        }
-      }
-    } else {
-      // Non-IntakeQ request, execute directly
-      const result = await executeRequest(url, requestOptions);
-      response = result.response;
-      error = result.error;
-    }
+    // No automatic version switching - just use the URL exactly as provided
+    const result = await executeRequest(currentUrl, requestOptions);
+    response = result.response;
+    error = result.error;
     
     // Handle network errors
     if (error) {
