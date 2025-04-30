@@ -1,4 +1,3 @@
-
 import { getGHLMockFields, getIntakeQMockFields } from '@/hooks/field-discovery/mock-field-data';
 import { supabase } from "@/integrations/supabase/client";
 import { getApiKeys } from "@/services/apiKeys";
@@ -34,61 +33,71 @@ export const fieldDiscoveryService = {
         console.log(`Using IntakeQ API key to discover fields for ${dataType}`);
         
         // Create endpoint based on data type
-        let endpoint = '';
+        let endpoints: string[] = [];
         
         switch(dataType) {
           case 'contact':
-            endpoint = 'clients';
+            endpoints = ['clients', 'contacts', 'customers'];
             break;
           case 'form':
-            endpoint = 'forms';
+            endpoints = ['forms', 'questionnaires'];
             break;
           case 'appointment':
-            endpoint = 'appointments';
+            endpoints = ['appointments', 'bookings', 'schedule'];
             break;
           default:
-            endpoint = 'clients';
+            endpoints = ['clients'];
         }
         
         // Try multiple API formats for greater compatibility
-        const apiFormats = [
-          `https://intakeq.com/api/v1/${endpoint}`,
-          `https://intakeq.com/api/${endpoint}`,
-          `https://intakeq.com/v1/${endpoint}`
+        const baseUrls = [
+          'https://intakeq.com/api/v1/',
+          'https://intakeq.com/api/',
+          'https://intakeq.com/v1/'
         ];
         
         let discoveredData = null;
         let apiError = null;
         
         // Try each API format until one works
-        for (const apiUrl of apiFormats) {
-          console.log(`Attempting to discover fields from: ${apiUrl}`);
-          
-          const { data, error } = await supabase.functions.invoke('proxy', {
-            body: {
-              url: `${apiUrl}?limit=10`,
-              method: 'GET',
-              headers: {
-                'X-Auth-Key': intakeq_key,
-                'Accept': 'application/json'
+        for (const endpoint of endpoints) {
+          for (const baseUrl of baseUrls) {
+            const apiUrl = `${baseUrl}${endpoint}`;
+            console.log(`Attempting to discover fields from: ${apiUrl}`);
+            
+            const { data, error } = await supabase.functions.invoke('proxy', {
+              body: {
+                url: `${apiUrl}?limit=10`,
+                method: 'GET',
+                headers: {
+                  'X-Auth-Key': intakeq_key,
+                  'Accept': 'application/json'
+                }
               }
+            });
+            
+            const resultData = data || {};
+            const hasError = error || resultData._error || (resultData._statusCode && resultData._statusCode >= 400);
+            
+            if (!hasError && Array.isArray(data) && data.length > 0) {
+              console.log(`Success with API endpoint: ${apiUrl}`);
+              discoveredData = data;
+              break;
+            } else {
+              console.log(`Failed with API endpoint: ${apiUrl}`, error);
+              apiError = error || resultData._errorMessage;
             }
-          });
-          
-          if (!error && Array.isArray(data) && data.length > 0) {
-            console.log(`Success with API endpoint: ${apiUrl}`);
-            discoveredData = data;
-            break;
-          } else {
-            console.log(`Failed with API endpoint: ${apiUrl}`, error);
-            apiError = error;
           }
+          
+          if (discoveredData) break;
         }
         
         if (apiError && !discoveredData) {
           console.error(`Error fetching IntakeQ ${dataType} fields:`, apiError);
           fields = getIntakeQMockFields(dataType); // Fallback to mock data
         } else if (Array.isArray(discoveredData) && discoveredData.length > 0) {
+          // Process discovered fields from real data
+          
           // Combine fields from multiple items to get a more complete set
           const allFields = new Set<string>();
           
@@ -183,8 +192,8 @@ export const fieldDiscoveryService = {
             console.warn(`No fields found in real IntakeQ ${dataType} data, using mock data`);
             fields = getIntakeQMockFields(dataType);
           }
-        } else if (discoveredData?._error || discoveredData?._statusCode >= 400) {
-          console.warn(`IntakeQ API error for ${dataType}: ${discoveredData?._errorMessage || 'Unknown error'}`);
+        } else if (discoveredData && typeof discoveredData === 'object' && discoveredData._error || (discoveredData._statusCode && discoveredData._statusCode >= 400)) {
+          console.warn(`IntakeQ API error for ${dataType}: ${discoveredData._errorMessage || 'Unknown error'}`);
           fields = getIntakeQMockFields(dataType); // Fallback to mock data
         } else {
           console.warn(`No ${dataType} data returned from IntakeQ API, using mock data`);

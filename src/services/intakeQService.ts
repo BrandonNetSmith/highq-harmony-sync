@@ -28,9 +28,11 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
     if (!dataType || dataType === 'form') {
       // IntakeQ API endpoints - try different formats if one fails
       const formApiFormats = [
+        'https://intakeq.com/api/forms',
         'https://intakeq.com/api/v1/forms',
         'https://intakeq.com/v1/forms',
-        'https://intakeq.com/api/forms'
+        'https://intakeq.com/api/questionnaires',
+        'https://intakeq.com/api/v1/questionnaires'
       ];
       
       // Try each API format until one works
@@ -48,23 +50,25 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
           }
         });
         
-        if (!result.error && !result.data?._error && !result.data?._statusCode || 
-            (result.data?._statusCode && result.data._statusCode < 400)) {
+        const resultData = result.data || {};
+        const hasError = result.error || resultData._error || (resultData._statusCode && resultData._statusCode >= 400);
+        
+        if (!hasError && Array.isArray(result.data)) {
           formsData = result.data;
           console.log(`Success with API endpoint: ${apiUrl}`);
           break;
         } else {
           console.log(`Failed with API endpoint: ${apiUrl}`, result.data?._statusCode || result.error);
           formsError = result.error || {
-            message: result.data?._errorMessage || `Failed with ${apiUrl}`
+            message: resultData._errorMessage || `Failed with ${apiUrl}`
           };
           debugInfo = {
-            statusCode: result.data?._statusCode,
-            contentType: result.data?._contentType,
-            isHtml: !!result.data?._isHtml,
-            hasParseError: !!result.data?._parseError,
+            statusCode: resultData._statusCode,
+            contentType: resultData._contentType,
+            isHtml: !!resultData._isHtml,
+            hasParseError: !!resultData._parseError,
             requestUrl: apiUrl,
-            errorMessage: result.data?._errorMessage || null
+            errorMessage: resultData._errorMessage || null
           };
         }
       }
@@ -84,7 +88,7 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
         
         const result = await supabase.functions.invoke('proxy', {
           body: {
-            url: `${apiUrl}?limit=20`,
+            url: `${apiUrl}?limit=100`,
             method: 'GET',
             headers: {
               'X-Auth-Key': intakeq_key,
@@ -93,25 +97,27 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
           }
         });
         
-        if (!result.error && !result.data?._error && !result.data?._statusCode || 
-            (result.data?._statusCode && result.data._statusCode < 400)) {
+        const resultData = result.data || {};
+        const hasError = result.error || resultData._error || (resultData._statusCode && resultData._statusCode >= 400);
+        
+        if (!hasError && Array.isArray(result.data)) {
           clientsData = result.data;
           console.log(`Success with API endpoint: ${apiUrl}`);
           break;
         } else {
-          console.log(`Failed with API endpoint: ${apiUrl}`, result.data?._statusCode || result.error);
+          console.log(`Failed with API endpoint: ${apiUrl}`, resultData._statusCode || result.error);
           clientsError = result.error || {
-            message: result.data?._errorMessage || `Failed with ${apiUrl}`
+            message: resultData._errorMessage || `Failed with ${apiUrl}`
           };
           // Only set debug info if we don't have it yet
           if (!debugInfo) {
             debugInfo = {
-              statusCode: result.data?._statusCode,
-              contentType: result.data?._contentType,
-              isHtml: !!result.data?._isHtml,
-              hasParseError: !!result.data?._parseError,
+              statusCode: resultData._statusCode,
+              contentType: resultData._contentType,
+              isHtml: !!resultData._isHtml,
+              hasParseError: !!resultData._parseError,
               requestUrl: apiUrl,
-              errorMessage: result.data?._errorMessage || null
+              errorMessage: resultData._errorMessage || null
             };
           }
         }
@@ -158,7 +164,7 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
         id: form.id || form.formId || form.form_id || form.Id,
         name: form.name || form.title || form.form_name || form.formTitle || form.formName || `Form ${form.id || form.Id}`
       }));
-    } else if (formsData?._isHtml && (dataType === 'form' || !dataType)) {
+    } else if (formsData && typeof formsData === 'object' && formsData._isHtml && (dataType === 'form' || !dataType)) {
       return {
         forms: [],
         clients: clientsData ? processClientData(clientsData) : [],
@@ -172,7 +178,7 @@ export const fetchIntakeQData = async (dataType?: 'client' | 'form' | 'appointme
     if (Array.isArray(clientsData)) {
       console.log("IntakeQ Clients API response:", clientsData);
       clients = processClientData(clientsData);
-    } else if (clientsData?._isHtml && (dataType === 'client' || !dataType)) {
+    } else if (clientsData && typeof clientsData === 'object' && clientsData._isHtml && (dataType === 'client' || !dataType)) {
       return {
         forms: formsData ? forms : [],
         clients: [],
