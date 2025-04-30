@@ -29,7 +29,7 @@ export const IntakeQFieldSelect = ({
   // Only display options if fields have been discovered and we have options
   const hasOptions = isDiscovered && options && options.length > 0;
   
-  // Process options to remove duplicates and organize fields
+  // Process options to remove duplicates, blanks and organize fields
   const processedOptions = React.useMemo(() => {
     if (!options || options.length === 0) return [];
     
@@ -37,11 +37,14 @@ export const IntakeQFieldSelect = ({
     const fieldMap = new Map();
     
     options.forEach(field => {
-      // Skip empty fields
-      if (!field || field.trim() === '') return;
+      // Skip empty fields, undefined, null, or whitespace-only fields
+      if (!field || typeof field !== 'string' || field.trim() === '') return;
       
       // Normalize the field name for comparison (lowercase, no special chars)
-      const normalizedKey = field.toLowerCase().replace(/[_\s]/g, '');
+      const normalizedKey = field.toLowerCase().replace(/[_\s.-]/g, '');
+      
+      // Skip if the normalized key is empty after removing special chars
+      if (!normalizedKey) return;
       
       if (!fieldMap.has(normalizedKey)) {
         // First occurrence of this field
@@ -61,18 +64,29 @@ export const IntakeQFieldSelect = ({
         // 3. PascalCase (e.g., FirstName)
         // 4. snake_case (e.g., first_name)
         
+        // Check if current field is camelCase (first char lowercase, contains uppercase)
         if (
-          // If current field is camelCase (first char lowercase, contains uppercase)
-          (field.charAt(0).toLowerCase() === field.charAt(0) && 
-           /[A-Z]/.test(field))
+          field.charAt(0).toLowerCase() === field.charAt(0) && 
+          /[A-Z]/.test(field) &&
+          !field.includes('.')
         ) {
           current.preferred = field;
         } 
+        // Check for dotted path but with camelCase last part (custom.fieldName)
+        else if (
+          field.includes('.') && 
+          field.split('.').pop().charAt(0).toLowerCase() === field.split('.').pop().charAt(0) && 
+          /[A-Z]/.test(field.split('.').pop())
+        ) {
+          current.preferred = field;
+        }
         // Keep simple field names if we don't already have a camelCase
         else if (
-          !/[._]/.test(field) && 
+          !/[._-]/.test(field) && 
           !/[A-Z]/.test(field) &&
-          (/_/.test(current.preferred) || current.preferred.charAt(0).toUpperCase() === current.preferred.charAt(0))
+          (/_/.test(current.preferred) || 
+           current.preferred.charAt(0).toUpperCase() === current.preferred.charAt(0) ||
+           current.preferred.includes('.'))
         ) {
           current.preferred = field;
         }
@@ -82,13 +96,20 @@ export const IntakeQFieldSelect = ({
     // Create sorted array of preferred field names
     const preferredFields = Array.from(fieldMap.values())
       .map(item => item.preferred)
+      .filter(field => field && field.trim() !== '') // Filter out any empty fields that might have slipped through
       .sort((a, b) => {
         // Sort common fields like name, email at the top
-        const commonFields = ['name', 'email', 'phone', 'firstName', 'lastName', 'address'];
+        const commonFields = ['name', 'email', 'phone', 'firstName', 'lastName', 'address', 'dateOfBirth', 'dob', 'clientName'];
         
         // Check if fields are in common fields list
-        const aCommonIndex = commonFields.findIndex(f => a.toLowerCase().includes(f.toLowerCase()));
-        const bCommonIndex = commonFields.findIndex(f => b.toLowerCase().includes(f.toLowerCase()));
+        const aCommonIndex = commonFields.findIndex(f => 
+          a.toLowerCase().includes(f.toLowerCase()) || 
+          (a.includes('.') && a.split('.').pop().toLowerCase().includes(f.toLowerCase()))
+        );
+        const bCommonIndex = commonFields.findIndex(f => 
+          b.toLowerCase().includes(f.toLowerCase()) ||
+          (b.includes('.') && b.split('.').pop().toLowerCase().includes(f.toLowerCase()))
+        );
         
         // Both are common fields, sort by position in common fields list
         if (aCommonIndex !== -1 && bCommonIndex !== -1) {
@@ -101,7 +122,23 @@ export const IntakeQFieldSelect = ({
         // Only b is common, b comes first
         if (bCommonIndex !== -1) return 1;
         
-        // Neither is common, sort alphabetically
+        // Group fields with dots together
+        const aHasDot = a.includes('.');
+        const bHasDot = b.includes('.');
+        
+        if (aHasDot && !bHasDot) return 1;  // Move dotted paths later
+        if (!aHasDot && bHasDot) return -1; // Keep simple fields first
+        
+        // For fields with dots, group by prefix
+        if (aHasDot && bHasDot) {
+          const aPrefix = a.split('.')[0];
+          const bPrefix = b.split('.')[0];
+          if (aPrefix !== bPrefix) {
+            return aPrefix.localeCompare(bPrefix);
+          }
+        }
+        
+        // Neither is common or both have same dot structure, sort alphabetically
         return a.localeCompare(b);
       });
     
@@ -139,7 +176,7 @@ export const IntakeQFieldSelect = ({
       }
       
       // Strategy 3: Try matching parts of compound names (firstName -> first_name or first name)
-      if (!matchedField) {
+      if (!matchedField && fieldName.length > 3) {
         // Camel case to separate words: firstName -> first name
         const parts = fieldName.replace(/([A-Z])/g, ' $1').trim().toLowerCase().split(' ');
         if (parts.length > 1) {
@@ -147,6 +184,17 @@ export const IntakeQFieldSelect = ({
             const normalizedOption = field.toLowerCase();
             return parts.every(part => normalizedOption.includes(part));
           });
+        }
+      }
+      
+      // Strategy 4: Check for custom fields that might match
+      if (!matchedField && fieldName.startsWith('custom')) {
+        const customFieldName = fieldName.replace(/^custom[._]?/i, '');
+        if (customFieldName.length > 2) {
+          matchedField = processedOptions.find(field =>
+            (field.toLowerCase().includes('custom') && 
+            field.toLowerCase().includes(customFieldName.toLowerCase()))
+          );
         }
       }
       
