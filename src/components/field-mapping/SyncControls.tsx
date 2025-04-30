@@ -15,6 +15,7 @@ interface SyncControlsProps {
   disabled?: boolean;
   displayToggle?: boolean;
   displayDirectionControls?: boolean;
+  centerDirectionControls?: boolean;
 }
 
 export const SyncControls = ({
@@ -24,10 +25,11 @@ export const SyncControls = ({
   onDirectionChange,
   disabled,
   displayToggle = true,
-  displayDirectionControls = true
+  displayDirectionControls = true,
+  centerDirectionControls = false
 }: SyncControlsProps) => {
   return (
-    <div className="flex flex-col gap-2 py-2">
+    <div className={`flex flex-col gap-2 py-2 ${centerDirectionControls ? 'items-center' : ''}`}>
       {displayToggle && (
         <div className="flex items-center gap-2">
           <Switch
@@ -43,7 +45,7 @@ export const SyncControls = ({
       )}
       
       {displayDirectionControls && isEnabled && (
-        <div className="ml-1">
+        <div className={centerDirectionControls ? "flex flex-col items-center" : "ml-1"}>
           <div className="text-sm font-medium mb-1">Sync Direction</div>
           <ToggleGroup
             type="single"
