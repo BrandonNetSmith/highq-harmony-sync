@@ -1,12 +1,25 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { FilterBadges } from "../common/FilterBadges";
 import { IntakeQForm } from "@/types/sync-filters";
-import { Search } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface FormsFilterProps {
   formIds: string[];
@@ -23,7 +36,7 @@ export const FormsFilter = ({
   onRemoveForm,
   disabled
 }: FormsFilterProps) => {
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
   
   const getFormNameById = (id: string) => {
@@ -31,38 +44,29 @@ export const FormsFilter = ({
     return form ? form.name : id;
   };
   
-  const handleSearch = () => {
-    if (!searchTerm.trim()) return;
+  const handleSelectForm = (formId: string) => {
+    if (!formId) return;
     
-    // Case insensitive search
-    const normalizedSearchTerm = searchTerm.toLowerCase();
-    const matchingForms = availableForms.filter(form => 
-      form.name.toLowerCase().includes(normalizedSearchTerm)
-    );
+    const form = availableForms.find(form => form.id === formId);
     
-    if (matchingForms.length > 0) {
-      const form = matchingForms[0];
-      onAddForm(form.id, form.name);
-      
-      toast({
-        title: "Form found",
-        description: `Added "${form.name}" to filters. Only this form will be synchronized.`,
-      });
-      
-      setSearchTerm("");
-    } else {
-      toast({
-        title: "Form not found",
-        description: `No form found with name containing "${searchTerm}"`,
-        variant: "destructive"
-      });
-    }
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearch();
+    if (form) {
+      if (formIds.includes(formId)) {
+        // If already selected, remove it
+        onRemoveForm(formId);
+        
+        toast({
+          title: "Form removed",
+          description: `Removed "${form.name}" from filters.`,
+        });
+      } else {
+        // Add the form
+        onAddForm(form.id, form.name);
+        
+        toast({
+          title: "Form added",
+          description: `Added "${form.name}" to filters.`,
+        });
+      }
     }
   };
   
@@ -70,40 +74,49 @@ export const FormsFilter = ({
     <div className="space-y-2">
       <Label htmlFor="intakeq-forms" className="font-medium">Forms</Label>
       <div className="space-y-2">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Input
-              id="intakeq-forms"
-              type="text"
-              placeholder="Search for form name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={disabled}
-              className="pr-10"
-            />
-            {searchTerm && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
-                onClick={() => setSearchTerm("")}
-                disabled={disabled}
-              >
-                ×
-              </Button>
-            )}
-          </div>
-          <Button 
-            onClick={handleSearch} 
-            disabled={disabled || !searchTerm.trim()}
-            className="shrink-0"
-          >
-            <Search className="h-4 w-4 mr-2" />
-            Search
-          </Button>
-        </div>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              className="w-full justify-between"
+              disabled={disabled || availableForms.length === 0}
+            >
+              <span className="truncate">
+                {formIds.length > 0
+                  ? `${formIds.length} form${formIds.length > 1 ? 's' : ''} selected`
+                  : "Select forms..."}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-full p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search forms..." />
+              <CommandList>
+                <CommandEmpty>No forms found</CommandEmpty>
+                <CommandGroup heading="Available Forms">
+                  {availableForms.map(form => (
+                    <CommandItem
+                      key={form.id}
+                      value={form.id}
+                      onSelect={() => handleSelectForm(form.id)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          formIds.includes(form.id) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {form.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         
         {availableForms.length === 0 && (
           <p className="text-sm text-muted-foreground mt-1">
