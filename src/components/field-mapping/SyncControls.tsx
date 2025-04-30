@@ -13,6 +13,8 @@ interface SyncControlsProps {
   onToggle: (enabled: boolean) => void;
   onDirectionChange: (direction: SyncDirection) => void;
   disabled?: boolean;
+  displayToggle?: boolean;
+  displayDirectionControls?: boolean;
 }
 
 export const SyncControls = ({
@@ -20,23 +22,27 @@ export const SyncControls = ({
   direction,
   onToggle,
   onDirectionChange,
-  disabled
+  disabled,
+  displayToggle = true,
+  displayDirectionControls = true
 }: SyncControlsProps) => {
   return (
     <div className="flex flex-col gap-2 py-2">
-      <div className="flex items-center gap-2">
-        <Switch
-          checked={isEnabled}
-          onCheckedChange={onToggle}
-          disabled={disabled}
-          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
-        />
-        <span className="text-sm font-medium">
-          {isEnabled ? "Sync Enabled" : "Sync Disabled"}
-        </span>
-      </div>
+      {displayToggle && (
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={isEnabled}
+            onCheckedChange={onToggle}
+            disabled={disabled}
+            className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
+          />
+          <span className="text-sm font-medium">
+            {isEnabled ? "Sync Enabled" : "Sync Disabled"}
+          </span>
+        </div>
+      )}
       
-      {isEnabled && (
+      {displayDirectionControls && isEnabled && (
         <div className="ml-1">
           <div className="text-sm font-medium mb-1">Sync Direction</div>
           <ToggleGroup

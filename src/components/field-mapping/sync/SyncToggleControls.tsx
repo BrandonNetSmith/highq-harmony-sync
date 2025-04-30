@@ -13,6 +13,9 @@ interface SyncToggleControlsProps {
   disabled?: boolean;
   onToggle: (checked: boolean) => void;
   onDirectionChange: (direction: SyncDirection) => void;
+  displayToggle?: boolean;
+  displayDirectionControls?: boolean;
+  centerDirectionControls?: boolean;
 }
 
 export const SyncToggleControls = ({
@@ -21,25 +24,30 @@ export const SyncToggleControls = ({
   disabled,
   onToggle,
   onDirectionChange,
+  displayToggle = true,
+  displayDirectionControls = true,
+  centerDirectionControls = false,
 }: SyncToggleControlsProps) => {
   return (
     <div className="flex flex-col gap-2">
-      {/* Toggle switch and label */}
-      <div className="flex items-center gap-2">
-        <Switch
-          checked={isEnabled}
-          onCheckedChange={onToggle}
-          disabled={disabled}
-          className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
-        />
-        <span className="text-sm font-medium">
-          {isEnabled ? "Sync Enabled" : "Sync Disabled"}
-        </span>
-      </div>
+      {/* Toggle switch and label - only if displayToggle is true */}
+      {displayToggle && (
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={isEnabled}
+            onCheckedChange={onToggle}
+            disabled={disabled}
+            className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500"
+          />
+          <span className="text-sm font-medium">
+            {isEnabled ? "Sync Enabled" : "Sync Disabled"}
+          </span>
+        </div>
+      )}
       
-      {/* Direction controls directly underneath the toggle */}
-      {isEnabled && (
-        <div className="ml-1">
+      {/* Direction controls - only if displayDirectionControls is true */}
+      {displayDirectionControls && isEnabled && (
+        <div className={`${centerDirectionControls ? 'flex flex-col items-center' : 'ml-1'}`}>
           <div className="text-sm font-medium mb-1">Sync Direction</div>
           <ToggleGroup
             type="single"
