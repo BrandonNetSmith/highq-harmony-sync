@@ -10,7 +10,7 @@ interface ApiErrorAlertProps {
 
 export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
   const isHtmlError = apiError.includes("HTML");
-  const is404Error = apiError.includes("404");
+  const is404Error = apiError.includes("404") || apiError.includes("No HTTP resource");
   const isNonJsonError = apiError.includes("JSON");
   
   return (
@@ -36,9 +36,10 @@ export const ApiErrorAlert = ({ apiError, debugInfo }: ApiErrorAlertProps) => {
               The API endpoint was not found (404). This likely means:
             </p>
             <ul className="list-disc pl-5 mt-1 text-sm">
-              <li>IntakeQ may be using a different API path structure than expected</li>
+              <li>IntakeQ may be using a different API URL structure than expected</li>
+              <li>Try removing "/api" from URLs and use "/v1/" directly (e.g., "https://intakeq.com/v1/forms")</li>
               <li>Your account may not have access to this API endpoint</li>
-              <li>The API version (v1 or v2) may be incorrect for your account</li>
+              <li>Check IntakeQ API documentation for the correct endpoints for your account type</li>
             </ul>
             <p className="mt-2 text-sm font-medium">
               Please check with IntakeQ support about the correct API endpoints for your account.

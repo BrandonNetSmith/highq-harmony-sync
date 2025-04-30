@@ -17,10 +17,10 @@ export const fetchIntakeQData = async () => {
 
     console.log("Using IntakeQ API key:", intakeq_key ? "Key found" : "No key");
     
-    // Always use v1 API which is more reliable
+    // IntakeQ API endpoint without /api prefix - direct to the forms endpoint
     const { data: formsData, error: formsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/v1/forms?limit=20',
+        url: 'https://intakeq.com/v1/forms?limit=20', // Removed /api/ prefix
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
@@ -92,10 +92,10 @@ export const fetchIntakeQData = async () => {
       }));
     }
 
-    // Always use v1 API for clients with higher limit
+    // Also update clients endpoint to match the same pattern
     const { data: clientsData, error: clientsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://intakeq.com/api/v1/clients?limit=20',
+        url: 'https://intakeq.com/v1/clients?limit=20', // Removed /api/ prefix
         method: 'GET',
         headers: {
           'X-Auth-Key': intakeq_key
