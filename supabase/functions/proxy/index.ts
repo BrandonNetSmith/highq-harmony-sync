@@ -23,6 +23,10 @@ serve(async (req) => {
     console.log(`Proxying request to: ${url}`);
     console.log(`Request method: ${method}`);
     console.log(`Request headers:`, headers);
+    
+    if (body && method !== 'GET') {
+      console.log(`Request body:`, JSON.stringify(body).substring(0, 500));
+    }
 
     // Prepare request
     const requestHeaders = prepareRequestHeaders(headers);

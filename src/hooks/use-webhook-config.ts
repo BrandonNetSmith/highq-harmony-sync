@@ -73,15 +73,25 @@ export const useWebhookConfig = () => {
     
     try {
       let url;
+      let method;
       let headers;
+      let requestBody;
       
       if (type === 'ghl') {
-        url = 'https://rest.gohighlevel.com/v1/contacts/';
-        headers = { 'Authorization': `Bearer ${apiKey}` };
+        // Use the search contacts endpoint instead of the deprecated contacts endpoint
+        url = 'https://rest.gohighlevel.com/v1/contacts/search';
+        method = 'POST';
+        headers = { 
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        };
+        requestBody = { limit: 5, offset: 0 };
       } else {
         // Use v1 API for IntakeQ
         url = 'https://intakeq.com/api/v1/clients';
+        method = 'GET';
         headers = { 'X-Auth-Key': apiKey };
+        requestBody = null;
       }
       
       console.log(`Testing ${type} API with key: ${apiKey.substring(0, 5)}...`);
@@ -89,8 +99,9 @@ export const useWebhookConfig = () => {
       const { data, error } = await supabase.functions.invoke('proxy', {
         body: {
           url,
-          method: 'GET',
-          headers
+          method,
+          headers,
+          body: requestBody
         }
       });
       

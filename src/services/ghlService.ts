@@ -15,6 +15,7 @@ export const fetchGHLData = async () => {
       };
     }
 
+    // Fetch tags using the tags endpoint
     const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
       body: {
         url: 'https://rest.gohighlevel.com/v1/tags/',
@@ -34,7 +35,7 @@ export const fetchGHLData = async () => {
       };
     }
     
-    console.log("GHL API response:", tagsData);
+    console.log("GHL API response for tags:", tagsData);
     
     if (tagsData._statusCode >= 400) {
       return {
@@ -46,6 +47,31 @@ export const fetchGHLData = async () => {
 
     const tags = tagsData.tags ? tagsData.tags.map((tag: any) => tag.name) : [];
     
+    // Use the search contacts API instead of the deprecated contacts endpoint
+    // This endpoint requires a POST request with search parameters
+    const { data: contactsData, error: contactsError } = await supabase.functions.invoke('proxy', {
+      body: {
+        url: 'https://rest.gohighlevel.com/v1/contacts/search',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ghl_key}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          limit: 5, // Just fetch a few contacts for testing
+          offset: 0
+        })
+      }
+    });
+    
+    if (contactsError) {
+      console.error('GHL Contacts API error:', contactsError);
+      console.log('Continuing with pipeline request despite contact search error');
+    } else {
+      console.log("GHL Contacts search API response:", contactsData);
+    }
+    
+    // Fetch pipelines to get contact statuses
     const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
       body: {
         url: 'https://rest.gohighlevel.com/v1/pipelines/',
