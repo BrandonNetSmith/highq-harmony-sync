@@ -78,14 +78,19 @@ export const useWebhookConfig = () => {
       let requestBody;
       
       if (type === 'ghl') {
-        // Use the search contacts endpoint instead of the deprecated contacts endpoint
+        // Use the search contacts endpoint exactly as specified in their documentation
         url = 'https://rest.gohighlevel.com/v1/contacts/search';
         method = 'POST';
         headers = { 
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         };
-        requestBody = { limit: 5, offset: 0 };
+        // Format the request body exactly as required by the API
+        requestBody = JSON.stringify({ 
+          limit: 5, 
+          offset: 0,
+          query: "" // Empty query to match all contacts
+        });
       } else {
         // Use v1 API for IntakeQ
         url = 'https://intakeq.com/api/v1/clients';

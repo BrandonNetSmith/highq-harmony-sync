@@ -59,7 +59,8 @@ export const fetchGHLData = async () => {
         },
         body: JSON.stringify({
           limit: 5, // Just fetch a few contacts for testing
-          offset: 0
+          offset: 0,
+          query: "" // Empty query to match all contacts
         })
       }
     });
