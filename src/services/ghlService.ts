@@ -15,13 +15,14 @@ export const fetchGHLData = async () => {
       };
     }
 
-    // Fetch tags using the tags endpoint
+    // Fetch tags using the updated endpoint
     const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://rest.gohighlevel.com/v1/tags/',
+        url: 'https://services.leadconnectorhq.com/tags/',
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${ghl_key}`
+          'Authorization': `Bearer ${ghl_key}`,
+          'Version': '2021-07-28'
         }
       }
     });
@@ -47,21 +48,16 @@ export const fetchGHLData = async () => {
 
     const tags = tagsData.tags ? tagsData.tags.map((tag: any) => tag.name) : [];
     
-    // Use the search contacts API instead of the deprecated contacts endpoint
-    // This endpoint requires a POST request with search parameters
+    // Use the updated contacts endpoint
     const { data: contactsData, error: contactsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://rest.gohighlevel.com/v1/contacts/search',
-        method: 'POST',
+        url: 'https://services.leadconnectorhq.com/contacts/',
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Content-Type': 'application/json'
+          'Version': '2021-07-28'
         },
-        body: JSON.stringify({
-          limit: 5, // Just fetch a few contacts for testing
-          offset: 0,
-          query: "" // Empty query to match all contacts
-        })
+        body: null
       }
     });
     
@@ -69,16 +65,17 @@ export const fetchGHLData = async () => {
       console.error('GHL Contacts API error:', contactsError);
       console.log('Continuing with pipeline request despite contact search error');
     } else {
-      console.log("GHL Contacts search API response:", contactsData);
+      console.log("GHL Contacts API response:", contactsData);
     }
     
-    // Fetch pipelines to get contact statuses
+    // Fetch pipelines to get contact statuses using updated endpoint
     const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://rest.gohighlevel.com/v1/pipelines/',
+        url: 'https://services.leadconnectorhq.com/pipelines/',
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${ghl_key}`
+          'Authorization': `Bearer ${ghl_key}`,
+          'Version': '2021-07-28'
         }
       }
     });
