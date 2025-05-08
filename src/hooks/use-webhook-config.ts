@@ -78,13 +78,14 @@ export const useWebhookConfig = () => {
       let requestBody;
       
       if (type === 'ghl') {
-        // Use the contacts endpoint for testing the API key
-        url = 'https://services.leadconnectorhq.com/contacts/';
+        // First get the location ID for GHL API
+        url = 'https://services.leadconnectorhq.com/locations/';
         method = 'GET';
         headers = { 
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'Version': '2021-07-28'
+          'Version': '2021-07-28',
+          'Accept': 'application/json'
         };
         requestBody = null;
       } else {

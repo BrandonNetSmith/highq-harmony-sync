@@ -15,14 +15,61 @@ export const fetchGHLData = async () => {
       };
     }
 
-    // Fetch tags using the updated endpoint
-    const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
+    // First, make a call to get a location ID which is required for subsequent calls
+    const { data: locationData, error: locationError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://services.leadconnectorhq.com/tags/',
+        url: 'https://services.leadconnectorhq.com/locations/',
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Version': '2021-07-28'
+          'Version': '2021-07-28',
+          'Accept': 'application/json'
+        }
+      }
+    });
+    
+    if (locationError) {
+      console.error('GHL Location API error:', locationError);
+      return {
+        tags: [],
+        statuses: [],
+        error: `Failed to fetch locations: ${locationError.message}`
+      };
+    }
+    
+    console.log("GHL Locations API response:", locationData);
+    
+    if (locationData._statusCode >= 400 || !locationData.locations || locationData.locations.length === 0) {
+      const errorMsg = locationData._errorMessage || `Failed with status: ${locationData._statusCode || 'Unknown'}`;
+      console.error('GHL Location API error:', errorMsg);
+      return {
+        tags: [],
+        statuses: [],
+        error: `Failed to get location: ${errorMsg}`
+      };
+    }
+    
+    // Extract the first location ID
+    const locationId = locationData.locations[0].id;
+    console.log("Using location ID:", locationId);
+    
+    if (!locationId) {
+      return {
+        tags: [],
+        statuses: [],
+        error: "No location ID found in your account"
+      };
+    }
+
+    // Fetch tags using the location ID
+    const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
+      body: {
+        url: `https://services.leadconnectorhq.com/locations/${locationId}/tags/`,
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${ghl_key}`,
+          'Version': '2021-07-28',
+          'Accept': 'application/json'
         }
       }
     });
@@ -48,14 +95,15 @@ export const fetchGHLData = async () => {
 
     const tags = tagsData.tags ? tagsData.tags.map((tag: any) => tag.name) : [];
     
-    // Use the updated contacts endpoint
+    // Fetch contacts with the location ID
     const { data: contactsData, error: contactsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://services.leadconnectorhq.com/contacts/',
+        url: `https://services.leadconnectorhq.com/locations/${locationId}/contacts/`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Version': '2021-07-28'
+          'Version': '2021-07-28',
+          'Accept': 'application/json'
         },
         body: null
       }
@@ -68,14 +116,15 @@ export const fetchGHLData = async () => {
       console.log("GHL Contacts API response:", contactsData);
     }
     
-    // Fetch pipelines to get contact statuses using updated endpoint
+    // Fetch pipelines with the location ID
     const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://services.leadconnectorhq.com/pipelines/',
+        url: `https://services.leadconnectorhq.com/locations/${locationId}/pipelines/`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Version': '2021-07-28'
+          'Version': '2021-07-28',
+          'Accept': 'application/json'
         }
       }
     });
