@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
@@ -78,14 +77,12 @@ export const useWebhookConfig = () => {
       let requestBody;
       
       if (type === 'ghl') {
-        // First get the location ID for GHL API
-        url = 'https://services.leadconnectorhq.com/locations/';
+        // Use v1 REST API for GHL
+        url = 'https://rest.gohighlevel.com/v1/locations/';
         method = 'GET';
         headers = { 
           'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'Version': '2021-07-28',
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         };
         requestBody = null;
       } else {

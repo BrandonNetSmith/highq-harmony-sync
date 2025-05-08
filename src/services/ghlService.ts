@@ -18,12 +18,10 @@ export const fetchGHLData = async () => {
     // First, make a call to get a location ID which is required for subsequent calls
     const { data: locationData, error: locationError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://services.leadconnectorhq.com/locations/',
+        url: 'https://rest.gohighlevel.com/v1/locations/',
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Version': '2021-07-28',
-          'Accept': 'application/json'
         }
       }
     });
@@ -64,12 +62,10 @@ export const fetchGHLData = async () => {
     // Fetch tags using the location ID
     const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: `https://services.leadconnectorhq.com/locations/${locationId}/tags/`,
+        url: `https://rest.gohighlevel.com/v1/locations/${locationId}/tags/`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Version': '2021-07-28',
-          'Accept': 'application/json'
         }
       }
     });
@@ -98,12 +94,10 @@ export const fetchGHLData = async () => {
     // Fetch contacts with the location ID
     const { data: contactsData, error: contactsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: `https://services.leadconnectorhq.com/locations/${locationId}/contacts/`,
+        url: `https://rest.gohighlevel.com/v1/locations/${locationId}/contacts/`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Version': '2021-07-28',
-          'Accept': 'application/json'
         },
         body: null
       }
@@ -119,12 +113,10 @@ export const fetchGHLData = async () => {
     // Fetch pipelines with the location ID
     const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: `https://services.leadconnectorhq.com/locations/${locationId}/pipelines/`,
+        url: `https://rest.gohighlevel.com/v1/locations/${locationId}/pipelines/`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Version': '2021-07-28',
-          'Accept': 'application/json'
         }
       }
     });
