@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
@@ -81,12 +80,13 @@ export const useWebhookConfig = () => {
       let requestBody;
       
       if (type === 'ghl') {
-        // Use the provided location ID for testing
-        url = `https://api.gohighlevel.com/v1/locations/${LOCATION_ID}/tags`;
+        // Use the working services.leadconnectorhq.com endpoint for testing
+        url = `https://services.leadconnectorhq.com/contacts/?locationId=${LOCATION_ID}&limit=1`;
         method = 'GET';
         headers = { 
           'Authorization': `Bearer ${apiKey}`,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Version': '2021-07-28'
         };
         requestBody = null;
       } else {
@@ -116,12 +116,12 @@ export const useWebhookConfig = () => {
       console.log(`${type} API test response:`, data);
       
       // If the first attempt failed and this is GHL, try the legacy endpoint
-      if (type === 'ghl' && (data._statusCode >= 400 || data.msg === "Not found")) {
-        console.log("First GHL API test failed. Trying legacy endpoint...");
+      if (type === 'ghl' && (data._statusCode >= 400 || data._error)) {
+        console.log("New GHL API test failed. Trying legacy endpoint...");
         
         const { data: legacyData, error: legacyError } = await supabase.functions.invoke('proxy', {
           body: {
-            url: `https://rest.gohighlevel.com/v1/locations/${LOCATION_ID}/tags`,
+            url: `https://rest.gohighlevel.com/v1/locations/${LOCATION_ID}/contacts?limit=1`,
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
@@ -159,7 +159,7 @@ export const useWebhookConfig = () => {
         return;
       }
       
-      if (data._isHtml || data._redirect || data._error || data._statusCode >= 400 || data.msg === "Not found") {
+      if (data._isHtml || data._redirect || data._error || data._statusCode >= 400) {
         throw new Error(data._errorMessage || data._error || data.msg || `Failed with status: ${data._statusCode}`);
       }
       

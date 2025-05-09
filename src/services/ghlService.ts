@@ -19,17 +19,18 @@ export const fetchGHLData = async () => {
 
     console.log("Testing GoHighLevel API connection using provided location ID...");
     
-    // Try the new API format first with direct location ID
-    const baseUrl = 'https://api.gohighlevel.com/v1';
+    // Try the services.leadconnectorhq.com API endpoint first (new working endpoint)
+    const servicesUrl = 'https://services.leadconnectorhq.com';
     
-    // Fetch tags using the provided location ID
+    // Fetch tags
     const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: `${baseUrl}/locations/${LOCATION_ID}/tags`,
+        url: `${servicesUrl}/tags/?locationId=${LOCATION_ID}`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Version': '2021-07-28'
         }
       }
     });
@@ -103,14 +104,15 @@ export const fetchGHLData = async () => {
     
     console.log("GHL API response for tags:", tagsData);
     
-    // Fetch pipelines with the location ID using new API
+    // Fetch pipelines using the new services endpoint
     const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: `${baseUrl}/locations/${LOCATION_ID}/pipelines`,
+        url: `${servicesUrl}/pipelines/stages/?locationId=${LOCATION_ID}`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Version': '2021-07-28'
         }
       }
     });
@@ -128,12 +130,19 @@ export const fetchGHLData = async () => {
     
     console.log("GHL Pipelines API response:", pipelineData);
     
+    // Process the new format of pipeline data
     const statuses = [];
-    if (pipelineData.pipelines) {
-      pipelineData.pipelines.forEach((pipeline) => {
-        pipeline.stages?.forEach((stage) => {
+    if (pipelineData.stages) {
+      pipelineData.stages.forEach((stage) => {
+        if (stage.name) {
           statuses.push(stage.name);
-        });
+        }
+      });
+    } else if (pipelineData.pipelineStages) {
+      pipelineData.pipelineStages.forEach((stage) => {
+        if (stage.name) {
+          statuses.push(stage.name);
+        }
       });
     }
     
