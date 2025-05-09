@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { getSyncConfig, saveSyncConfig } from '@/services/syncConfig';
 import type { Database } from "@/integrations/supabase/types";
@@ -73,7 +74,8 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [syncConfig, setSyncConfig] = useState(initialSyncConfig);
-  const [saveTimer, setSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSaveRef = useRef<any | null>(null);
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -99,6 +101,22 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
               fieldMapping.contact.fields.email.isKeyField = true;
             }
           }
+
+          // For each data type, find the key field and ensure it has isKeyField=true
+          Object.keys(fieldMapping).forEach(dataType => {
+            const keyField = fieldMapping[dataType].keyField;
+            
+            if (keyField && fieldMapping[dataType].fields[keyField]) {
+              fieldMapping[dataType].fields[keyField].isKeyField = true;
+              
+              // Remove isKeyField=true from all other fields
+              Object.keys(fieldMapping[dataType].fields).forEach(fieldName => {
+                if (fieldName !== keyField) {
+                  fieldMapping[dataType].fields[fieldName].isKeyField = false;
+                }
+              });
+            }
+          });
           
           setSyncConfig({
             sync_direction: config.sync_direction,
@@ -127,28 +145,50 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
     loadConfig();
   }, [toast]);
 
-  // Debounced save function to prevent excessive database calls
-  const debouncedSave = (config: any, showToast = false) => {
-    if (saveTimer) {
-      clearTimeout(saveTimer);
+  // Improved debounced save function with referential stability
+  const debouncedSave = useCallback(async (config: any, showToast = false) => {
+    // Store the latest config to be saved
+    pendingSaveRef.current = { config, showToast };
+    
+    // Clear any existing timer
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
     }
 
-    const timer = setTimeout(async () => {
+    // Create new timer
+    saveTimerRef.current = setTimeout(async () => {
+      // Get the latest pending save
+      const pendingSave = pendingSaveRef.current;
+      if (!pendingSave) return;
+      
       try {
-        await saveSyncConfig(config);
-        setSyncConfig(config);
+        console.log('Saving config to database:', pendingSave.config);
+        await saveSyncConfig(pendingSave.config);
+        setSyncConfig(pendingSave.config);
         
-        if (showToast) {
+        if (pendingSave.showToast) {
           sonnerToast.success("Configuration saved");
         }
+        
+        // Clear the pending save
+        pendingSaveRef.current = null;
       } catch (error) {
         console.error('Failed to save config:', error);
         sonnerToast.error("Failed to save configuration");
+      } finally {
+        saveTimerRef.current = null;
       }
     }, SAVE_DEBOUNCE_MS);
-    
-    setSaveTimer(timer);
-  };
+  }, []);
+  
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleSyncDirectionChange = async (direction: SyncDirection) => {
     try {
@@ -266,6 +306,8 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
       
       // Save changes with debounce and NO toast notification to avoid flooding
       debouncedSave(newConfig, false);
+
+      console.log('Saved field mapping:', updatedFieldMapping);
     } catch (error) {
       toast({
         title: "Error",

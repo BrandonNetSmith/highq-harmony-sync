@@ -7,6 +7,7 @@ import { SyncNowButton } from './SyncNowButton';
 import { FieldMappingHeader } from './FieldMappingHeader';
 import { FieldCategories } from './FieldCategories';
 import { useFieldDiscovery } from '@/hooks/use-field-discovery';
+import { performSync } from '@/services/syncService';
 import type { FieldMappingProps, FieldMappingType } from '@/types/field-mapping';
 import type { Database } from "@/integrations/supabase/types";
 
@@ -30,6 +31,24 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
 
   const handleFieldChange = useCallback((dataType: string, fieldName: string, updates: any) => {
     const newMapping = { ...fieldMapping };
+    
+    // Check if this is setting a key field
+    if (updates.isKeyField === true) {
+      // If setting a new key field, first clear any existing key field for this dataType
+      Object.keys(newMapping[dataType].fields).forEach(existingFieldName => {
+        if (existingFieldName !== fieldName && newMapping[dataType].fields[existingFieldName].isKeyField) {
+          newMapping[dataType].fields[existingFieldName] = {
+            ...newMapping[dataType].fields[existingFieldName],
+            isKeyField: false
+          };
+        }
+      });
+      
+      // Update the keyField property at the dataType level
+      newMapping[dataType].keyField = fieldName;
+    }
+    
+    // Update the field itself
     newMapping[dataType].fields[fieldName] = {
       ...newMapping[dataType].fields[fieldName],
       ...updates
@@ -64,7 +83,7 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
   const handleSyncNow = async () => {
     setSyncingNow(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await performSync();
       toast({
         title: "Sync Complete",
         description: "Manual synchronization was completed successfully",

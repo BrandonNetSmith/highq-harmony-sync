@@ -1,25 +1,55 @@
-
 import React from 'react';
-import { ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { performSync } from '@/services/syncService';
 
 interface SyncNowButtonProps {
   isSyncing: boolean;
-  disabled: boolean;
-  onClick: () => void;
+  disabled?: boolean;
+  onClick?: () => Promise<void>;
+  syncDirection?: 'ghl_to_intakeq' | 'intakeq_to_ghl' | 'bidirectional';
 }
 
-export const SyncNowButton = ({ isSyncing, disabled, onClick }: SyncNowButtonProps) => {
+export const SyncNowButton = ({
+  isSyncing,
+  disabled,
+  onClick,
+  syncDirection
+}: SyncNowButtonProps) => {
+  const handleSyncClick = async () => {
+    if (onClick) {
+      // Use custom handler if provided
+      await onClick();
+    } else {
+      // Otherwise use the default sync service
+      await performSync(syncDirection);
+    }
+  };
+
   return (
-    <Button 
-      variant="outline"
-      size="sm"
-      onClick={onClick}
-      disabled={disabled || isSyncing}
-      className="flex items-center gap-2"
-    >
-      <ArrowRightLeft className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-      {isSyncing ? "Syncing..." : "Sync Now"}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="default"
+          size="sm"
+          disabled={disabled || isSyncing}
+          onClick={handleSyncClick}
+          className="whitespace-nowrap"
+        >
+          {isSyncing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Syncing...
+            </>
+          ) : (
+            'Sync Now'
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Run synchronization now</p>
+      </TooltipContent>
+    </Tooltip>
   );
 };
