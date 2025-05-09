@@ -19,10 +19,10 @@ export const fetchGHLData = async () => {
 
     console.log("Testing GoHighLevel API connection using provided location ID...");
     
-    // Use the services.leadconnectorhq.com API endpoint (known to work)
+    // Use the services.leadconnectorhq.com API endpoint with exact format
     const servicesUrl = 'https://services.leadconnectorhq.com';
     
-    // Fetch tags
+    // Fetch tags using format that matches PowerShell example
     const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
       body: {
         url: `${servicesUrl}/tags/?locationId=${LOCATION_ID}`,
@@ -30,7 +30,7 @@ export const fetchGHLData = async () => {
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
           'Accept': 'application/json',
-          'Version': '2021-07-28'  // Make sure this header is included
+          'Version': '2021-07-28'  // Include Version header exactly as in PowerShell
         }
       }
     });
@@ -46,7 +46,7 @@ export const fetchGHLData = async () => {
     
     console.log("GHL API response for tags:", tagsData);
     
-    // Fetch pipelines using the services endpoint
+    // Fetch pipelines using exact format that matches PowerShell
     const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
       body: {
         url: `${servicesUrl}/pipelines/stages/?locationId=${LOCATION_ID}`,
@@ -54,7 +54,7 @@ export const fetchGHLData = async () => {
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
           'Accept': 'application/json',
-          'Version': '2021-07-28'  // Make sure this header is included
+          'Version': '2021-07-28'  // Include Version header exactly as in PowerShell
         }
       }
     });

@@ -11,16 +11,17 @@ export interface TestResult {
 
 export const testGHLApiKey = async (apiKey: string): Promise<TestResult> => {
   try {
-    // Use the services.leadconnectorhq.com endpoint that's known to work
+    // Exactly match the URL format from PowerShell example
     const url = `https://services.leadconnectorhq.com/contacts/?locationId=${LOCATION_ID}&limit=10`;
     const method = 'GET';
     const headers = { 
       'Authorization': `Bearer ${apiKey}`,
       'Accept': 'application/json',
-      'Version': '2021-07-28'  // Make sure this header is included
+      'Version': '2021-07-28'  // Include Version header exactly as in PowerShell
     };
     
     console.log(`Testing GHL API with key: ${apiKey.substring(0, 5)}...`);
+    console.log(`Testing with URL: ${url}`);
     
     const { data, error } = await supabase.functions.invoke('proxy', {
       body: {
@@ -37,6 +38,14 @@ export const testGHLApiKey = async (apiKey: string): Promise<TestResult> => {
     }
     
     console.log(`GHL API test response:`, data);
+    
+    // Check if response contains contacts array to validate success
+    if (data && data.contacts && Array.isArray(data.contacts)) {
+      return { 
+        success: true, 
+        message: `GoHighLevel connection successful! Found ${data.contacts.length} contacts.` 
+      };
+    }
     
     if (data._isHtml || data._redirect || data._error || data._statusCode >= 400) {
       console.error(`GHL API error:`, data);

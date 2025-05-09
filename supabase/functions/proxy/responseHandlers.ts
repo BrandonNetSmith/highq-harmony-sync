@@ -37,6 +37,7 @@ export const processResponse = async (response: Response, requestUrl: string) =>
       // Try to parse the text as JSON
       try {
         const json = JSON.parse(text);
+        console.log("Parsed error response JSON:", json);
         return {
           ...json,
           _statusCode: statusCode,
@@ -107,6 +108,7 @@ export const processResponse = async (response: Response, requestUrl: string) =>
     // Try to parse as JSON
     try {
       const json = JSON.parse(text);
+      console.log("Successfully parsed response JSON:", Object.keys(json));
       // Return the parsed JSON directly for successful responses
       return json;
     } catch (parseError) {

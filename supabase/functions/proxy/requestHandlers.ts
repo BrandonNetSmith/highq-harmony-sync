@@ -1,3 +1,4 @@
+
 /**
  * Functions for handling and validating incoming requests
  */
@@ -23,7 +24,7 @@ export const prepareRequestHeaders = (headers: Record<string, string> | undefine
     Object.entries(headers).forEach(([key, value]) => {
       if (typeof value === 'string' && !key.toLowerCase().includes('host')) {
         requestHeaders.append(key, value);
-        console.log(`Added header: ${key}`);
+        console.log(`Added header: ${key}: ${key === 'Authorization' ? '***redacted***' : value}`);
       }
     });
   }
@@ -54,7 +55,9 @@ export const createRequestOptions = (method: string, headers: Headers, body: any
 export const executeRequest = async (url: string, options: RequestInit) => {
   try {
     console.log(`Sending ${options.method || 'GET'} request to: ${url}`);
-    console.log('Request headers:', [...options.headers.entries()]);
+    console.log('Request headers:', [...options.headers.entries()].map(entry => 
+      entry[0] === 'Authorization' ? ['Authorization', '***redacted***'] : entry
+    ));
     
     // Make the actual request with timeout
     const abortController = new AbortController();
