@@ -1,7 +1,7 @@
 
 import { useRef, useEffect } from 'react';
 import { saveSyncConfig } from '@/services/syncConfig';
-import { sonnerToast as toast } from "sonner";
+import { toast } from "sonner";
 
 // Avoid excessive saves with a debounce timer
 const SAVE_DEBOUNCE_MS = 500;

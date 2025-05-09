@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { SyncActivityLog } from "@/components/SyncActivityLogModal";
@@ -8,36 +9,12 @@ import type { SyncActivityLog } from "@/components/SyncActivityLogModal";
  */
 export const getSyncActivityLogs = async (): Promise<SyncActivityLog[]> => {
   try {
-    // Check if we have a logs table in our database
-    // If not, return mock data for demo purposes
-    const { data: tableExists } = await supabase
-      .from('sync_activity_logs')
-      .select('id')
-      .limit(1);
-
-    if (!tableExists) {
-      console.log('Sync logs table not found, returning mock data');
-      return getMockSyncActivityLogs();
-    }
-
-    const { data, error } = await supabase
-      .from('sync_activity_logs')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error('Supabase error fetching logs:', error);
-      toast.error(`Failed to retrieve sync logs: ${error.message}`);
-      // Fall back to mock data if there's an error
-      return getMockSyncActivityLogs();
-    }
-
-    return data || [];
+    // Since we don't have a sync_activity_logs table in the database,
+    // we'll return mock data for now
+    return getMockSyncActivityLogs();
   } catch (error) {
     console.error('Error getting sync activity logs:', error);
     toast.error(`Error fetching sync activity logs: ${error instanceof Error ? error.message : String(error)}`);
-    // Fall back to mock data if there's an exception
     return getMockSyncActivityLogs();
   }
 };
@@ -48,29 +25,9 @@ export const getSyncActivityLogs = async (): Promise<SyncActivityLog[]> => {
  */
 export const createSyncActivityLog = async (log: Omit<SyncActivityLog, 'id' | 'timestamp'>): Promise<void> => {
   try {
-    // Check if we have a logs table in our database
-    // If not, just log to console for demo purposes
-    const { data: tableExists } = await supabase
-      .from('sync_activity_logs')
-      .select('id')
-      .limit(1);
-
-    if (!tableExists) {
-      console.log('Sync log table not found, logging to console instead:', log);
-      return;
-    }
-
-    const { error } = await supabase
-      .from('sync_activity_logs')
-      .insert([{
-        ...log,
-        // The database will handle id and timestamp automatically
-      }]);
-
-    if (error) {
-      console.error('Failed to save sync log:', error);
-      toast.error(`Failed to record sync activity: ${error.message}`);
-    }
+    // Just log to console for demo purposes since we don't have the table
+    console.log('Logging sync activity (mock):', log);
+    return;
   } catch (error) {
     console.error('Error creating sync log:', error);
   }
@@ -83,31 +40,9 @@ export const createSyncActivityLog = async (log: Omit<SyncActivityLog, 'id' | 't
  */
 export const getSyncActivityLogById = async (id: number): Promise<SyncActivityLog | null> => {
   try {
-    // Check if we have a logs table in our database
-    const { data: tableExists } = await supabase
-      .from('sync_activity_logs')
-      .select('id')
-      .limit(1);
-
-    if (!tableExists) {
-      // Return mock log for demo purposes
-      const logs = getMockSyncActivityLogs();
-      return logs.find(log => log.id === id) || null;
-    }
-
-    const { data, error } = await supabase
-      .from('sync_activity_logs')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) {
-      console.error(`Error getting sync activity log with ID ${id}:`, error);
-      toast.error(`Error fetching sync log details: ${error.message}`);
-      throw error;
-    }
-
-    return data;
+    // Return mock log for demo purposes
+    const logs = getMockSyncActivityLogs();
+    return logs.find(log => log.id === id) || null;
   } catch (error) {
     console.error(`Error getting sync activity log with ID ${id}:`, error);
     toast.error(`Error fetching sync log details: ${error instanceof Error ? error.message : String(error)}`);
@@ -117,7 +52,6 @@ export const getSyncActivityLogById = async (id: number): Promise<SyncActivityLo
 
 /**
  * Provides mock data for sync activity logs
- * Note: This is used when the database table doesn't exist yet
  * @returns Array of mock sync activity logs
  */
 const getMockSyncActivityLogs = (): SyncActivityLog[] => {
