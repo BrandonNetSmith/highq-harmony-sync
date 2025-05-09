@@ -5,6 +5,9 @@ import { GHLFieldSelect } from './field-selection/GHLFieldSelect';
 import { IntakeQFieldSelect } from './field-selection/IntakeQFieldSelect';
 import type { FieldControlsProps } from "@/types/field-mapping";
 import { toast } from "sonner";
+import { Key } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const FieldControls = ({
   dataType,
@@ -42,8 +45,21 @@ export const FieldControls = ({
     onFieldChange(dataType, fieldName, updates);
   };
 
+  // Toggle key field status
+  const toggleKeyField = () => {
+    handleFieldChange({ isKeyField: !fieldSettings.isKeyField });
+    
+    if (!fieldSettings.isKeyField) {
+      toast.success(`Set ${fieldName} as the key matching field for ${dataType}`);
+    }
+  };
+
+  const keyFieldButtonClass = fieldSettings.isKeyField 
+    ? "text-primary-foreground bg-primary hover:bg-primary/90" 
+    : "text-muted-foreground";
+
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 py-2 px-2 border-b border-border last:border-b-0">
+    <div className="grid grid-cols-[1fr_auto_auto_1fr] items-center w-full gap-4 py-2 px-2 border-b border-border last:border-b-0">
       <div className="w-full">
         <GHLFieldSelect
           value={fieldSettings.ghlField || ""}
@@ -69,6 +85,26 @@ export const FieldControls = ({
         }}
         disabled={disabled}
       />
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={keyFieldButtonClass}
+            onClick={toggleKeyField}
+            disabled={disabled}
+            aria-label={fieldSettings.isKeyField ? "This is the key matching field" : "Set as key matching field"}
+          >
+            <Key className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {fieldSettings.isKeyField 
+            ? "This field is used to match records between systems" 
+            : "Set as the key field for matching records between systems"}
+        </TooltipContent>
+      </Tooltip>
 
       <div className="w-full">
         <IntakeQFieldSelect

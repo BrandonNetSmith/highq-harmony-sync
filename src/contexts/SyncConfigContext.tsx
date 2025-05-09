@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { getSyncConfig, saveSyncConfig } from '@/services/syncConfig';
@@ -24,10 +23,11 @@ interface SyncConfigContextType {
 
 const defaultFieldMapping: FieldMappingType = {
   contact: {
+    keyField: 'email',
     fields: {
       first_name: { sync: true, direction: 'bidirectional', ghlField: 'firstName', intakeqField: 'firstName' },
       last_name: { sync: true, direction: 'bidirectional', ghlField: 'lastName', intakeqField: 'lastName' },
-      email: { sync: true, direction: 'bidirectional' },
+      email: { sync: true, direction: 'bidirectional', isKeyField: true },
       phone: { sync: true, direction: 'bidirectional', ghlField: 'phone', intakeqField: 'phoneNumber' },
       address: { sync: true, direction: 'bidirectional' }
     }
@@ -80,6 +80,26 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
       try {
         const config = await getSyncConfig();
         if (config) {
+          // Parse or initialize field_mapping with the default mapping
+          let fieldMapping: FieldMappingType;
+          if (config.field_mapping) {
+            fieldMapping = typeof config.field_mapping === 'string'
+              ? JSON.parse(config.field_mapping)
+              : config.field_mapping as FieldMappingType;
+          } else {
+            fieldMapping = defaultFieldMapping;
+          }
+          
+          // Ensure each dataType has a keyField property, defaulting to 'email' for contacts
+          if (fieldMapping.contact && !fieldMapping.contact.keyField) {
+            fieldMapping.contact.keyField = 'email';
+            
+            // Also ensure email field is marked as isKeyField
+            if (fieldMapping.contact.fields.email) {
+              fieldMapping.contact.fields.email.isKeyField = true;
+            }
+          }
+          
           setSyncConfig({
             sync_direction: config.sync_direction,
             ghl_filters: typeof config.ghl_filters === 'string' 
@@ -89,9 +109,7 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
               ? JSON.parse(config.intakeq_filters) 
               : config.intakeq_filters as any,
             is_sync_enabled: config.is_sync_enabled,
-            field_mapping: typeof config.field_mapping === 'string'
-              ? JSON.parse(config.field_mapping)
-              : config.field_mapping as FieldMappingType || defaultFieldMapping
+            field_mapping: fieldMapping
           });
         }
       } catch (error) {
@@ -210,9 +228,37 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
 
   const handleFieldMappingChange = async (fieldMapping: FieldMappingType) => {
     try {
+      // For each dataType, check if there's a field with isKeyField=true
+      // If so, update the keyField property for that dataType
+      const updatedFieldMapping = { ...fieldMapping };
+      
+      Object.keys(updatedFieldMapping).forEach(dataType => {
+        const dataTypeObj = updatedFieldMapping[dataType];
+        
+        // Find a field with isKeyField=true
+        const keyFieldEntry = Object.entries(dataTypeObj.fields).find(
+          ([_, fieldSettings]) => fieldSettings.isKeyField
+        );
+        
+        if (keyFieldEntry) {
+          // Update the keyField property
+          updatedFieldMapping[dataType].keyField = keyFieldEntry[0];
+          
+          // Ensure no other field is marked as a key field
+          Object.entries(dataTypeObj.fields).forEach(([fieldName, settings]) => {
+            if (fieldName !== keyFieldEntry[0] && settings.isKeyField) {
+              updatedFieldMapping[dataType].fields[fieldName] = {
+                ...settings,
+                isKeyField: false
+              };
+            }
+          });
+        }
+      });
+      
       const newConfig = {
         ...syncConfig,
-        field_mapping: fieldMapping
+        field_mapping: updatedFieldMapping
       };
       
       // Update local state immediately for UI responsiveness

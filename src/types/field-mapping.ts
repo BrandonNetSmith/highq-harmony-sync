@@ -5,12 +5,14 @@ type SyncDirection = Database["public"]["Enums"]["sync_direction"];
 
 export type FieldMappingType = {
   [dataType: string]: {
+    keyField?: string; // The field name designated as the key field for matching
     fields: {
       [fieldName: string]: {
         sync: boolean;
         direction: SyncDirection;
         ghlField?: string;
         intakeqField?: string;
+        isKeyField?: boolean; // Flag to indicate if this field is the key field
       }
     }
   }
@@ -30,6 +32,7 @@ export interface FieldControlsProps {
     direction: SyncDirection;
     ghlField?: string;
     intakeqField?: string;
+    isKeyField?: boolean;
   };
   availableFields: {
     ghl: { [key: string]: string[] };
@@ -45,6 +48,7 @@ export interface FieldControlsProps {
       direction: SyncDirection;
       ghlField: string;
       intakeqField: string;
+      isKeyField: boolean;
     }>
   ) => void;
 }
