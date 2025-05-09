@@ -2,6 +2,9 @@
 import { getApiKeys } from "@/services/apiKeys";
 import { supabase } from "@/integrations/supabase/client";
 
+// Use the provided location ID
+const LOCATION_ID = "GZecKV1IvZgcZdeVItxt";
+
 export const fetchGHLData = async () => {
   try {
     const { ghl_key } = await getApiKeys();
@@ -14,12 +17,15 @@ export const fetchGHLData = async () => {
       };
     }
 
-    console.log("Testing GoHighLevel API connection...");
+    console.log("Testing GoHighLevel API connection using provided location ID...");
     
-    // Try the new API format first
-    const { data: locationData, error: locationError } = await supabase.functions.invoke('proxy', {
+    // Try the new API format first with direct location ID
+    const baseUrl = 'https://api.gohighlevel.com/v1';
+    
+    // Fetch tags using the provided location ID
+    const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://api.gohighlevel.com/v1/locations/',
+        url: `${baseUrl}/locations/${LOCATION_ID}/tags`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
@@ -28,14 +34,15 @@ export const fetchGHLData = async () => {
       }
     });
     
-    if (locationError || (locationData && locationData.msg === "Not found")) {
-      console.error('GHL Location API error:', locationError || locationData.msg);
-      console.log('Trying alternate API endpoint...');
+    if (tagsError || (tagsData && tagsData._statusCode >= 400)) {
+      console.error('GHL Tags API error:', tagsError || tagsData);
       
       // Try the legacy API endpoint as fallback
-      const { data: legacyLocationData, error: legacyLocationError } = await supabase.functions.invoke('proxy', {
+      const legacyBaseUrl = 'https://rest.gohighlevel.com/v1';
+      
+      const { data: legacyTagsData, error: legacyTagsError } = await supabase.functions.invoke('proxy', {
         body: {
-          url: 'https://rest.gohighlevel.com/v1/locations/',
+          url: `${legacyBaseUrl}/locations/${LOCATION_ID}/tags`,
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${ghl_key}`,
@@ -44,8 +51,8 @@ export const fetchGHLData = async () => {
         }
       });
       
-      if (legacyLocationError || (legacyLocationData && legacyLocationData._statusCode >= 400)) {
-        console.error('Legacy GHL API also failed:', legacyLocationError || legacyLocationData);
+      if (legacyTagsError || (legacyTagsData && legacyTagsData._statusCode >= 400)) {
+        console.error('Legacy GHL API also failed:', legacyTagsError || legacyTagsData);
         return {
           tags: [],
           statuses: [],
@@ -53,13 +60,88 @@ export const fetchGHLData = async () => {
         };
       }
       
-      // Use legacy data if it worked
-      console.log("Legacy API response:", legacyLocationData);
-      return processGHLData(ghl_key, legacyLocationData, true);
+      console.log("Legacy API response for tags:", legacyTagsData);
+      
+      // Use legacy endpoint for pipelines as well
+      const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
+        body: {
+          url: `${legacyBaseUrl}/locations/${LOCATION_ID}/pipelines`,
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${ghl_key}`,
+            'Accept': 'application/json'
+          }
+        }
+      });
+      
+      if (pipelineError || (pipelineData && pipelineData._statusCode >= 400)) {
+        console.error('Legacy GHL Pipeline API error:', pipelineError || pipelineData);
+        
+        // Return tags without statuses if pipeline fetch failed
+        return {
+          tags: legacyTagsData.tags ? legacyTagsData.tags.map((tag) => tag.name) : [],
+          statuses: [],
+          error: `Failed to fetch pipelines: ${pipelineError?.message || pipelineData?._errorMessage || 'Unknown error'}`
+        };
+      }
+      
+      const statuses = [];
+      if (pipelineData.pipelines) {
+        pipelineData.pipelines.forEach((pipeline) => {
+          pipeline.stages?.forEach((stage) => {
+            statuses.push(stage.name);
+          });
+        });
+      }
+      
+      return {
+        tags: legacyTagsData.tags ? legacyTagsData.tags.map((tag) => tag.name) : [],
+        statuses: [...new Set(statuses)],
+        error: null
+      };
     }
     
-    console.log("GHL Locations API response:", locationData);
-    return processGHLData(ghl_key, locationData, false);
+    console.log("GHL API response for tags:", tagsData);
+    
+    // Fetch pipelines with the location ID using new API
+    const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
+      body: {
+        url: `${baseUrl}/locations/${LOCATION_ID}/pipelines`,
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${ghl_key}`,
+          'Accept': 'application/json'
+        }
+      }
+    });
+    
+    if (pipelineError || (pipelineData && pipelineData._statusCode >= 400)) {
+      console.error('GHL Pipeline API error:', pipelineError || pipelineData);
+      
+      // Return tags without statuses if pipeline fetch failed
+      return {
+        tags: tagsData.tags ? tagsData.tags.map((tag) => tag.name) : [],
+        statuses: [],
+        error: `Failed to fetch pipelines: ${pipelineError?.message || pipelineData?._errorMessage || 'Unknown error'}`
+      };
+    }
+    
+    console.log("GHL Pipelines API response:", pipelineData);
+    
+    const statuses = [];
+    if (pipelineData.pipelines) {
+      pipelineData.pipelines.forEach((pipeline) => {
+        pipeline.stages?.forEach((stage) => {
+          statuses.push(stage.name);
+        });
+      });
+    }
+    
+    return {
+      tags: tagsData.tags ? tagsData.tags.map((tag) => tag.name) : [],
+      statuses: [...new Set(statuses)],
+      error: null
+    };
     
   } catch (error) {
     console.error('Error in fetchGHLData:', error);
@@ -70,109 +152,3 @@ export const fetchGHLData = async () => {
     };
   }
 };
-
-// Helper function to process location data and fetch tags/statuses
-async function processGHLData(ghl_key, locationData, isLegacy) {
-  const baseUrl = isLegacy ? 'https://rest.gohighlevel.com/v1' : 'https://api.gohighlevel.com/v1';
-  
-  if (!locationData.locations || locationData.locations.length === 0) {
-    const errorMsg = locationData._errorMessage || locationData.msg || `Failed with status: ${locationData._statusCode || 'Unknown'}`;
-    console.error('GHL Location API error:', errorMsg);
-    return {
-      tags: [],
-      statuses: [],
-      error: `Failed to get location: ${errorMsg}`
-    };
-  }
-  
-  // Extract the first location ID
-  const locationId = locationData.locations[0]?.id;
-  console.log("Using location ID:", locationId);
-  
-  if (!locationId) {
-    return {
-      tags: [],
-      statuses: [],
-      error: "No location ID found in your account"
-    };
-  }
-
-  // Fetch tags using the location ID
-  const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
-    body: {
-      url: `${baseUrl}/locations/${locationId}/tags`,
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${ghl_key}`,
-        'Accept': 'application/json'
-      }
-    }
-  });
-  
-  if (tagsError) {
-    console.error('GHL Tags API error:', tagsError);
-    return {
-      tags: [],
-      statuses: [],
-      error: `Failed to fetch tags: ${tagsError.message}`
-    };
-  }
-  
-  console.log("GHL API response for tags:", tagsData);
-  
-  if (tagsData._statusCode >= 400) {
-    return {
-      tags: [],
-      statuses: [],
-      error: tagsData._errorMessage || `Failed with status: ${tagsData._statusCode}`
-    };
-  }
-
-  const tags = tagsData.tags ? tagsData.tags.map((tag) => tag.name) : [];
-  
-  // Fetch pipelines with the location ID
-  const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
-    body: {
-      url: `${baseUrl}/locations/${locationId}/pipelines`,
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${ghl_key}`,
-        'Accept': 'application/json'
-      }
-    }
-  });
-  
-  if (pipelineError) {
-    console.error('GHL Pipeline API error:', pipelineError);
-    return {
-      tags,
-      statuses: [],
-      error: `Failed to fetch pipelines: ${pipelineError.message}`
-    };
-  }
-  
-  console.log("GHL Pipelines API response:", pipelineData);
-  
-  if (pipelineData._statusCode >= 400) {
-    return {
-      tags,
-      statuses: [],
-      error: pipelineData._errorMessage || `Failed with status: ${pipelineData._statusCode}`
-    };
-  }
-
-  const statuses = [];
-  if (pipelineData.pipelines) {
-    pipelineData.pipelines.forEach((pipeline) => {
-      pipeline.stages?.forEach((stage) => {
-        statuses.push(stage.name);
-      });
-    });
-  }
-  
-  return {
-    tags,
-    statuses: [...new Set(statuses)],
-    error: null
-  };
-}

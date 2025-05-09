@@ -5,6 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { saveApiKeys, getApiKeys } from '@/services/apiKeys';
 import { supabase } from '@/integrations/supabase/client';
 
+// Use the provided location ID
+const LOCATION_ID = "GZecKV1IvZgcZdeVItxt";
+
 interface ApiConfigForm {
   ghlApiKey: string;
   intakeqApiKey: string;
@@ -78,8 +81,8 @@ export const useWebhookConfig = () => {
       let requestBody;
       
       if (type === 'ghl') {
-        // Try the new API endpoint first
-        url = 'https://api.gohighlevel.com/v1/locations/';
+        // Use the provided location ID for testing
+        url = `https://api.gohighlevel.com/v1/locations/${LOCATION_ID}/tags`;
         method = 'GET';
         headers = { 
           'Authorization': `Bearer ${apiKey}`,
@@ -113,12 +116,12 @@ export const useWebhookConfig = () => {
       console.log(`${type} API test response:`, data);
       
       // If the first attempt failed and this is GHL, try the legacy endpoint
-      if (type === 'ghl' && (data.msg === "Not found" || data._statusCode >= 400)) {
+      if (type === 'ghl' && (data._statusCode >= 400 || data.msg === "Not found")) {
         console.log("First GHL API test failed. Trying legacy endpoint...");
         
         const { data: legacyData, error: legacyError } = await supabase.functions.invoke('proxy', {
           body: {
-            url: 'https://rest.gohighlevel.com/v1/locations/',
+            url: `https://rest.gohighlevel.com/v1/locations/${LOCATION_ID}/tags`,
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
