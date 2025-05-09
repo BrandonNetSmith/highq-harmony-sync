@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
@@ -77,12 +78,12 @@ export const useWebhookConfig = () => {
       let requestBody;
       
       if (type === 'ghl') {
-        // Use v1 REST API for GHL
-        url = 'https://rest.gohighlevel.com/v1/locations/';
+        // Use updated GoHighLevel API endpoint
+        url = 'https://api.gohighlevel.com/v1/users/me/locations';
         method = 'GET';
         headers = { 
           'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+          'Accept': 'application/json'
         };
         requestBody = null;
       } else {
@@ -112,7 +113,7 @@ export const useWebhookConfig = () => {
       console.log(`${type} API test response:`, data);
       
       if (data._isHtml || data._redirect || data._error || data._statusCode >= 400) {
-        throw new Error(data._errorMessage || data._error || `Failed with status: ${data._statusCode}`);
+        throw new Error(data._errorMessage || data._error || data.msg || `Failed with status: ${data._statusCode}`);
       }
       
       setTestResults(prev => ({ 

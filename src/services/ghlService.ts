@@ -1,7 +1,6 @@
 
 import { getApiKeys } from "@/services/apiKeys";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 export const fetchGHLData = async () => {
   try {
@@ -15,13 +14,16 @@ export const fetchGHLData = async () => {
       };
     }
 
+    console.log("Testing GoHighLevel API connection...");
+    
     // First, make a call to get a location ID which is required for subsequent calls
     const { data: locationData, error: locationError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: 'https://rest.gohighlevel.com/v1/locations/',
+        url: 'https://api.gohighlevel.com/v1/users/me/locations',
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
+          'Accept': 'application/json'
         }
       }
     });
@@ -38,7 +40,7 @@ export const fetchGHLData = async () => {
     console.log("GHL Locations API response:", locationData);
     
     if (locationData._statusCode >= 400 || !locationData.locations || locationData.locations.length === 0) {
-      const errorMsg = locationData._errorMessage || `Failed with status: ${locationData._statusCode || 'Unknown'}`;
+      const errorMsg = locationData._errorMessage || locationData.msg || `Failed with status: ${locationData._statusCode || 'Unknown'}`;
       console.error('GHL Location API error:', errorMsg);
       return {
         tags: [],
@@ -48,7 +50,7 @@ export const fetchGHLData = async () => {
     }
     
     // Extract the first location ID
-    const locationId = locationData.locations[0].id;
+    const locationId = locationData.locations?.[0]?.id;
     console.log("Using location ID:", locationId);
     
     if (!locationId) {
@@ -62,10 +64,11 @@ export const fetchGHLData = async () => {
     // Fetch tags using the location ID
     const { data: tagsData, error: tagsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: `https://rest.gohighlevel.com/v1/locations/${locationId}/tags/`,
+        url: `https://api.gohighlevel.com/v1/locations/${locationId}/tags`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
+          'Accept': 'application/json'
         }
       }
     });
@@ -94,10 +97,11 @@ export const fetchGHLData = async () => {
     // Fetch contacts with the location ID
     const { data: contactsData, error: contactsError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: `https://rest.gohighlevel.com/v1/locations/${locationId}/contacts/`,
+        url: `https://api.gohighlevel.com/v1/locations/${locationId}/contacts`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
+          'Accept': 'application/json'
         },
         body: null
       }
@@ -113,10 +117,11 @@ export const fetchGHLData = async () => {
     // Fetch pipelines with the location ID
     const { data: pipelineData, error: pipelineError } = await supabase.functions.invoke('proxy', {
       body: {
-        url: `https://rest.gohighlevel.com/v1/locations/${locationId}/pipelines/`,
+        url: `https://api.gohighlevel.com/v1/locations/${locationId}/pipelines`,
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${ghl_key}`,
+          'Accept': 'application/json'
         }
       }
     });
