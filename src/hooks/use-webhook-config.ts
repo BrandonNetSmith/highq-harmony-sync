@@ -78,8 +78,8 @@ export const useWebhookConfig = () => {
       let requestBody;
       
       if (type === 'ghl') {
-        // Use updated GoHighLevel API endpoint
-        url = 'https://api.gohighlevel.com/v1/users/me/locations';
+        // Try the new API endpoint first
+        url = 'https://api.gohighlevel.com/v1/locations/';
         method = 'GET';
         headers = { 
           'Authorization': `Bearer ${apiKey}`,
@@ -112,7 +112,51 @@ export const useWebhookConfig = () => {
       
       console.log(`${type} API test response:`, data);
       
-      if (data._isHtml || data._redirect || data._error || data._statusCode >= 400) {
+      // If the first attempt failed and this is GHL, try the legacy endpoint
+      if (type === 'ghl' && (data.msg === "Not found" || data._statusCode >= 400)) {
+        console.log("First GHL API test failed. Trying legacy endpoint...");
+        
+        const { data: legacyData, error: legacyError } = await supabase.functions.invoke('proxy', {
+          body: {
+            url: 'https://rest.gohighlevel.com/v1/locations/',
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Accept': 'application/json'
+            },
+            body: null
+          }
+        });
+        
+        if (legacyError) {
+          console.error(`Legacy proxy error:`, legacyError);
+          throw new Error(`Proxy request failed: ${legacyError.message || legacyError.toString()}`);
+        }
+        
+        console.log(`Legacy GHL API test response:`, legacyData);
+        
+        if (legacyData._isHtml || legacyData._redirect || legacyData._error || legacyData._statusCode >= 400) {
+          throw new Error(legacyData._errorMessage || legacyData._error || legacyData.msg || `Failed with status: ${legacyData._statusCode}`);
+        }
+        
+        // Legacy endpoint worked
+        setTestResults(prev => ({ 
+          ...prev, 
+          [type]: { 
+            success: true, 
+            message: `GoHighLevel connection successful (using legacy API)!` 
+          } 
+        }));
+        
+        toast({
+          title: "Success",
+          description: `GoHighLevel API key is valid (using legacy API)!`,
+        });
+        
+        return;
+      }
+      
+      if (data._isHtml || data._redirect || data._error || data._statusCode >= 400 || data.msg === "Not found") {
         throw new Error(data._errorMessage || data._error || data.msg || `Failed with status: ${data._statusCode}`);
       }
       
