@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { AutoSyncToggle } from './AutoSyncToggle';
@@ -23,32 +23,43 @@ export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: Field
     handleDiscoverFields,
   } = useFieldDiscovery();
 
-  const handleFieldChange = (dataType: string, fieldName: string, updates: any) => {
+  // Debounce the onChange callback to prevent too many updates
+  const debouncedOnChange = useCallback((newMapping: FieldMappingType) => {
+    onChange(newMapping);
+  }, [onChange]);
+
+  const handleFieldChange = useCallback((dataType: string, fieldName: string, updates: any) => {
     const newMapping = { ...fieldMapping };
     newMapping[dataType].fields[fieldName] = {
       ...newMapping[dataType].fields[fieldName],
       ...updates
     };
-    onChange(newMapping);
-  };
+    
+    // Call the onChange handler to save the changes
+    debouncedOnChange(newMapping);
+  }, [fieldMapping, debouncedOnChange]);
 
-  const handleCategorySyncChange = (dataType: string, checked: boolean) => {
+  const handleCategorySyncChange = useCallback((dataType: string, checked: boolean) => {
     const newMapping = { ...fieldMapping };
     Object.keys(newMapping[dataType].fields).forEach(fieldName => {
       newMapping[dataType].fields[fieldName].sync = checked;
     });
-    onChange(newMapping);
-  };
+    
+    // Save changes
+    debouncedOnChange(newMapping);
+  }, [fieldMapping, debouncedOnChange]);
 
-  const handleCategoryDirectionChange = (dataType: string, direction: SyncDirection) => {
+  const handleCategoryDirectionChange = useCallback((dataType: string, direction: SyncDirection) => {
     const newMapping = { ...fieldMapping };
     Object.keys(newMapping[dataType].fields).forEach(fieldName => {
       if (newMapping[dataType].fields[fieldName].sync) {
         newMapping[dataType].fields[fieldName].direction = direction;
       }
     });
-    onChange(newMapping);
-  };
+    
+    // Save changes
+    debouncedOnChange(newMapping);
+  }, [fieldMapping, debouncedOnChange]);
 
   const handleSyncNow = async () => {
     setSyncingNow(true);

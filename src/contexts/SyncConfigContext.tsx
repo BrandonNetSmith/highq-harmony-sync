@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getSyncConfig, saveSyncConfig } from '@/services/syncConfig';
 import type { Database } from "@/integrations/supabase/types";
 import type { FieldMappingType } from '@/types/field-mapping';
+import { toast as sonnerToast } from "sonner";
 
 type SyncDirection = Database["public"]["Enums"]["sync_direction"];
 
@@ -65,10 +66,14 @@ export const useSyncConfig = () => {
   return context;
 };
 
+// Avoid excessive saves with a debounce timer
+const SAVE_DEBOUNCE_MS = 500;
+
 export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [syncConfig, setSyncConfig] = useState(initialSyncConfig);
+  const [saveTimer, setSaveTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -104,12 +109,38 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
     loadConfig();
   }, [toast]);
 
+  // Debounced save function to prevent excessive database calls
+  const debouncedSave = (config: any, showToast = false) => {
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        await saveSyncConfig(config);
+        setSyncConfig(config);
+        
+        if (showToast) {
+          sonnerToast.success("Configuration saved");
+        }
+      } catch (error) {
+        console.error('Failed to save config:', error);
+        sonnerToast.error("Failed to save configuration");
+      }
+    }, SAVE_DEBOUNCE_MS);
+    
+    setSaveTimer(timer);
+  };
+
   const handleSyncDirectionChange = async (direction: SyncDirection) => {
     try {
-      await saveSyncConfig({
+      const newConfig = {
         ...syncConfig,
         sync_direction: direction
-      });
+      };
+      
+      debouncedSave(newConfig, true);
+      // Update local state immediately for UI responsiveness
       setSyncConfig(prev => ({ ...prev, sync_direction: direction }));
       toast({
         title: "Success",
@@ -134,6 +165,12 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
         [type === 'ghl' ? 'ghl_filters' : 'intakeq_filters']: filters
       };
       
+      // Update local state immediately for UI responsiveness
+      setSyncConfig(newConfig);
+      
+      // Save changes with debounce
+      debouncedSave(newConfig, true);
+      
       // Provide feedback about what this filter configuration means
       if (type === 'intakeq') {
         const intakeqFilters = filters as typeof syncConfig.intakeq_filters;
@@ -152,15 +189,11 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
           message += "Only synchronizing " + parts.join(" and ");
         }
         
-        await saveSyncConfig(newConfig);
-        setSyncConfig(newConfig);
         toast({
           title: "Filters Updated",
           description: message,
         });
       } else {
-        await saveSyncConfig(newConfig);
-        setSyncConfig(newConfig);
         toast({
           title: "Success",
           description: "Filters updated successfully",
@@ -181,12 +214,12 @@ export const SyncConfigProvider = ({ children }: { children: ReactNode }) => {
         ...syncConfig,
         field_mapping: fieldMapping
       };
-      await saveSyncConfig(newConfig);
+      
+      // Update local state immediately for UI responsiveness
       setSyncConfig(newConfig);
-      toast({
-        title: "Success",
-        description: "Field mapping updated successfully",
-      });
+      
+      // Save changes with debounce and NO toast notification to avoid flooding
+      debouncedSave(newConfig, false);
     } catch (error) {
       toast({
         title: "Error",

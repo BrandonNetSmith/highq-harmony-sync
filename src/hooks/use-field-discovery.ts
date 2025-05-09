@@ -59,14 +59,14 @@ export const useFieldDiscovery = () => {
         [key]: true
       }));
       
-      // Discover fields for the selected system and dataType
+      // Discover fields for the selected system and dataType only
       const newFields = await fieldDiscoveryService.discoverFields(system, dataType);
       console.log(`Discovery completed for ${system} ${dataType}:`, newFields);
       
       // Filter out any empty values and enforce uniqueness
       const filteredFields = [...new Set(newFields.filter(field => !!field))];
       
-      // Update the fields for the specific system and dataType
+      // Update the fields for the specific system and dataType only
       setAvailableFields(prev => {
         const updated = { ...prev };
         
@@ -80,7 +80,7 @@ export const useFieldDiscovery = () => {
           };
         }
         
-        // Now we can safely update the specific dataType
+        // Now we can safely update ONLY the specific dataType
         updated[system] = {
           ...updated[system],
           [dataType]: filteredFields
@@ -89,7 +89,7 @@ export const useFieldDiscovery = () => {
         return updated;
       });
 
-      // Mark this system and dataType as having been discovered
+      // Mark this specific system and dataType as having been discovered
       setDiscoveredFields(prev => ({
         ...prev,
         [key]: true

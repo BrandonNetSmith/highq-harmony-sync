@@ -4,6 +4,7 @@ import { SyncControls } from './SyncControls';
 import { GHLFieldSelect } from './field-selection/GHLFieldSelect';
 import { IntakeQFieldSelect } from './field-selection/IntakeQFieldSelect';
 import type { FieldControlsProps } from "@/types/field-mapping";
+import { toast } from "sonner";
 
 export const FieldControls = ({
   dataType,
@@ -36,6 +37,11 @@ export const FieldControls = ({
     return availableFields.intakeq[dataType] || [];
   }, [availableFields.intakeq, dataType, isIntakeqDiscovered]);
 
+  // Handler for field changes that automatically saves
+  const handleFieldChange = (updates: any) => {
+    onFieldChange(dataType, fieldName, updates);
+  };
+
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center w-full gap-4 py-2 px-2 border-b border-border last:border-b-0">
       <div className="w-full">
@@ -43,7 +49,7 @@ export const FieldControls = ({
           value={fieldSettings.ghlField || ""}
           options={ghlOptions}
           onChange={(value) => {
-            onFieldChange(dataType, fieldName, { ghlField: value });
+            handleFieldChange({ ghlField: value });
           }}
           disabled={disabled}
           dataType={dataType}
@@ -56,10 +62,10 @@ export const FieldControls = ({
         isEnabled={fieldSettings.sync}
         direction={fieldSettings.direction}
         onToggle={(checked) => {
-          onFieldChange(dataType, fieldName, { sync: checked });
+          handleFieldChange({ sync: checked });
         }}
         onDirectionChange={(direction) => {
-          onFieldChange(dataType, fieldName, { direction });
+          handleFieldChange({ direction });
         }}
         disabled={disabled}
       />
@@ -69,7 +75,7 @@ export const FieldControls = ({
           value={fieldSettings.intakeqField || ""}
           options={intakeqOptions}
           onChange={(value) => {
-            onFieldChange(dataType, fieldName, { intakeqField: value });
+            handleFieldChange({ intakeqField: value });
           }}
           disabled={disabled}
           dataType={dataType}
