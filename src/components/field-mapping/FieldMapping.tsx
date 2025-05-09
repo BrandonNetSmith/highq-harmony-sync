@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -9,9 +8,7 @@ import { FieldCategories } from './FieldCategories';
 import { useFieldDiscovery } from '@/hooks/use-field-discovery';
 import { performSync } from '@/services/syncService';
 import type { FieldMappingProps, FieldMappingType } from '@/types/field-mapping';
-import type { Database } from "@/integrations/supabase/types";
-
-type SyncDirection = Database["public"]["Enums"]["sync_direction"];
+import type { SyncDirection } from '@/contexts/sync-config';
 
 export const FieldMapping = ({ fieldMapping, onChange, disabled = false }: FieldMappingProps) => {
   const { toast } = useToast();

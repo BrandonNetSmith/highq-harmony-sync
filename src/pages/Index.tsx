@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SyncConfigProvider } from '@/contexts/SyncConfigContext';
+import { SyncConfigProvider } from '@/contexts/sync-config';
 import SyncDashboardPage from './SyncDashboardPage';
 
 const Index = () => {

@@ -6,7 +6,7 @@ import { SyncFilters } from '@/components/SyncFilters';
 import WebhookConfig from '@/components/WebhookConfig';
 import SyncStatus from '@/components/SyncStatus';
 import SyncActivity from '@/components/SyncActivity';
-import { useSyncConfig } from '@/contexts/SyncConfigContext';
+import { useSyncConfig } from '@/contexts/sync-config';
 
 const SyncDashboardPage = () => {
   const {
