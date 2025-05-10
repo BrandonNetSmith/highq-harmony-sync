@@ -1,6 +1,5 @@
 
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import type { SyncActivityLog } from "@/components/SyncActivityLogModal";
 
 // Mock data for activity logs - this would ideally be persisted to a database table
@@ -65,7 +64,7 @@ export const getSyncActivityLogById = async (id: number): Promise<SyncActivityLo
  * Provides mock data for sync activity logs
  * @returns Array of mock sync activity logs
  */
-const getMockSyncActivityLogs = (): SyncActivityLog[] => {
+function getMockSyncActivityLogs(): SyncActivityLog[] {
   return [
     {
       id: 1,
@@ -128,4 +127,4 @@ const getMockSyncActivityLogs = (): SyncActivityLog[] => {
       destination: "IntakeQ"
     }
   ];
-};
+}
