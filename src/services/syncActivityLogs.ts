@@ -3,6 +3,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { SyncActivityLog } from "@/components/SyncActivityLogModal";
 
+// Mock data for activity logs - this would ideally be persisted to a database table
+let mockLogs: SyncActivityLog[] = getMockSyncActivityLogs();
+
 /**
  * Fetches sync activity logs from the database
  * @returns Array of sync activity logs
@@ -10,23 +13,32 @@ import type { SyncActivityLog } from "@/components/SyncActivityLogModal";
 export const getSyncActivityLogs = async (): Promise<SyncActivityLog[]> => {
   try {
     // Since we don't have a sync_activity_logs table in the database,
-    // we'll return mock data for now
-    return getMockSyncActivityLogs();
+    // we'll return the in-memory mock data
+    return [...mockLogs]; // Return a copy to avoid direct modification
   } catch (error) {
     console.error('Error getting sync activity logs:', error);
     toast.error(`Error fetching sync activity logs: ${error instanceof Error ? error.message : String(error)}`);
-    return getMockSyncActivityLogs();
+    return [...mockLogs]; // Return a copy of mock data as fallback
   }
 };
 
 /**
- * Creates a new sync activity log in the database
+ * Creates a new sync activity log entry
  * @param log The log data to create
  */
 export const createSyncActivityLog = async (log: Omit<SyncActivityLog, 'id' | 'timestamp'>): Promise<void> => {
   try {
-    // Just log to console for demo purposes since we don't have the table
-    console.log('Logging sync activity (mock):', log);
+    // Create a new log with timestamp and ID
+    const newLog: SyncActivityLog = {
+      id: mockLogs.length + 1,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      ...log
+    };
+    
+    // Add to mock logs
+    mockLogs = [newLog, ...mockLogs].slice(0, 100); // Keep only the most recent 100 logs
+    
+    console.log('Created new sync activity log:', newLog);
     return;
   } catch (error) {
     console.error('Error creating sync log:', error);
@@ -41,8 +53,7 @@ export const createSyncActivityLog = async (log: Omit<SyncActivityLog, 'id' | 't
 export const getSyncActivityLogById = async (id: number): Promise<SyncActivityLog | null> => {
   try {
     // Return mock log for demo purposes
-    const logs = getMockSyncActivityLogs();
-    return logs.find(log => log.id === id) || null;
+    return mockLogs.find(log => log.id === id) || null;
   } catch (error) {
     console.error(`Error getting sync activity log with ID ${id}:`, error);
     toast.error(`Error fetching sync log details: ${error instanceof Error ? error.message : String(error)}`);

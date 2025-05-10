@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { createSyncActivityLog } from "./syncActivityLogs";
 import { getSyncConfig } from "./syncConfig";
@@ -30,7 +31,18 @@ export const performSync = async (
     }
 
     // If no direction provided, use the one from config
-    const syncDirection = direction || config.sync_direction;
+    let syncDirection = direction;
+    
+    // Map the database enum values to our internal values
+    if (!syncDirection) {
+      if (config.sync_direction === 'one_way_ghl_to_intakeq') {
+        syncDirection = 'ghl_to_intakeq';
+      } else if (config.sync_direction === 'one_way_intakeq_to_ghl') {
+        syncDirection = 'intakeq_to_ghl';
+      } else {
+        syncDirection = 'bidirectional';
+      }
+    }
     
     // Parse field mapping if it's a string
     const fieldMapping: FieldMappingType = typeof config.field_mapping === 'string'
@@ -57,21 +69,39 @@ export const performSync = async (
       intakeqFilters
     });
 
+    // Create a sync activity log for the start of the sync
+    await createSyncActivityLog({
+      type: "Contact Sync",
+      status: "pending",
+      detail: `Starting ${getDirectionMessage(syncDirection)} synchronization`,
+      source: syncDirection === 'ghl_to_intakeq' ? "GoHighLevel" : "IntakeQ",
+      destination: syncDirection === 'ghl_to_intakeq' ? "IntakeQ" : "GoHighLevel"
+    });
+
     // Get key fields for each data type
     const keyFields = getKeyFieldsByDataType(fieldMapping);
     console.log('Using key fields for matching:', keyFields);
 
     // Actual API calls to perform sync
     if (syncDirection === 'intakeq_to_ghl' || syncDirection === 'bidirectional') {
-      await syncIntakeQToGoHighLevel(intakeqFilters, fieldMapping, keyFields);
+      await syncIntakeQToGoHighLevel(intakeqFilters, fieldMapping, keyFields, apiKeys.intakeq_key, apiKeys.ghl_key);
     }
     
     if (syncDirection === 'ghl_to_intakeq' || syncDirection === 'bidirectional') {
-      await syncGoHighLevelToIntakeQ(ghlFilters, fieldMapping, keyFields);
+      await syncGoHighLevelToIntakeQ(ghlFilters, fieldMapping, keyFields, apiKeys.ghl_key, apiKeys.intakeq_key);
     }
     
     // Success toast
     toast.success("Synchronization completed successfully");
+    
+    // Log successful completion
+    await createSyncActivityLog({
+      type: "Contact Sync",
+      status: "success",
+      detail: `Completed ${getDirectionMessage(syncDirection)} synchronization`,
+      source: syncDirection === 'ghl_to_intakeq' ? "GoHighLevel" : "IntakeQ",
+      destination: syncDirection === 'ghl_to_intakeq' ? "IntakeQ" : "GoHighLevel"
+    });
     
   } catch (error) {
     console.error('Sync error:', error);
@@ -95,17 +125,27 @@ export const performSync = async (
 async function syncIntakeQToGoHighLevel(
   filters: any, 
   fieldMapping: FieldMappingType,
-  keyFields: Record<string, string>
+  keyFields: Record<string, string>,
+  intakeqApiKey: string,
+  ghlApiKey: string
 ) {
-  // Get API keys
-  const apiKeys = await getApiKeys();
-  
   try {
+    console.log('Starting IntakeQ to GHL sync with filters:', filters);
+    
     // 1. Fetch filtered clients from IntakeQ
-    const clientsResponse = await fetchIntakeQClients(filters, apiKeys.intakeq_key);
+    const clientsResponse = await fetchIntakeQClients(filters, intakeqApiKey);
     
     if (!clientsResponse || clientsResponse.length === 0) {
       toast.info("No matching IntakeQ clients found to sync");
+      
+      await createSyncActivityLog({
+        type: "Contact Sync",
+        status: "success",
+        detail: "No matching IntakeQ clients found to sync",
+        source: "IntakeQ",
+        destination: "GoHighLevel"
+      });
+      
       return;
     }
     
@@ -114,17 +154,34 @@ async function syncIntakeQToGoHighLevel(
     // 2. Process each contact
     for (const intakeQClient of clientsResponse) {
       try {
+        console.log('Processing IntakeQ client:', intakeQClient);
+        
         // Focus on email as key field for contact matching
         const email = intakeQClient.Email;
         
         if (!email) {
           console.warn('Skipping IntakeQ client with no email:', intakeQClient);
+          
+          await createSyncActivityLog({
+            type: "Contact Sync",
+            status: "error",
+            detail: `Skipped client with missing email`,
+            error: "Client email is missing",
+            source: "IntakeQ",
+            destination: "GoHighLevel"
+          });
+          
           continue;
         }
         
+        // If specific client filter is applied, only process matching clients
         if (filters.clientIds && filters.clientIds.length > 0) {
-          // If specific client filter is applied, only process matching clients
-          if (!filters.clientIds.includes(intakeQClient.Email)) {
+          const shouldProcess = filters.clientIds.some((id: string) => 
+            id === email || id === intakeQClient.id || id === intakeQClient.clientId
+          );
+          
+          if (!shouldProcess) {
+            console.log(`Skipping client ${email} as it doesn't match client ID filters`);
             continue;
           }
         }
@@ -134,12 +191,14 @@ async function syncIntakeQToGoHighLevel(
         // 3. Map IntakeQ fields to GHL fields based on field mapping
         const contactData = mapIntakeQToGHL(intakeQClient, fieldMapping);
         
+        console.log('Mapped GHL contact data:', contactData);
+        
         // 4. Check if contact exists in GHL
-        const ghlContact = await findGHLContactByEmail(email, apiKeys.ghl_key);
+        const ghlContact = await findGHLContactByEmail(email, ghlApiKey);
         
         if (ghlContact) {
           // Contact exists, update it
-          await updateGHLContact(ghlContact.id, contactData, apiKeys.ghl_key);
+          await updateGHLContact(ghlContact.id, contactData, ghlApiKey);
           
           // Log successful update
           await createSyncActivityLog({
@@ -154,9 +213,11 @@ async function syncIntakeQToGoHighLevel(
               { field: "Last Name", oldValue: "", newValue: contactData.lastName || "" }
             ]
           });
+          
+          toast.success(`Updated contact: ${email}`);
         } else {
           // Contact doesn't exist, create it
-          await createGHLContact(contactData, apiKeys.ghl_key);
+          await createGHLContact(contactData, ghlApiKey);
           
           // Log successful creation
           await createSyncActivityLog({
@@ -171,6 +232,8 @@ async function syncIntakeQToGoHighLevel(
               { field: "Last Name", oldValue: "", newValue: contactData.lastName || "" }
             ]
           });
+          
+          toast.success(`Created new contact: ${email}`);
         }
       } catch (contactError) {
         console.error(`Error processing contact ${intakeQClient.Email}:`, contactError);
@@ -178,7 +241,7 @@ async function syncIntakeQToGoHighLevel(
         await createSyncActivityLog({
           type: "Contact Sync",
           status: "error",
-          detail: `Failed to sync ${intakeQClient.Email}`,
+          detail: `Failed to sync ${intakeQClient.Email || "unknown contact"}`,
           error: contactError instanceof Error ? contactError.message : String(contactError),
           source: "IntakeQ",
           destination: "GoHighLevel"
@@ -197,13 +260,15 @@ async function syncIntakeQToGoHighLevel(
 async function syncGoHighLevelToIntakeQ(
   filters: any, 
   fieldMapping: FieldMappingType,
-  keyFields: Record<string, string>
+  keyFields: Record<string, string>,
+  ghlApiKey: string,
+  intakeqApiKey: string
 ) {
   // Implementation for syncing from GHL to IntakeQ would go here
   // For brevity, focusing on the IntakeQ to GHL direction for now
   await createSyncActivityLog({
     type: "Contact Sync",
-    status: "info",
+    status: "pending",
     detail: "GHL to IntakeQ sync is not fully implemented yet",
     source: "GoHighLevel",
     destination: "IntakeQ"
@@ -215,6 +280,8 @@ async function syncGoHighLevelToIntakeQ(
  */
 async function fetchIntakeQClients(filters: any, apiKey: string): Promise<any[]> {
   try {
+    console.log('Fetching IntakeQ clients with filters:', filters);
+    
     // Set up request to IntakeQ API
     const { data, error } = await supabase.functions.invoke('proxy', {
       body: {
@@ -234,13 +301,19 @@ async function fetchIntakeQClients(filters: any, apiKey: string): Promise<any[]>
 
     console.log(`Fetched ${data.length} IntakeQ clients`);
     
-    // If specific client ID filters are applied
+    // If specific client email filters are applied
     if (filters.clientIds && filters.clientIds.length > 0) {
+      console.log('Applying client ID filters:', filters.clientIds);
+      
       const filteredClients = data.filter((client: any) => 
-        filters.clientIds.includes(client.Email)
+        filters.clientIds.some((id: string) => 
+          client.Email && client.Email.toLowerCase() === id.toLowerCase() || 
+          client.id === id || 
+          client.clientId === id
+        )
       );
       
-      console.log(`Filtered to ${filteredClients.length} clients based on email filters`);
+      console.log(`Filtered to ${filteredClients.length} clients based on filters`);
       return filteredClients;
     }
     
@@ -255,7 +328,9 @@ async function fetchIntakeQClients(filters: any, apiKey: string): Promise<any[]>
  * Maps IntakeQ client data to GoHighLevel contact format
  */
 function mapIntakeQToGHL(intakeQClient: any, fieldMapping: FieldMappingType): any {
-  const ghlContact: any = {};
+  const ghlContact: any = {
+    email: intakeQClient.Email // Always ensure email is mapped
+  };
   
   // Map fields from IntakeQ to GHL based on fieldMapping
   const contactMapping = fieldMapping.contact;
@@ -270,11 +345,13 @@ function mapIntakeQToGHL(intakeQClient: any, fieldMapping: FieldMappingType): an
           // Handle nested values in IntakeQ (e.g., custom.fieldName)
           if (intakeqFieldName.includes('.')) {
             const [parentField, childField] = intakeqFieldName.split('.');
-            if (intakeQClient[parentField] && intakeQClient[parentField][childField]) {
+            if (intakeQClient[parentField] && intakeQClient[parentField][childField] !== undefined) {
               ghlContact[ghlFieldName] = intakeQClient[parentField][childField];
+              console.log(`Mapped nested field: ${intakeqFieldName} → ${ghlFieldName} = ${ghlContact[ghlFieldName]}`);
             }
-          } else if (intakeQClient[intakeqFieldName]) {
+          } else if (intakeQClient[intakeqFieldName] !== undefined) {
             ghlContact[ghlFieldName] = intakeQClient[intakeqFieldName];
+            console.log(`Mapped field: ${intakeqFieldName} → ${ghlFieldName} = ${ghlContact[ghlFieldName]}`);
           }
         }
       }
@@ -282,10 +359,6 @@ function mapIntakeQToGHL(intakeQClient: any, fieldMapping: FieldMappingType): an
   }
   
   // Ensure base fields are mapped correctly
-  if (intakeQClient.Email && !ghlContact.email) {
-    ghlContact.email = intakeQClient.Email;
-  }
-  
   if (intakeQClient.Name) {
     // Extract first and last name if not already mapped
     if (!ghlContact.firstName || !ghlContact.lastName) {
@@ -313,6 +386,8 @@ async function findGHLContactByEmail(email: string, apiKey: string): Promise<any
   try {
     const LOCATION_ID = "GZecKV1IvZgcZdeVItxt"; // Using the location ID from ghlService.ts
     
+    console.log(`Searching for GHL contact with email: ${email}`);
+    
     const { data, error } = await supabase.functions.invoke('proxy', {
       body: {
         url: `https://services.leadconnectorhq.com/contacts/search?locationId=${LOCATION_ID}&email=${encodeURIComponent(email)}`,
@@ -329,6 +404,8 @@ async function findGHLContactByEmail(email: string, apiKey: string): Promise<any
       console.error('Error searching GoHighLevel contacts:', error);
       throw new Error(`Failed to search GoHighLevel contacts: ${error.message}`);
     }
+
+    console.log('GHL search response:', data);
 
     if (!data || !data.contacts || data.contacts.length === 0) {
       console.log(`No matching contact found in GoHighLevel for email: ${email}`);
@@ -367,10 +444,19 @@ async function createGHLContact(contactData: any, apiKey: string): Promise<any> 
     });
 
     if (error || (data && data._statusCode >= 400)) {
+      const errorMessage = error?.message || data?._errorMessage || 'Unknown error';
       console.error('Error creating GoHighLevel contact:', error || data);
-      throw new Error(`Failed to create GoHighLevel contact: ${
-        error?.message || data?._errorMessage || 'Unknown error'
-      }`);
+      
+      await createSyncActivityLog({
+        type: "Contact Creation",
+        status: "error",
+        detail: `Failed to create contact in GoHighLevel: ${contactData.email}`,
+        error: errorMessage,
+        source: "IntakeQ",
+        destination: "GoHighLevel"
+      });
+      
+      throw new Error(`Failed to create GoHighLevel contact: ${errorMessage}`);
     }
 
     console.log('Successfully created contact in GoHighLevel:', data);
@@ -405,10 +491,19 @@ async function updateGHLContact(contactId: string, contactData: any, apiKey: str
     });
 
     if (error || (data && data._statusCode >= 400)) {
+      const errorMessage = error?.message || data?._errorMessage || 'Unknown error';
       console.error('Error updating GoHighLevel contact:', error || data);
-      throw new Error(`Failed to update GoHighLevel contact: ${
-        error?.message || data?._errorMessage || 'Unknown error'
-      }`);
+      
+      await createSyncActivityLog({
+        type: "Contact Update",
+        status: "error",
+        detail: `Failed to update contact in GoHighLevel: ${contactData.email}`,
+        error: errorMessage,
+        source: "IntakeQ",
+        destination: "GoHighLevel"
+      });
+      
+      throw new Error(`Failed to update GoHighLevel contact: ${errorMessage}`);
     }
 
     console.log('Successfully updated contact in GoHighLevel:', data);

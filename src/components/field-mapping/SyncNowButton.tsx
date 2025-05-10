@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { performSync } from '@/services/syncService';
+import { toast } from "sonner";
 
 interface SyncNowButtonProps {
   isSyncing: boolean;
@@ -18,12 +19,17 @@ export const SyncNowButton = ({
   syncDirection
 }: SyncNowButtonProps) => {
   const handleSyncClick = async () => {
-    if (onClick) {
-      // Use custom handler if provided
-      await onClick();
-    } else {
-      // Otherwise use the default sync service
-      await performSync(syncDirection);
+    try {
+      if (onClick) {
+        // Use custom handler if provided
+        await onClick();
+      } else {
+        // Otherwise use the default sync service
+        await performSync(syncDirection);
+      }
+    } catch (error) {
+      console.error("Sync error:", error);
+      toast.error(`Sync failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
