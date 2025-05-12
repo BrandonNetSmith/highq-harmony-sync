@@ -1,40 +1,40 @@
 
-// Helper hook for debouncing config saves
-import { useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { saveSyncConfig } from '@/services/syncConfig';
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
-// Avoid excessive saves with a debounce timer
-export const useDebounceSave = () => {
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Clear the timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
+export function useDebounceSave() {
+  const [debounceTimer, setDebounceTimer] = useState<number | null>(null);
 
-  // Debounced save function
-  const debouncedSave = <T extends {}>(config: T, delay: number = 1000) => {
-    // Clear any existing timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
+  const debouncedSave = async (configData: any, showToast = false) => {
+    // Clear any existing timers
+    if (debounceTimer !== null) {
+      window.clearTimeout(debounceTimer);
     }
-
-    // Start new timer
-    debounceTimerRef.current = setTimeout(async () => {
+    
+    // Set a new timer
+    const timer = window.setTimeout(async () => {
       try {
-        console.log('Saving sync config:', config);
-        await saveSyncConfig(config);
+        await saveSyncConfig(configData);
+        
+        if (showToast) {
+          toast({
+            title: "Success",
+            description: "Configuration saved successfully",
+          });
+        }
       } catch (error) {
-        console.error('Error saving config:', error);
-        toast.error(`Error saving configuration: ${error instanceof Error ? error.message : String(error)}`);
+        console.error('Error in debouncedSave:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save configuration",
+          variant: "destructive",
+        });
       }
-    }, delay);
+    }, 1000);
+    
+    setDebounceTimer(timer);
   };
-
+  
   return { debouncedSave };
-};
+}

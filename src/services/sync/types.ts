@@ -1,6 +1,7 @@
 
 import type { FieldMappingType } from "@/types/field-mapping";
 
+// Define SyncDirection to match what's used in the context
 export type SyncDirection = 'ghl_to_intakeq' | 'intakeq_to_ghl' | 'bidirectional';
 
 export interface ContactData {

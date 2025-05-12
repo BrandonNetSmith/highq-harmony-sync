@@ -1,9 +1,9 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { createSyncActivityLog } from "../syncActivityLogs";
-import { ContactData } from "./types";
+import { ContactData, SyncDirection } from "./types";
 import { FieldMappingType } from "@/types/field-mapping";
 import { toast } from "sonner";
+import { findGHLContactByEmail, createGHLContact, updateGHLContact } from "./ghl";
 
 /**
  * Fetches clients from IntakeQ based on filters
@@ -67,7 +67,7 @@ export function mapIntakeQToGHL(intakeQClient: any, fieldMapping: FieldMappingTy
   
   if (contactMapping && contactMapping.fields) {
     Object.entries(contactMapping.fields).forEach(([fieldName, settings]) => {
-      if (settings.sync && (settings.direction === 'intakeq_to_ghl' || settings.direction === 'bidirectional')) {
+      if (settings.sync && (settings.direction === 'one_way_intakeq_to_ghl' || settings.direction === 'bidirectional')) {
         const intakeqFieldName = settings.intakeqField;
         const ghlFieldName = settings.ghlField;
         
