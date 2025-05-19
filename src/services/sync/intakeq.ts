@@ -1,6 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { createSyncActivityLog } from "../syncActivityLogs";
-import { ContactData, SyncDirection } from "./types";
+import { ContactData, SyncDirection, FieldMappingDirection } from "./types";
 import { FieldMappingType } from "@/types/field-mapping";
 import { toast } from "sonner";
 import { findGHLContactByEmail, createGHLContact, updateGHLContact } from "./ghl";
@@ -126,6 +127,7 @@ export async function syncIntakeQToGoHighLevel(
     const clientsResponse = await fetchIntakeQClients(filters, intakeqApiKey);
     
     if (!clientsResponse || clientsResponse.length === 0) {
+      console.log("No matching IntakeQ clients found to sync");
       toast.info("No matching IntakeQ clients found to sync");
       
       await createSyncActivityLog({
@@ -150,6 +152,7 @@ export async function syncIntakeQToGoHighLevel(
         const email = intakeQClient.Email;
         
         if (!email) {
+          console.log('Skipping IntakeQ client with no email:', intakeQClient);
           console.warn('Skipping IntakeQ client with no email:', intakeQClient);
           
           await createSyncActivityLog({
@@ -188,6 +191,7 @@ export async function syncIntakeQToGoHighLevel(
         
         if (ghlContact) {
           // Contact exists, update it
+          console.log(`Updating existing GHL contact with email: ${email}`);
           await updateGHLContact(ghlContact.id, contactData, ghlApiKey);
           
           // Log successful update
@@ -207,6 +211,7 @@ export async function syncIntakeQToGoHighLevel(
           toast.success(`Updated contact: ${email}`);
         } else {
           // Contact doesn't exist, create it
+          console.log(`Creating new GHL contact with email: ${email}`);
           await createGHLContact(contactData, ghlApiKey);
           
           // Log successful creation

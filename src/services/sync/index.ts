@@ -17,18 +17,48 @@ export const performSync = async (
   direction?: SyncDirection
 ): Promise<void> => {
   try {
+    console.log('Starting sync process...');
+    
     // Get current sync configuration
     const config = await getSyncConfig();
     
     if (!config) {
+      console.error('Sync configuration not found');
       toast.error("Sync configuration not found");
+      
+      // Log the error
+      await createSyncActivityLog({
+        type: "Contact Sync",
+        status: "error",
+        detail: "Sync configuration not found",
+        error: "Missing sync configuration",
+        source: "System",
+        destination: "System"
+      });
+      
       return;
     }
 
+    console.log('Retrieved sync configuration:', config);
+
     // Get API keys
     const apiKeys = await getApiKeys();
+    console.log('API keys retrieved:', apiKeys ? 'Keys found' : 'Keys missing');
+    
     if (!apiKeys?.ghl_key || !apiKeys?.intakeq_key) {
+      console.error('API keys not configured');
       toast.error("API keys not configured. Please set up both GoHighLevel and IntakeQ API keys.");
+      
+      // Log the error
+      await createSyncActivityLog({
+        type: "Contact Sync",
+        status: "error",
+        detail: "API keys not configured",
+        error: "Missing API keys",
+        source: "System",
+        destination: "System"
+      });
+      
       return;
     }
 
@@ -39,6 +69,8 @@ export const performSync = async (
     if (!syncDirection) {
       syncDirection = mapDatabaseSyncDirection(config.sync_direction);
     }
+    
+    console.log('Using sync direction:', syncDirection);
     
     // Parse field mapping if it's a string
     const fieldMapping: FieldMappingType = typeof config.field_mapping === 'string'
@@ -80,14 +112,17 @@ export const performSync = async (
 
     // Actual API calls to perform sync
     if (syncDirection === 'intakeq_to_ghl' || syncDirection === 'bidirectional') {
+      console.log('Executing IntakeQ to GoHighLevel sync...');
       await syncIntakeQToGoHighLevel(intakeqFilters, fieldMapping, keyFields, apiKeys.intakeq_key, apiKeys.ghl_key);
     }
     
     if (syncDirection === 'ghl_to_intakeq' || syncDirection === 'bidirectional') {
+      console.log('Executing GoHighLevel to IntakeQ sync...');
       await syncGoHighLevelToIntakeQ(ghlFilters, fieldMapping, keyFields, apiKeys.ghl_key, apiKeys.intakeq_key);
     }
     
     // Success toast
+    console.log('Synchronization completed successfully');
     toast.success("Synchronization completed successfully");
     
     // Log successful completion

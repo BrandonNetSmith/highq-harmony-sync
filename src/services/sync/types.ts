@@ -15,3 +15,6 @@ export interface ContactData {
 export interface KeyFields {
   [dataType: string]: string;
 }
+
+// Define direction type used in field mapping to match what's used in the codebase
+export type FieldMappingDirection = 'one_way_ghl_to_intakeq' | 'one_way_intakeq_to_ghl' | 'bidirectional';

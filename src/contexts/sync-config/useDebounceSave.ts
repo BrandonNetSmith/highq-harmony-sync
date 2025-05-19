@@ -4,7 +4,7 @@ import { saveSyncConfig } from '@/services/syncConfig';
 import { toast } from "@/hooks/use-toast";
 
 export function useDebounceSave() {
-  const [debounceTimer, setDebounceTimer] = useState<number | null>(null);
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
   const debouncedSave = async (configData: any, showToast = false) => {
     // Clear any existing timers
