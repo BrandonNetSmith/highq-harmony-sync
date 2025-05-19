@@ -3,17 +3,20 @@ import { useState } from 'react';
 import { saveSyncConfig } from '@/services/syncConfig';
 import { toast } from "@/hooks/use-toast";
 
-export function useDebounceSave() {
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+// Define the Timeout type to match NodeJS.Timeout
+type Timeout = ReturnType<typeof setTimeout>;
 
-  const debouncedSave = async (configData: any, showToast = false) => {
+export function useDebounceSave() {
+  const [debounceTimer, setDebounceTimer] = useState<Timeout | null>(null);
+
+  const debouncedSave = async (configData: any, showToast = true) => {
     // Clear any existing timers
     if (debounceTimer !== null) {
-      window.clearTimeout(debounceTimer);
+      clearTimeout(debounceTimer);
     }
     
     // Set a new timer
-    const timer = window.setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         await saveSyncConfig(configData);
         
