@@ -34,6 +34,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
             is_sync_enabled: config.is_sync_enabled,
             field_mapping: fieldMapping
           });
+          console.log('Loaded field mapping:', fieldMapping);
         }
       } catch (error) {
         console.error('Failed to load sync config:', error);
@@ -57,7 +58,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
         sync_direction: direction
       };
       
-      debouncedSave(newConfig, true);
+      debouncedSave(newConfig);
       // Update local state immediately for UI responsiveness
       setSyncConfig(prev => ({ ...prev, sync_direction: direction }));
       toast({
@@ -87,7 +88,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
       setSyncConfig(newConfig);
       
       // Save changes with debounce
-      debouncedSave(newConfig, true);
+      debouncedSave(newConfig);
       
       // Provide feedback about what this filter configuration means
       if (type === 'intakeq') {
@@ -128,6 +129,8 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
 
   const handleFieldMappingChange = async (fieldMapping: FieldMappingType) => {
     try {
+      console.log('handleFieldMappingChange called with:', fieldMapping);
+      
       // For each dataType, check if there's a field with isKeyField=true
       // If so, update the keyField property for that dataType
       const updatedFieldMapping = { ...fieldMapping };
@@ -161,14 +164,17 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
         field_mapping: updatedFieldMapping
       };
       
+      console.log('Saving updated field mapping:', updatedFieldMapping);
+      
       // Update local state immediately for UI responsiveness
       setSyncConfig(newConfig);
       
       // Save changes with debounce and NO toast notification to avoid flooding
-      debouncedSave(newConfig, false);
+      debouncedSave(newConfig);
 
-      console.log('Saved field mapping:', updatedFieldMapping);
+      console.log('Field mapping update completed');
     } catch (error) {
+      console.error('Error updating field mapping:', error);
       toast({
         title: "Error",
         description: "Failed to update field mapping",

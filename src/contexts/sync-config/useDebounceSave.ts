@@ -18,6 +18,13 @@ export function useDebounceSave() {
     // Set a new timer
     const timer = setTimeout(async () => {
       try {
+        console.log('Saving config data:', configData);
+        
+        // Ensure field_mapping is properly formatted for storage
+        if (configData.field_mapping) {
+          console.log('Field mapping before save:', JSON.stringify(configData.field_mapping));
+        }
+        
         await saveSyncConfig(configData);
         
         if (showToast) {

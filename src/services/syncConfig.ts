@@ -10,6 +10,8 @@ import type { SyncConfig } from "@/types/sync-config";
  */
 export const saveSyncConfig = async (config: Partial<SyncConfig>) => {
   try {
+    console.log('saveSyncConfig called with:', config);
+    
     // First, check if there's an existing config to get the ID
     if (!config.id) {
       const { data: existingConfig, error: fetchError } = await supabase
@@ -69,7 +71,10 @@ export const saveSyncConfig = async (config: Partial<SyncConfig>) => {
     
     if (field_mapping !== undefined) {
       recordToSave.field_mapping = field_mapping;
+      console.log('Field mapping being saved to DB:', recordToSave.field_mapping);
     }
+    
+    console.log('Final record being saved:', recordToSave);
     
     const { error } = await supabase
       .from('sync_config')
@@ -82,6 +87,7 @@ export const saveSyncConfig = async (config: Partial<SyncConfig>) => {
     }
 
     toast.success("Sync configuration saved successfully");
+    console.log('Sync configuration saved successfully');
   } catch (error) {
     console.error('Error saving sync config:', error);
     toast.error(`Error saving sync config: ${error instanceof Error ? error.message : String(error)}`);
@@ -107,6 +113,7 @@ export const getSyncConfig = async (): Promise<SyncConfig | null> => {
       throw error;
     }
 
+    console.log('Retrieved sync config:', data);
     return data;
   } catch (error) {
     console.error('Error getting sync config:', error);
