@@ -16,14 +16,16 @@ import { SyncDirection } from "./types";
 export const performSync = async (
   direction?: SyncDirection
 ): Promise<void> => {
+  console.log('=== SYNC PROCESS STARTED ===');
+  
   try {
-    console.log('Starting sync process...');
+    console.log('Step 1: Getting sync configuration...');
     
     // Get current sync configuration
     const config = await getSyncConfig();
     
     if (!config) {
-      console.error('Sync configuration not found');
+      console.error('ERROR: Sync configuration not found');
       toast.error("Sync configuration not found");
       
       // Log the error
@@ -39,14 +41,19 @@ export const performSync = async (
       return;
     }
 
-    console.log('Retrieved sync configuration:', config);
+    console.log('Step 2: Configuration retrieved successfully');
+    console.log('Config data:', JSON.stringify(config, null, 2));
 
     // Get API keys
+    console.log('Step 3: Getting API keys...');
     const apiKeys = await getApiKeys();
-    console.log('API keys retrieved:', apiKeys ? 'Keys found' : 'Keys missing');
+    console.log('API keys status:', apiKeys ? 'Keys found' : 'Keys missing');
     
     if (!apiKeys?.ghl_key || !apiKeys?.intakeq_key) {
-      console.error('API keys not configured');
+      console.error('ERROR: API keys not configured');
+      console.log('GHL Key present:', !!apiKeys?.ghl_key);
+      console.log('IntakeQ Key present:', !!apiKeys?.intakeq_key);
+      
       toast.error("API keys not configured. Please set up both GoHighLevel and IntakeQ API keys.");
       
       // Log the error
@@ -70,12 +77,14 @@ export const performSync = async (
       syncDirection = mapDatabaseSyncDirection(config.sync_direction);
     }
     
-    console.log('Using sync direction:', syncDirection);
+    console.log('Step 4: Using sync direction:', syncDirection);
     
     // Parse field mapping if it's a string
     const fieldMapping: FieldMappingType = typeof config.field_mapping === 'string'
       ? JSON.parse(config.field_mapping)
       : config.field_mapping;
+    
+    console.log('Step 5: Field mapping processed:', JSON.stringify(fieldMapping, null, 2));
     
     // Parse filters if they are strings
     const ghlFilters = typeof config.ghl_filters === 'string'
@@ -86,18 +95,16 @@ export const performSync = async (
       ? JSON.parse(config.intakeq_filters)
       : config.intakeq_filters;
 
+    console.log('Step 6: Filters processed');
+    console.log('GHL Filters:', ghlFilters);
+    console.log('IntakeQ Filters:', intakeqFilters);
+
     // Show sync starting toast
+    console.log('Step 7: Starting sync notification');
     toast.info(`Starting synchronization: ${getDirectionMessage(syncDirection)}`);
 
-    // Log sync attempt
-    console.log('Starting sync with configuration:', {
-      direction: syncDirection,
-      fieldMapping,
-      ghlFilters,
-      intakeqFilters
-    });
-
     // Create a sync activity log for the start of the sync
+    console.log('Step 8: Creating initial sync log');
     await createSyncActivityLog({
       type: "Contact Sync",
       status: "pending",
@@ -108,9 +115,11 @@ export const performSync = async (
 
     // Get key fields for each data type
     const keyFields = getKeyFieldsByDataType(fieldMapping);
-    console.log('Using key fields for matching:', keyFields);
+    console.log('Step 9: Key fields identified:', keyFields);
 
     // Actual API calls to perform sync
+    console.log('Step 10: Executing sync operations...');
+    
     if (syncDirection === 'intakeq_to_ghl' || syncDirection === 'bidirectional') {
       console.log('Executing IntakeQ to GoHighLevel sync...');
       await syncIntakeQToGoHighLevel(intakeqFilters, fieldMapping, keyFields, apiKeys.intakeq_key, apiKeys.ghl_key);
@@ -122,7 +131,7 @@ export const performSync = async (
     }
     
     // Success toast
-    console.log('Synchronization completed successfully');
+    console.log('Step 11: Sync completed successfully');
     toast.success("Synchronization completed successfully");
     
     // Log successful completion
@@ -134,8 +143,13 @@ export const performSync = async (
       destination: syncDirection === 'ghl_to_intakeq' ? "IntakeQ" : "GoHighLevel"
     });
     
+    console.log('=== SYNC PROCESS COMPLETED SUCCESSFULLY ===');
+    
   } catch (error) {
-    console.error('Sync error:', error);
+    console.error('=== SYNC PROCESS FAILED ===');
+    console.error('Sync error details:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    
     toast.error(`Sync failed: ${error instanceof Error ? error.message : String(error)}`);
     
     // Log error activity

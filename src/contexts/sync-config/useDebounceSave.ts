@@ -18,14 +18,15 @@ export function useDebounceSave() {
     // Set a new timer
     const timer = setTimeout(async () => {
       try {
-        console.log('Saving config data:', configData);
+        console.log('Debounced save executing with data:', configData);
         
         // Ensure field_mapping is properly formatted for storage
         if (configData.field_mapping) {
-          console.log('Field mapping before save:', JSON.stringify(configData.field_mapping));
+          console.log('Field mapping before save:', JSON.stringify(configData.field_mapping, null, 2));
         }
         
         await saveSyncConfig(configData);
+        console.log('Debounced save completed successfully');
         
         if (showToast) {
           toast({
@@ -44,6 +45,7 @@ export function useDebounceSave() {
     }, 1000);
     
     setDebounceTimer(timer);
+    console.log('Debounce timer set for config save');
   };
   
   return { debouncedSave };

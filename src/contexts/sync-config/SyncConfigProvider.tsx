@@ -18,6 +18,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
     const loadConfig = async () => {
       setIsLoading(true);
       try {
+        console.log('Loading sync configuration...');
         const config = await getSyncConfig();
         if (config) {
           // Process field mapping
@@ -34,7 +35,9 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
             is_sync_enabled: config.is_sync_enabled,
             field_mapping: fieldMapping
           });
-          console.log('Loaded field mapping:', fieldMapping);
+          console.log('Configuration loaded successfully. Field mapping:', fieldMapping);
+        } else {
+          console.log('No existing configuration found, using defaults');
         }
       } catch (error) {
         console.error('Failed to load sync config:', error);
@@ -53,19 +56,24 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
 
   const handleSyncDirectionChange = async (direction: SyncDirection) => {
     try {
+      console.log('Changing sync direction to:', direction);
       const newConfig = {
         ...syncConfig,
         sync_direction: direction
       };
       
-      debouncedSave(newConfig);
       // Update local state immediately for UI responsiveness
       setSyncConfig(prev => ({ ...prev, sync_direction: direction }));
+      
+      // Save changes with debounce
+      await debouncedSave(newConfig, true);
+      
       toast({
         title: "Success",
         description: "Sync direction updated successfully",
       });
     } catch (error) {
+      console.error('Error updating sync direction:', error);
       toast({
         title: "Error",
         description: "Failed to update sync direction",
@@ -79,6 +87,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
     filters: typeof syncConfig.ghl_filters | typeof syncConfig.intakeq_filters
   ) => {
     try {
+      console.log(`Updating ${type} filters:`, filters);
       const newConfig = {
         ...syncConfig,
         [type === 'ghl' ? 'ghl_filters' : 'intakeq_filters']: filters
@@ -88,7 +97,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
       setSyncConfig(newConfig);
       
       // Save changes with debounce
-      debouncedSave(newConfig);
+      await debouncedSave(newConfig, true);
       
       // Provide feedback about what this filter configuration means
       if (type === 'intakeq') {
@@ -119,6 +128,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
         });
       }
     } catch (error) {
+      console.error('Error updating filters:', error);
       toast({
         title: "Error",
         description: "Failed to update filters",
@@ -129,7 +139,8 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
 
   const handleFieldMappingChange = async (fieldMapping: FieldMappingType) => {
     try {
-      console.log('handleFieldMappingChange called with:', fieldMapping);
+      console.log('=== Field Mapping Change Started ===');
+      console.log('Raw input field mapping:', JSON.stringify(fieldMapping, null, 2));
       
       // For each dataType, check if there's a field with isKeyField=true
       // If so, update the keyField property for that dataType
@@ -146,6 +157,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
         if (keyFieldEntry) {
           // Update the keyField property
           updatedFieldMapping[dataType].keyField = keyFieldEntry[0];
+          console.log(`Set keyField for ${dataType}: ${keyFieldEntry[0]}`);
           
           // Ensure no other field is marked as a key field
           Object.entries(dataTypeObj.fields).forEach(([fieldName, settings]) => {
@@ -154,6 +166,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
                 ...settings,
                 isKeyField: false
               };
+              console.log(`Cleared keyField flag from ${dataType}.${fieldName}`);
             }
           });
         }
@@ -164,16 +177,19 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
         field_mapping: updatedFieldMapping
       };
       
-      console.log('Saving updated field mapping:', updatedFieldMapping);
+      console.log('Final config to save:', JSON.stringify(newConfig, null, 2));
       
       // Update local state immediately for UI responsiveness
       setSyncConfig(newConfig);
+      console.log('Local state updated');
       
       // Save changes with debounce and NO toast notification to avoid flooding
-      debouncedSave(newConfig);
+      console.log('Calling debouncedSave...');
+      await debouncedSave(newConfig, false);
 
-      console.log('Field mapping update completed');
+      console.log('=== Field Mapping Change Completed ===');
     } catch (error) {
+      console.error('=== Field Mapping Change Failed ===');
       console.error('Error updating field mapping:', error);
       toast({
         title: "Error",
