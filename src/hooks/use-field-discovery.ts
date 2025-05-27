@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from "sonner";
-import { getAvailableFields } from '@/services/field-discovery-service';
+import { fieldDiscoveryService } from '@/services/field-discovery-service';
 import { useQuery } from '@tanstack/react-query';
 
 export interface FieldDiscoveryState {
@@ -13,6 +13,41 @@ export interface FieldDiscoveryState {
   discoveredFields: Record<string, boolean>;
   handleDiscoverFields: () => Promise<void>;
 }
+
+// Helper function to get available fields for all data types
+const getAvailableFields = async () => {
+  console.log('Discovering fields for all data types...');
+  
+  const dataTypes = ['contact', 'appointment', 'form'];
+  const ghlFields: { [key: string]: string[] } = {};
+  const intakeqFields: { [key: string]: string[] } = {};
+  
+  // Discover fields for each data type and system
+  for (const dataType of dataTypes) {
+    try {
+      console.log(`Discovering ${dataType} fields...`);
+      
+      // Discover GHL fields
+      ghlFields[dataType] = await fieldDiscoveryService.discoverFields('ghl', dataType);
+      
+      // Discover IntakeQ fields  
+      intakeqFields[dataType] = await fieldDiscoveryService.discoverFields('intakeq', dataType);
+      
+      console.log(`Discovered ${ghlFields[dataType].length} GHL ${dataType} fields`);
+      console.log(`Discovered ${intakeqFields[dataType].length} IntakeQ ${dataType} fields`);
+    } catch (error) {
+      console.error(`Error discovering ${dataType} fields:`, error);
+      // Set empty arrays as fallback
+      ghlFields[dataType] = [];
+      intakeqFields[dataType] = [];
+    }
+  }
+  
+  return {
+    ghl: ghlFields,
+    intakeq: intakeqFields
+  };
+};
 
 export const useFieldDiscovery = (): FieldDiscoveryState => {
   const [isDiscovering, setIsDiscovering] = useState(false);
