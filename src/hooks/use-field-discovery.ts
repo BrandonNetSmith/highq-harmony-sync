@@ -1,128 +1,71 @@
 
-import { useToast } from "@/hooks/use-toast";
-import { fieldDiscoveryService } from "@/services/field-discovery-service";
-import { useDiscoveryState } from "./field-discovery/discovery-state";
-import type { DiscoverySystem, DataType } from "./field-discovery/types";
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react';
+import { toast } from "sonner";
+import { getAvailableFields } from '@/services/field-discovery-service';
+import { useQuery } from '@tanstack/react-query';
 
-/**
- * Hook for discovering and managing fields from different systems
- */
-export const useFieldDiscovery = () => {
-  const { toast } = useToast();
-  const {
-    isDiscovering,
-    setIsDiscovering,
-    discoveredFields,
-    setDiscoveredFields,
-    availableFields,
-    setAvailableFields
-  } = useDiscoveryState();
-  
-  // Track discovery attempts to prevent infinite retries
-  const [discoveryAttempts, setDiscoveryAttempts] = useState<Record<string, number>>({});
+export interface FieldDiscoveryState {
+  isDiscovering: boolean;
+  availableFields: {
+    ghl: { [key: string]: string[] };
+    intakeq: { [key: string]: string[] };
+  };
+  discoveredFields: Record<string, boolean>;
+  handleDiscoverFields: () => Promise<void>;
+}
 
-  /**
-   * Handles the discovery of fields for a specific system and data type
-   */
-  const handleDiscoverFields = useCallback(async (system: DiscoverySystem, dataType: DataType): Promise<void> => {
-    try {
-      const key = `${system}_${dataType}`;
+export const useFieldDiscovery = (): FieldDiscoveryState => {
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [discoveredFields, setDiscoveredFields] = useState<Record<string, boolean>>({});
+
+  // Automatically fetch available fields on component mount
+  const { data: availableFields = { ghl: {}, intakeq: {} }, refetch } = useQuery({
+    queryKey: ['available-fields'],
+    queryFn: async () => {
+      console.log('Auto-discovering fields on page load...');
+      setIsDiscovering(true);
       
-      // Prevent discovery if already in progress
-      if (isDiscovering[key]) {
-        console.log(`Discovery for ${key} already in progress, skipping`);
-        return;
-      }
-      
-      // Increment discovery attempts
-      const attempts = (discoveryAttempts[key] || 0) + 1;
-      setDiscoveryAttempts(prev => ({ ...prev, [key]: attempts }));
-      
-      if (attempts > 5) {
-        toast({
-          title: "Warning",
-          description: `Multiple discovery attempts for ${system} ${dataType}. Using fallback data.`,
-          variant: "default",
+      try {
+        const fields = await getAvailableFields();
+        console.log('Auto-discovery successful:', fields);
+        
+        // Mark all data types as discovered
+        const discovered: Record<string, boolean> = {};
+        Object.keys(fields.ghl).forEach(dataType => {
+          discovered[`ghl_${dataType}`] = true;
+        });
+        Object.keys(fields.intakeq).forEach(dataType => {
+          discovered[`intakeq_${dataType}`] = true;
         });
         
-        // Mark as discovered with fallback data to prevent further attempts
-        setDiscoveredFields(prev => ({ ...prev, [key]: true }));
-        return;
+        setDiscoveredFields(discovered);
+        return fields;
+      } catch (error) {
+        console.error('Auto-discovery failed:', error);
+        toast.error('Failed to discover available fields automatically');
+        return { ghl: {}, intakeq: {} };
+      } finally {
+        setIsDiscovering(false);
       }
-      
-      console.log(`Starting discovery for ${system} ${dataType} (attempt ${attempts})`);
-      
-      // Mark the specific dataType as discovering
-      setIsDiscovering(prev => ({ 
-        ...prev, 
-        [key]: true
-      }));
-      
-      // Discover fields for the selected system and dataType only
-      const newFields = await fieldDiscoveryService.discoverFields(system, dataType);
-      console.log(`Discovery completed for ${system} ${dataType}:`, newFields);
-      
-      // Filter out any empty values and enforce uniqueness
-      const filteredFields = [...new Set(newFields.filter(field => !!field))];
-      
-      // Update the fields for the specific system and dataType only
-      setAvailableFields(prev => {
-        const updated = { ...prev };
-        
-        // Fix: Ensure we maintain the structure of AvailableFields by properly initializing
-        if (!updated[system]) {
-          // Initialize with empty arrays for all required properties
-          updated[system] = {
-            contact: [...(prev[system]?.contact || [])],
-            appointment: [...(prev[system]?.appointment || [])],
-            form: [...(prev[system]?.form || [])]
-          };
-        }
-        
-        // Now we can safely update ONLY the specific dataType
-        updated[system] = {
-          ...updated[system],
-          [dataType]: filteredFields
-        };
-        
-        return updated;
-      });
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 1
+  });
 
-      // Mark this specific system and dataType as having been discovered
-      setDiscoveredFields(prev => ({
-        ...prev,
-        [key]: true
-      }));
-
-      const fieldCount = filteredFields.length;
-      toast({
-        title: "Fields discovered",
-        description: `${fieldCount} fields found for ${system} ${dataType}${fieldCount < 10 ? ". Try again for more fields." : ""}`,
-      });
-      
-      // Log the current state after update
-      console.log(`After discovery for ${key}:`, {
-        availableFields: filteredFields,
-        isDiscovered: true
-      });
+  const handleDiscoverFields = useCallback(async () => {
+    console.log('Manual field discovery triggered...');
+    setIsDiscovering(true);
+    
+    try {
+      await refetch();
+      toast.success('Field discovery completed successfully');
     } catch (error) {
-      console.error(`Error discovering fields for ${system} ${dataType}:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to discover fields for ${system} ${dataType}`,
-        variant: "destructive",
-      });
+      console.error('Manual field discovery failed:', error);
+      toast.error('Failed to discover fields');
     } finally {
-      // Clear the discovering state with a slight delay to avoid UI flashing
-      setTimeout(() => {
-        setIsDiscovering(prev => ({ 
-          ...prev, 
-          [`${system}_${dataType}`]: false
-        }));
-      }, 500);
+      setIsDiscovering(false);
     }
-  }, [isDiscovering, discoveryAttempts, setIsDiscovering, setDiscoveredFields, setAvailableFields, toast]);
+  }, [refetch]);
 
   return {
     isDiscovering,

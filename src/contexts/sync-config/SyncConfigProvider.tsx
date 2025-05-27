@@ -12,7 +12,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [syncConfig, setSyncConfig] = useState(initialSyncConfig);
-  const { debouncedSave } = useDebounceSave();
+  const { debouncedSave, isSaving } = useDebounceSave();
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -139,8 +139,14 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
 
   const handleFieldMappingChange = async (fieldMapping: FieldMappingType) => {
     try {
-      console.log('=== Field Mapping Change Started ===');
-      console.log('Raw input field mapping:', JSON.stringify(fieldMapping, null, 2));
+      console.log('=== FIELD MAPPING CHANGE STARTED ===');
+      console.log('Input field mapping:', JSON.stringify(fieldMapping, null, 2));
+      
+      // Validate the field mapping structure
+      if (!fieldMapping || typeof fieldMapping !== 'object') {
+        console.error('Invalid field mapping structure:', fieldMapping);
+        throw new Error('Invalid field mapping structure');
+      }
       
       // For each dataType, check if there's a field with isKeyField=true
       // If so, update the keyField property for that dataType
@@ -149,9 +155,14 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
       Object.keys(updatedFieldMapping).forEach(dataType => {
         const dataTypeObj = updatedFieldMapping[dataType];
         
+        if (!dataTypeObj || !dataTypeObj.fields) {
+          console.warn(`Missing fields for dataType: ${dataType}`);
+          return;
+        }
+        
         // Find a field with isKeyField=true
         const keyFieldEntry = Object.entries(dataTypeObj.fields).find(
-          ([_, fieldSettings]) => fieldSettings.isKeyField
+          ([_, fieldSettings]) => fieldSettings?.isKeyField
         );
         
         if (keyFieldEntry) {
@@ -161,7 +172,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
           
           // Ensure no other field is marked as a key field
           Object.entries(dataTypeObj.fields).forEach(([fieldName, settings]) => {
-            if (fieldName !== keyFieldEntry[0] && settings.isKeyField) {
+            if (fieldName !== keyFieldEntry[0] && settings?.isKeyField) {
               updatedFieldMapping[dataType].fields[fieldName] = {
                 ...settings,
                 isKeyField: false
@@ -184,12 +195,12 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
       console.log('Local state updated');
       
       // Save changes with debounce and NO toast notification to avoid flooding
-      console.log('Calling debouncedSave...');
+      console.log('Triggering debounced save...');
       await debouncedSave(newConfig, false);
 
-      console.log('=== Field Mapping Change Completed ===');
+      console.log('=== FIELD MAPPING CHANGE COMPLETED ===');
     } catch (error) {
-      console.error('=== Field Mapping Change Failed ===');
+      console.error('=== FIELD MAPPING CHANGE FAILED ===');
       console.error('Error updating field mapping:', error);
       toast({
         title: "Error",
@@ -201,7 +212,7 @@ export const SyncConfigProvider = ({ children }: { children: React.ReactNode }) 
 
   const value = {
     syncConfig,
-    isLoading,
+    isLoading: isLoading || isSaving,
     handleSyncDirectionChange,
     handleFiltersChange,
     handleFieldMappingChange

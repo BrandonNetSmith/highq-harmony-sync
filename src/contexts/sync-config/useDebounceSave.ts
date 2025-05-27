@@ -1,24 +1,31 @@
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { saveSyncConfig } from '@/services/syncConfig';
 import { toast } from "@/hooks/use-toast";
 
-// Define the Timeout type to match NodeJS.Timeout
-type Timeout = ReturnType<typeof setTimeout>;
-
 export function useDebounceSave() {
-  const [debounceTimer, setDebounceTimer] = useState<Timeout | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const debouncedSave = async (configData: any, showToast = true) => {
+  const debouncedSave = useCallback(async (configData: any, showToast = true) => {
+    console.log('=== DEBOUNCED SAVE TRIGGERED ===');
+    console.log('Config data to save:', JSON.stringify(configData, null, 2));
+    console.log('Show toast:', showToast);
+    
     // Clear any existing timers
-    if (debounceTimer !== null) {
-      clearTimeout(debounceTimer);
+    if (debounceTimerRef.current !== null) {
+      clearTimeout(debounceTimerRef.current);
+      console.log('Cleared existing debounce timer');
     }
     
+    // Set saving state
+    setIsSaving(true);
+    
     // Set a new timer
-    const timer = setTimeout(async () => {
+    debounceTimerRef.current = setTimeout(async () => {
       try {
-        console.log('Debounced save executing with data:', configData);
+        console.log('=== EXECUTING DEBOUNCED SAVE ===');
+        console.log('Final data being saved:', JSON.stringify(configData, null, 2));
         
         // Ensure field_mapping is properly formatted for storage
         if (configData.field_mapping) {
@@ -26,7 +33,7 @@ export function useDebounceSave() {
         }
         
         await saveSyncConfig(configData);
-        console.log('Debounced save completed successfully');
+        console.log('=== DEBOUNCED SAVE COMPLETED SUCCESSFULLY ===');
         
         if (showToast) {
           toast({
@@ -35,18 +42,21 @@ export function useDebounceSave() {
           });
         }
       } catch (error) {
+        console.error('=== DEBOUNCED SAVE FAILED ===');
         console.error('Error in debouncedSave:', error);
         toast({
           title: "Error",
           description: "Failed to save configuration",
           variant: "destructive",
         });
+      } finally {
+        setIsSaving(false);
+        debounceTimerRef.current = null;
       }
     }, 1000);
     
-    setDebounceTimer(timer);
     console.log('Debounce timer set for config save');
-  };
+  }, []);
   
-  return { debouncedSave };
+  return { debouncedSave, isSaving };
 }
